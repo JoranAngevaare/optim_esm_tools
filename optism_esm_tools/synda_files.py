@@ -41,7 +41,7 @@ class SyndaViewer:
                     break
 
             if self._add_head(directories):
-                label = os.path.join(*(split[len(self.chopped_path(last_head)) - 1:]))
+                label = os.path.join(*(split[len(self.chopped_path(last_head)):]))
 
                 tree.create_node(label, head, parent=last_head)
 
