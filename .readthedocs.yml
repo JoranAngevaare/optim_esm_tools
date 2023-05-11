@@ -1,0 +1,22 @@
+# Config for writing documentation
+
+# Required
+version: 2
+
+sphinx:
+  configuration: docs/source/conf.py
+
+build:
+  image: latest
+
+python:
+  version: "3.8"
+  install:
+    - requirements: extra_requirements/requirements-tests.txt
+    - requirements: extra_requirements/requirements-docs.txt
+    - method: setuptools
+      path: .
+
+formats:
+  - pdf
+  - epub
