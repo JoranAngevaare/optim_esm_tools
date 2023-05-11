@@ -1,0 +1,25 @@
+# Set update schedule for GitHub Actions
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Check for updates to GitHub Actions every weekday
+      interval: "monthly"
+      time: "12:00"
+    # Raise all npm pull requests with an assignee
+    assignees:
+      - JoranAngevaare
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+  # Maintain the requirements requirements folder
+  - package-ecosystem: "pip"
+    directory: "/extra_requirements"
+    schedule:
+      # Check for updates to requirements every week
+      interval: "monthly" 
+      time: "12:00"
+    open-pull-requests-limit: 5
