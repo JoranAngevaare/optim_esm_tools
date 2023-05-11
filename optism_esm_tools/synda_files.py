@@ -30,39 +30,31 @@ class SyndaViewer:
         base = self.base
         tree = Tree()
         tree.create_node(base, base)
+        last_head = base
         for head, directories, files in os.walk(base):
             if self._skip_deep(head):
                 continue
-            parent = head
-            if self._skip_concatenate(directories, files) <= 1:
-                continue
+            split = self.chopped_path(head)
+            for look_back in range(len(split)):
+                last_head = os.path.join(*((['/'] + split)[:-look_back - 1]))
+                if last_head in tree.nodes.keys():
+                    break
 
-            parent_is_known = parent in tree.nodes.keys()
-            look_back = 0
-            if not parent_is_known:
-                split = self.chopped_path(head)
-                for look_back in range(len(split)):
-                    if (parent := os.path.join(*(['/'] + split[:look_back + 1]))) in tree.nodes.keys():
-                        break
+            if self._add_head(directories):
+                label = os.path.join(*(split[len(self.chopped_path(last_head)) - 1:]))
 
-            for sub_dir in directories:
-                if look_back:
-                    label = os.path.join(*(split[-look_back:] + [sub_dir]))
-                else:
-                    label = sub_dir
-                tree.create_node(label, os.path.join(head, sub_dir), parent=parent)
+                tree.create_node(label, head, parent=last_head)
 
-            if self.show_files and len(files) > 1:
+            if self.show_files and len(files):
                 for file in files:
-                    if head not in tree.nodes.keys():
-                        # Still have to add the parent directory if it wasn't otherwise added.
-                        label = os.path.join(*(split[-look_back:] + [sub_dir]))
-                        tree.create_node(label, head, parent=parent)
                     tree.create_node(file, os.path.join(head, file), parent=head)
         return tree
 
-    def _skip_concatenate(self, directories, files) -> bool:
-        return self.concatenate_folders and (len(directories) + len(files))
+    def _add_head(self, directories) -> bool:
+        if not self.concatenate_folders:
+            return True
+        # Only skip if there is exactly ONE subfolder (then we concat)
+        return len(directories) != 1
 
     def _skip_deep(self, head) -> bool:
         return self.max_depth and self.count_depth(head) - self.count_depth(self.base) > self.max_depth
