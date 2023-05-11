@@ -24,7 +24,7 @@ from abc import ABC
 
 def load_glob(
         pattern,
-) -> xr.DataSet:
+) -> xr.Dataset:
     return xr.open_mfdataset(
         pattern,
         concat_dim="time",
