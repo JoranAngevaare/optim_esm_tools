@@ -3,7 +3,8 @@ from collections import defaultdict
 import os
 import glob
 import xarray as xr
-from tqdm.notebook import tqdm
+#from tqdm.notebook import tqdm
+from tqdm import tqdm
 import numpy as np
 from xmip.preprocessing import promote_empty_dims, replace_x_y_nominal_lat_lon, rename_cmip6
 from xmip.preprocessing import correct_coordinates, parse_lon_lat_bounds, maybe_convert_bounds_to_vertex, \
@@ -105,12 +106,15 @@ class ExtractChange(_ResultBase):
     deg_res = 10
     y_bins = np.arange(-90, 90 + 1, deg_res)
     x_bins = np.arange(0, 360 + 1, deg_res)
-    registry: typing.Dict[str, typing.Dict[str, xr.Dataset]] = defaultdict(dict)
+    registry: typing.Dict[str, typing.Dict[str, xr.Dataset]] = None
 
     def set_slices(self) -> None:
         pbar = self.tqdm(total=(len(self.x_bins) - 1) * (len(self.y_bins) - 1)
                          )
-        if self.registry:
+        
+        if self.registry is None:
+            self.registry = defaultdict(dict)
+        else:
             raise ValueError('sliced already')
         for x_i, x_l in enumerate(self.x_bins[:-1]):
             x_r = self.x_bins[x_i + 1]
