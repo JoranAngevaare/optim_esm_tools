@@ -73,7 +73,9 @@ class ResultOperations(_ResultBase):
         if not self._warned:
             warnings.warn('Averaging monthly (not accounting for days/month)')
             self._warned = True
-        return data.groupby('time.year').mean('time')  # .mean(dim='time')
+        data = data.groupby('time.year').mean('time')
+        data = data.rename(year='time')
+        return data
 
     @staticmethod
     def set_temperature_std(merged) -> None:
