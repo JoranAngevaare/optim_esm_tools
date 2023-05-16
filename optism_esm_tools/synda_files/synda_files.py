@@ -27,7 +27,7 @@ class SyndaViewer:
         self.max_depth = max_depth
         self.show_files = show_files
         self.concatenate_folders = concatenate_folders
-        self.count_files=count_files
+        self.count_files = count_files
 
     def tree(self) -> Tree:
         base = self.base
@@ -38,13 +38,13 @@ class SyndaViewer:
             if self._skip_deep(head):
                 continue
             split = self.chopped_path(head)
-            for look_back in range(len(split)-1):
+            for look_back in range(len(split) - 1):
                 last_head = os.sep.join(split[:-look_back])
                 if last_head in tree.nodes.keys():
                     break
             if last_head in ['', '/']:
                 print(head, directories, files, last_head, look_back, split[:-look_back], tree.nodes.keys())
-                last_head=base
+                last_head = base
 
             if self._add_head(directories):
                 label = os.path.join(*(split[len(self.chopped_path(last_head)):]))

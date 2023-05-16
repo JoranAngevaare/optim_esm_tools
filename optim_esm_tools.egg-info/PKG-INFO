@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: optim-esm-tools
+Version: 0.0.0
+Summary: Tools for OptismESM
+Home-page: https://github.com/JoranAngevaare/OptimESMPlayGround
+Author: Joran R. Angevaare
+Classifier: Intended Audience :: Science/Research
+Classifier: Development Status :: 3 - Alpha
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Scientific/Engineering :: Physics
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# OptimESMPlayGround
+Getting started with OptimESM
+
+Selection of tools and tricks for [OptimESM](https://cordis.europa.eu/project/id/101081193) project.
+
+J.R. Angevaare (KNMI)
+
+
