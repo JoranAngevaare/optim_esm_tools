@@ -3,13 +3,13 @@ from collections import defaultdict
 import os
 import glob
 import xarray as xr
-#from tqdm.notebook import tqdm
 from tqdm import tqdm
 import numpy as np
 from xmip.preprocessing import promote_empty_dims, replace_x_y_nominal_lat_lon, rename_cmip6
 from xmip.preprocessing import correct_coordinates, parse_lon_lat_bounds, maybe_convert_bounds_to_vertex, \
     maybe_convert_vertex_to_bounds, broadcast_lonlat
 from abc import ABC
+
 
 #
 # from cdo import Cdo
@@ -47,6 +47,7 @@ def recast(data_set):
 class _ResultBase(ABC):
     path: str
     data: xr.Dataset
+    tqdm: tqdm
 
 
 class ResultIO(_ResultBase):
@@ -113,7 +114,7 @@ class ExtractChange(_ResultBase):
     def set_slices(self) -> None:
         pbar = self.tqdm(total=(len(self.x_bins) - 1) * (len(self.y_bins) - 1)
                          )
-        
+
         if self.registry is None:
             self.registry = defaultdict(dict)
         else:
