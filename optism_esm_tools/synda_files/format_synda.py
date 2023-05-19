@@ -25,14 +25,20 @@ from abc import ABC
 
 def load_glob(
         pattern,
+        **kw,
 ) -> xr.Dataset:
-    return xr.open_mfdataset(
-        pattern,
+    for k,v in dict(
         concat_dim="time",
         combine="nested",
         data_vars='minimal',
         coords='minimal',
         compat='override',
+        decode_times=True,
+    ).items():
+        kw.setdefault(k,v)
+    return xr.open_mfdataset(
+        pattern,
+        **kw
     )
 
 
