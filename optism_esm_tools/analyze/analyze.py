@@ -1,7 +1,4 @@
 import optism_esm_tools as oet
-import time
-import sys
-import tqdm
 
 import pandas as pd
 import os
@@ -11,10 +8,6 @@ from optism_esm_tools.synda_files import format_synda as st
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
-
-
-def organize():
-    raise NotImplementedError
 
 
 def moving_average(a, n=3):
