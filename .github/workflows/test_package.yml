@@ -49,7 +49,9 @@ jobs:
             bash install_software.sh || { echo 'ERROR' ; exit 1; }
             cd ..
             pip install coverage pytest coveralls
-            pip install -e ../optism_esm_tools
+            echo ls `ls`
+            echo ls ../. `ls ../.`
+            pip install -e ../optim_esm_tools
       - name: Test package (linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
