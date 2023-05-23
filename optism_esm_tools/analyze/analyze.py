@@ -1,3 +1,5 @@
+"""Scaffolding"""
+
 import optism_esm_tools as oet
 
 import pandas as pd

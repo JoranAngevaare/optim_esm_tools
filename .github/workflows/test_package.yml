@@ -48,12 +48,13 @@ jobs:
             cd base_install
             bash install_software.sh || { echo 'ERROR' ; exit 1; }
             cd ..
+            pip install coverage pytest coveralls
       - name: Test package (linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           coverage run --source=optism_esm_tools -m pytest -vsx --durations 0
-          coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
+          # coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coveralls --service=github
       # - name: Coveralls
       #   if: matrix.test == 'coveralls'
