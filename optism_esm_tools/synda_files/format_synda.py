@@ -28,6 +28,7 @@ def load_glob(
         **kw,
 ) -> xr.Dataset:
     for k,v in dict(
+        use_cftime=True,
         concat_dim="time",
         combine="nested",
         data_vars='minimal',
