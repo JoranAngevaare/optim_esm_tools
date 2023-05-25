@@ -14,18 +14,21 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import cartopy.crs as ccrs
 from immutabledict import immutabledict
-
+import xrft
 
 
 _seconds_to_year = 365.25*24*3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.0.1'
+__OPTIM_VERSION__ = '0.1.0'
 
 
-def read_ds(base: str,
-            need_keys: ty.Iterable = (
-                'merged', 'run_mean_10', 'detrend', 'detrend_run_mean_10')
-            ) -> xr.Dataset:
+def read_ds(
+    base: str,
+    variable_of_interest: ty.Tuple[str] = ('tas',),
+    _time_var = 'time',
+    _detrend_type='linear',
+    _ma_window: int=10,
+    ) -> xr.Dataset:
     """Read a dataset from a folder called "base"
 
     Args:
@@ -39,63 +42,40 @@ def read_ds(base: str,
 
     post_processed_file = os.path.join(
         base, f'optimesm_v{__OPTIM_VERSION__}.nc')
-    if os.path.exists(post_processed_file):
+    if os.path.exists(post_processed_file) and False:
         return oet.analyze.analyze.st.load_glob(post_processed_file)
 
-    data_set = {k.strip('.nc'): oet.analyze.analyze.st.load_glob(os.path.join(base, k))
-                for
-                k in os.listdir(base)
-                if 'optimesm' not in k  # Skip all post_processed files
-                }
-    data_set = {name: oet.analyze.analyze.st.recast(
-        ds) for name, ds in data_set.items()}
-    if not all(k in data_set for k in need_keys):
-        print(f'{base} incomplete')
+    data_path = os.path.join(base, 'merged.nc')
+    if not os.path.exists(data_path):
+        warn(f'No dataset at {data_path}')
         return None
+    data_set = oet.analyze.analyze.st.load_glob(data_path)
+    data_set = oet.analyze.analyze.st.recast(data_set)
 
-    # Note: maybe we can frop the runmean requirement by using:
-    #         import pandas as pd
-    #         da = xr.DataArray(
-    #             np.linspace(0, 11, num=12),
-    #             coords=[
-    #                 pd.date_range(
-    #                     "1999-12-15",
-    #                     periods=12,
-    #                     freq=pd.DateOffset(months=1),
-    #                 )
-    #             ],
-    #             dims="time",
-    #         )
-    #         da
-    #         da.rolling(time=3, center=True).mean()
-    #
-    # And:
-    #        https://xrft.readthedocs.io/en/latest/_modules/xrft/detrend.html
-
-    ds_combined = {
-        'merged': xr.merge([data_set['merged'],
-                            data_set['detrend'].rename(tas='tas_detrend')]),
-        'run_mean_10': xr.merge([data_set['run_mean_10'],
-                                 data_set['detrend_run_mean_10'].rename(tas='tas_detrend')])
-        }
-    ds_runmean = ds_combined['run_mean_10'].rename(
-        time='time_run_mean_10',
-        tas='tas_run_mean_10',
-        tas_detrend='tas_detrend_run_mean_10',
-        time_bounds='time_bounds_run_mean_10'
-    )
-    ds_combined = xr.merge([ds_runmean, ds_combined['merged']])
-
+    # Detrend and run_mean on the fly
+    for variable in variable_of_interest:
+        run_mean =  data_set.rolling(time=_ma_window, center=True).mean()
+        
+        # NB these are DataArrays not Datasets!
+        detrended = xrft.detrend(data_set[variable], _time_var, detrend_type=_detrend_type)
+        detrended_run_mean = xrft.detrend(run_mean[variable].dropna(_time_var), _time_var, detrend_type=_detrend_type)
+        
+        data_set[f'{variable}_detrend'] = detrended
+        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
+        
+        run_mean = run_mean.rename(tas=f'{variable}_run_mean_{_ma_window}')
+    
+        data_set = data_set.merge(data_set, run_mean)
+    
     folders = base.split(os.sep)
-
+    
     # start with -1 (for i==0)
     metadata = {k: folders[-i-1] for i, k in enumerate(folder_fmt[::-1])
                 }
-    metadata['path'] = base
-    ds_combined.attrs.update(metadata)
+    data_set.attrs.update(metadata)
     print(f'Write {post_processed_file}', flush=True, end='\r')
-    ds_combined.to_netcdf(post_processed_file)
-    return ds_combined
+    data_set.to_netcdf(post_processed_file)
+    return data_set
 
 
 def example_time_series(ds_combined: xr.Dataset) -> None:
@@ -108,7 +88,7 @@ def example_time_series(ds_combined: xr.Dataset) -> None:
     variable = 'tas_detrend'
     variable_rm = 'tas_detrend_run_mean_10'
     time = 'time'
-    time_rm = 'time_run_mean_10'
+    time_rm = 'time'
 
     _, axes = plt.subplots(3, 1, figsize=(12, 10))
     plt.sca(axes[0])
@@ -176,7 +156,7 @@ def check_accepts(accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('a
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_diff(data_set: xr.Dataset,
                       variable: str = 'tas',
-                      time_var: str = 'time_run_mean_10',
+                      time_var: str = 'time',
                       naming: str = '{variable}_run_mean_10',
                       rename_to: str = 'long_name',
                       unit: str = 'absolute') -> xr.Dataset:
@@ -222,7 +202,7 @@ def running_mean_diff(data_set: xr.Dataset,
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_std(data_set: xr.Dataset,
                      variable: str = 'tas',
-                     time_var: str = 'time_run_mean_10',
+                     time_var: str = 'time',
                      naming: str = '{variable}_detrend_run_mean_10',
                      rename_to: str = 'long_name',
                      unit: str = 'absolute') -> xr.Dataset:
@@ -251,7 +231,7 @@ def running_mean_std(data_set: xr.Dataset,
 def max_change_xyr(
         data_set: xr.Dataset,
         variable: str = 'tas',
-        time_var: str = 'time_run_mean_10',
+        time_var: str = 'time',
         naming: str = '{variable}_run_mean_10',
         x_yr: ty.Union[int, float] = 10,
         rename_to: str = 'long_name',
@@ -286,7 +266,7 @@ def max_change_xyr(
 def max_derivative(
     data_set: xr.Dataset,
     variable: str = 'tas',
-    time_var: str = 'time_run_mean_10',
+    time_var: str = 'time',
     naming: str = '{variable}_run_mean_10',
     rename_to: str = 'long_name',
     unit: str = 'absolute',
@@ -320,7 +300,7 @@ def max_derivative(
 def _max_double_derivative(
     data_set,
     variable='tas',
-    time_var='time_run_mean_10',
+    time_var='time',
     naming='{variable}_run_mean_10',
     rename_to='long_name',
     unit='absolute'
