@@ -15,7 +15,6 @@ from matplotlib.gridspec import GridSpec
 import cartopy.crs as ccrs
 from immutabledict import immutabledict
 import xrft
-=======
 
 
 _seconds_to_year = 365.25*24*3600
@@ -64,10 +63,18 @@ def read_ds(
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
         
-        run_mean = run_mean.rename(tas=f'{variable}_run_mean_{_ma_window}')
-    
-        data_set = data_set.merge(data_set, run_mean)
-    
+            
+        data_set[f'{variable}_detrend'] = detrended
+        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
+
+        run_mean = run_mean.rename(
+            {#_time_var: f'{_time_var}_run_mean_{_ma_window}',
+             variable: f'{variable}_run_mean_{_ma_window}',
+            #  f'{_time_var}_bounds': f'{_time_var}_bounds_run_mean_{_ma_window}'
+             })
+        run_mean=run_mean.drop(f'{_time_var}_bounds')
+        data_set = data_set.merge(run_mean)
+
     folders = base.split(os.sep)
     
     # start with -1 (for i==0)
@@ -75,7 +82,7 @@ def read_ds(
                 }
     data_set.attrs.update(metadata)
     print(f'Write {post_processed_file}', flush=True, end='\r')
-    data_set.to_netcdf(post_processed_file)
+    # data_set.to_netcdf(post_processed_file)
     return data_set
 
 
@@ -89,7 +96,7 @@ def example_time_series(ds_combined: xr.Dataset) -> None:
     variable = 'tas_detrend'
     variable_rm = 'tas_detrend_run_mean_10'
     time = 'time'
-    time_rm = 'time_run_mean_10'
+    time_rm = time
 
     _, axes = plt.subplots(3, 1, figsize=(12, 10))
     plt.sca(axes[0])
