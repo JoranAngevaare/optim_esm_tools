@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ "ubuntu-latest"]
+        os: [ "ubuntu-latest", "ubuntu-20.04"]
         python-version: [ "3.8", ]
         test: [ 'coveralls', ]
         exclude:
