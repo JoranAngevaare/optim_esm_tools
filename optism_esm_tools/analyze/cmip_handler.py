@@ -15,6 +15,7 @@ from matplotlib.gridspec import GridSpec
 import cartopy.crs as ccrs
 from immutabledict import immutabledict
 import xrft
+=======
 
 
 _seconds_to_year = 365.25*24*3600
@@ -88,7 +89,7 @@ def example_time_series(ds_combined: xr.Dataset) -> None:
     variable = 'tas_detrend'
     variable_rm = 'tas_detrend_run_mean_10'
     time = 'time'
-    time_rm = 'time'
+    time_rm = 'time_run_mean_10'
 
     _, axes = plt.subplots(3, 1, figsize=(12, 10))
     plt.sca(axes[0])
