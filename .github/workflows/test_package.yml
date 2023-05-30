@@ -51,6 +51,7 @@ jobs:
             git clone https://github.com/JoranAngevaare/optim_esm_base.git base_install
             cd base_install
             bash install_software.sh || { echo 'ERROR' ; exit 1; }
+            mamba install cartopy==0.21.1
             cd ..
             pip install coverage pytest coveralls
             echo ls `ls`
