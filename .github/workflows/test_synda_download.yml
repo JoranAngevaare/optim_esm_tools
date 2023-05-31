@@ -11,16 +11,15 @@ on:
 
 jobs:
   update:
-    name: "(${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.test }})"
+    name: "(${{ matrix.os }}, ${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     env:
       ST_HOME: ~/synda
     strategy:
       fail-fast: False
       matrix:
-        os: [ "ubuntu-latest", "ubuntu-20.04"]
+        os: [ "ubuntu-latest", ]
         python-version: [ "3.8", ]
-        test: [ 'coveralls', ]
         exclude:
           - python-version: 3.9
             test: coveralls
