@@ -48,7 +48,7 @@ jobs:
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
-        run: 
+        run: |
           yes | synda init-env
           bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
