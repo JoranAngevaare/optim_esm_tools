@@ -2,6 +2,7 @@ import unittest
 import optim_esm_tools as oet
 import os
 import glob
+import matplotlib.pyplot as plt
 
 
 class TestMapMaker(unittest.TestCase):
@@ -27,4 +28,9 @@ class TestMapMaker(unittest.TestCase):
         self.from_amon_to_ayear()
 
     def test_read_data(self):
-        dataset = oet.synda_files.format_synda.load_glob(self.ayear_file)
+        data_set = oet.synda_files.format_synda.load_glob(self.ayear_file)
+    
+    def test_make_map(self):
+        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
+        plt.clf()
