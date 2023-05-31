@@ -1,7 +1,7 @@
 # File for the requirements of the documentation
 nbsphinx==0.8.12
 recommonmark==0.7.1
-sphinx_rtd_theme==1.1.1
+sphinx_rtd_theme==1.2.1
 sphinx==5.3.0
 sphinxcontrib_applehelp==1.0.4
 sphinxcontrib_devhelp==1.0.2
