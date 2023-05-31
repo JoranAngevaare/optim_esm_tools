@@ -1,5 +1,5 @@
 import numpy as np
-from optism_esm_tools.analyze.xarray_tools import mask2d_to_xy_slice, _mask2d_to_xy_slice 
+from optim_esm_tools.analyze.xarray_tools import mask2d_to_xy_slice, _mask2d_to_xy_slice 
 
 # TODO write propper hypothesis test
 def test_xarray_2d_slicer():

@@ -18,6 +18,7 @@ from hashlib import sha1
 from collections.abc import Mapping
 import sys
 
+
 # From https://github.com/AxFoundation/strax/blob/136a16975b18ee87500051fd81a90c894d9b58dc/strax/utils.py#L33
 if any('jupyter' in arg for arg in sys.argv):
     # In some cases we are not using any notebooks,
@@ -78,13 +79,13 @@ def setup_plt(use_tex=True):
     register_as = 'custom_map'
     custom = ListedColormap(
         mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
-    mpl.colormaps.register(custom, name=register_as)
+    mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
     register_as += '_r'
     custom = ListedColormap(
         mpl.colormaps['viridis_r'](np.linspace(0.15, 1, 1000)))
-    mpl.colormaps.register(custom, name=register_as)
+    mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
 
@@ -188,6 +189,7 @@ def string_to_mathrm(string):
     """wrap a string in mathrm mode for latex labels"""
     string = string.replace(' ', '\ ')
     return f'$\mathrm{{{string}}}$'
+
 
 def legend_kw(**kw):
     options = dict(

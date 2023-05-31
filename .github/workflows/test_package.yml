@@ -3,7 +3,7 @@ name: Pytest
 on:
   workflow_dispatch:
   release:
-    types: [ created ]
+    types: [created]
   pull_request:
   push:
     branches:
@@ -16,9 +16,9 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ "ubuntu-latest", "ubuntu-20.04"]
-        python-version: [ "3.8", ]
-        test: [ 'coveralls', ]
+        os: ["ubuntu-latest", "ubuntu-20.04"]
+        python-version: ["3.8"]
+        test: ["coveralls"]
         exclude:
           - python-version: 3.9
             test: coveralls
@@ -31,25 +31,31 @@ jobs:
         uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
         with:
-            miniforge-variant: Mambaforge
-            miniforge-version: latest
-            use-mamba: true
-            auto-update-conda: true
-            python-version: ${{ matrix.python-version }}
-            activate-environment: "synda"
-            mamba-version: "*"
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          activate-environment: "synda"
+          mamba-version: "*"
       - name: run install
-        run:
-          |
-            conda info
-            conda activate synda
-            bash .github/scripts/install_env.sh
+        run: |
+          conda info
+          conda activate synda
+          bash .github/scripts/install_env.sh
+      - name: set Synda config
+        env:
+          OPEN_ID: ${{ secrets.OPEN_ID }}
+          OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
+        run: bash .github/scripts/write_synda_cridentials.sh
+      - name: Download data with Synda
+        run: bash .github/scripts/download_example_data.sh
       - name: Test package (linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          coverage run --source=optism_esm_tools -m pytest -vsx --durations 0
-          # coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
+          coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
+          # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coveralls --service=github
       - name: goodbye
         run: echo goodbye

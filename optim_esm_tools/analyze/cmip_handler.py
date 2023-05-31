@@ -1,5 +1,4 @@
-import optism_esm_tools as oet
-from optism_esm_tools.utils import tqdm
+import optim_esm_tools as oet
 
 import os
 import xarray as xr
@@ -119,7 +118,7 @@ def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
     Args:
         ds_combined (xr.Dataset): dataset
     """
-    sel = dict(x=20, y=90)
+    sel = dict(x=20, y=20)
     detrend_variable = f'{variable}_detrend'
     detrend_variable_running_mean = f'{variable}_detrend_run_mean_10'
     time = 'time'

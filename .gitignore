@@ -16,3 +16,5 @@ optism_esm_tools.egg-info/*
 *.png
 .hypothesis
 .coverage
+optim_esm_tools/optim_esm_tools.egg-info
+*.egg-info
