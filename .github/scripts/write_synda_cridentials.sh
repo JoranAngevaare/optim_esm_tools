@@ -1,4 +1,4 @@
-
+mkdir $ST_HOME/conf
 cat << EOF > $ST_HOME/conf/credentials.conf
 [esgf_credential]
 openid = $OPEN_ID
