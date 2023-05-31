@@ -45,7 +45,7 @@ jobs:
           |
             conda info
             conda activate synda
-            bash .github/scripts/install_env.sh
+            bash .github/scripts/install_env.sh --synda_dir $ST_HOME
       - name: set Synda config
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
@@ -64,5 +64,8 @@ jobs:
           sleep 60
           synda queue
           find $ST_HOME/data -type f
+
+          synda install CMIP6.ScenarioMIP.CCCR-IITM.IITM-ESM.ssp585.r1i1p1f1.3hr.tas.gn.v20200915 -y
+          synda daemon start ; synda queue; synda watch
       - name: goodbye
         run: echo goodbye
