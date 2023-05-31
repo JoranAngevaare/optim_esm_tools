@@ -61,11 +61,14 @@ jobs:
           synda daemon start
           synda queue
           synda watch
-          sleep 60
+          
           synda queue
           find $ST_HOME/data -type f
-
+          synda certificate renew
           synda install CMIP6.ScenarioMIP.CCCR-IITM.IITM-ESM.ssp585.r1i1p1f1.3hr.tas.gn.v20200915 -y
-          synda daemon start ; synda queue; synda watch
+          synda daemon start ;
+          sleep 60
+          synda queue; 
+          synda watch
       - name: goodbye
         run: echo goodbye
