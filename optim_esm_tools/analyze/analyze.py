@@ -1,12 +1,12 @@
 """Scaffolding"""
 
-import optism_esm_tools as oet
+import optim_esm_tools as oet
 
 import pandas as pd
 import os
 from collections import defaultdict
 from functools import wraps
-from optism_esm_tools.synda_files import format_synda as st
+from optim_esm_tools.synda_files import format_synda as st
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np

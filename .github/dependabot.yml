@@ -20,6 +20,6 @@ updates:
     directory: "/extra_requirements"
     schedule:
       # Check for updates to requirements every week
-      interval: "monthly" 
+      interval: "monthly"
       time: "12:00"
     open-pull-requests-limit: 5

@@ -1,5 +1,4 @@
-import optism_esm_tools as oet
-from optism_esm_tools.utils import tqdm
+import optim_esm_tools as oet
 
 import os
 import xarray as xr
@@ -78,13 +77,13 @@ def read_ds(base: str,
         'run_mean_10': xr.merge([data_set['run_mean_10'],
                                  data_set['detrend_run_mean_10'].rename(tas='tas_detrend')])
         }
-    ds_runmean = ds_combined['run_mean_10'].rename(
+    ds_run_mean = ds_combined['run_mean_10'].rename(
         time='time_run_mean_10',
         tas='tas_run_mean_10',
         tas_detrend='tas_detrend_run_mean_10',
         time_bounds='time_bounds_run_mean_10'
     )
-    ds_combined = xr.merge([ds_runmean, ds_combined['merged']])
+    ds_combined = xr.merge([ds_run_mean, ds_combined['merged']])
 
     folders = base.split(os.sep)
 
