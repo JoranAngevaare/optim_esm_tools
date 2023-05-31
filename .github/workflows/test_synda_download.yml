@@ -1,4 +1,4 @@
-name: Pytest
+name: Synda download
 
 on:
   workflow_dispatch:
@@ -11,17 +11,15 @@ on:
 
 jobs:
   update:
-    name: "(${{ matrix.os }}, ${{ matrix.python-version }})"
+    name: "(${{ matrix.os }}, ${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
-        os: [ "ubuntu-latest", "ubuntu-20.04"]
+        os: [ "ubuntu-latest", ]
         python-version: [ "3.8", ]
-        test: [ 'coveralls', ]
         exclude:
           - python-version: 3.9
-            test: coveralls
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
@@ -39,17 +37,19 @@ jobs:
             activate-environment: "synda"
             mamba-version: "*"
       - name: run install
+        env:
+          ST_HOME: ~/synda
         run:
           |
             conda info
             conda activate synda
-            bash .github/scripts/install_env.sh
-      - name: Test package (linux)
+            bash .github/scripts/install_env.sh --synda_dir $ST_HOME --no_cdo --only_synda
+      - name: set Synda config
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          coverage run --source=optism_esm_tools -m pytest -vsx --durations 0
-          # coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
-          coveralls --service=github
+          OPEN_ID: ${{ secrets.OPEN_ID }}
+          OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
+        run: bash .github/scripts/write_synda_cridentials.sh
+      - name: Download data with Synda
+        run: bash .github/scripts/download_example_data.sh
       - name: goodbye
         run: echo goodbye
