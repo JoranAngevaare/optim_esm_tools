@@ -22,7 +22,6 @@ jobs:
         python-version: [ "3.8", ]
         exclude:
           - python-version: 3.9
-            test: coveralls
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
