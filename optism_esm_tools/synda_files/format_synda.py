@@ -43,10 +43,20 @@ def load_glob(
     )
 
 
+def _interp_nominal_lon_new(lon_1d):
+    print('Using altered version')
+    x = np.arange(len(lon_1d))
+    idx = np.isnan(lon_1d)
+    # TODO assume that longitudes are cyclic (i.e., don't)
+    ret = np.interp(x, x[~idx], lon_1d[~idx], period=len(lon_1d))
+    return ret
+
 def recast(data_set):
     ds = rename_cmip6(data_set)
     ds = promote_empty_dims(ds)
     ds = broadcast_lonlat(ds)
+    import xmip.preprocessing
+    xmip.preprocessing._interp_nominal_lon = _interp_nominal_lon_new
     ds = replace_x_y_nominal_lat_lon(ds)
     return ds
 

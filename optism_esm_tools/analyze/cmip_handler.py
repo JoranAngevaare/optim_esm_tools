@@ -19,102 +19,129 @@ import xrft
 
 _seconds_to_year = 365.25*24*3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.0'
+__OPTIM_VERSION__ = '0.1.4'
+
+
+def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
+    """Create date object using the date formatting from the time-array"""
+    if isinstance(time_array, xr.DataArray):
+        return _native_date_fmt(time_array=time_array.values, date=date)
+
+    if not len(time_array):
+        raise ValueError(f'No values in dataset?')
+
+    # Support cftime.DatetimeJulian, cftime.DatetimeGregorian, cftime.DatetimeNoLeap and similar
+    _time_class = time_array[0].__class__
+    return _time_class(*date)
 
 
 def read_ds(
     base: str,
     variable_of_interest: ty.Tuple[str] = ('tas',),
-    _time_var = 'time',
+    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
+    min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    _time_var='time',
     _detrend_type='linear',
-    _ma_window: int=10,
-    ) -> xr.Dataset:
-    """Read a dataset from a folder called "base"
+    _ma_window: int = 10,
+    _cache: bool = True
+) -> xr.Dataset:
+    """Read a dataset from a folder called "base".
 
     Args:
         base (str): Folder to load the data from
-        need_keys (ty.Iterable, optional): which files there should be in base to be considered 
-        suitable for loading. Defaults to ('merged', 'run_mean_10', 'detrend', 'detrend_run_mean_10').
+        variable_of_interest (ty.Tuple[str], optional): _description_. Defaults to ('tas',).
+        _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
+        _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
+        _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
+        _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
 
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
     """
-
     post_processed_file = os.path.join(
-        base, f'optimesm_v{__OPTIM_VERSION__}.nc')
-    if os.path.exists(post_processed_file) and False:
+        base,
+        f'{variable_of_interest}'
+        f'_{min_time if min_time else ""}'
+        f'_{max_time if max_time else ""}'
+        f'_ma{_ma_window}'
+        f'_optimesm_v{__OPTIM_VERSION__}.nc').replace('(', '').replace(')', '').replace(' ', '_').replace(',', '').replace('\'', '')
+
+    if os.path.exists(post_processed_file) and _cache:
         return oet.analyze.analyze.st.load_glob(post_processed_file)
 
     data_path = os.path.join(base, 'merged.nc')
     if not os.path.exists(data_path):
         warn(f'No dataset at {data_path}')
         return None
+
     data_set = oet.analyze.analyze.st.load_glob(data_path)
     data_set = oet.analyze.analyze.st.recast(data_set)
 
+    if min_time or max_time:
+        time_slice = [_native_date_fmt(data_set[_time_var], d)
+                      if d is not None else None
+                      for d in [min_time, max_time]]
+        data_set = data_set.sel(**{_time_var: slice(*time_slice)})
+
     # Detrend and run_mean on the fly
     for variable in variable_of_interest:
-        run_mean =  data_set.rolling(time=_ma_window, center=True).mean()
-        
-        # NB these are DataArrays not Datasets!
-        detrended = xrft.detrend(data_set[variable], _time_var, detrend_type=_detrend_type)
-        detrended_run_mean = xrft.detrend(run_mean[variable].dropna(_time_var), _time_var, detrend_type=_detrend_type)
-        
-        data_set[f'{variable}_detrend'] = detrended
-        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
-        
-            
-        data_set[f'{variable}_detrend'] = detrended
-        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
 
-        run_mean = run_mean.rename(
-            {#_time_var: f'{_time_var}_run_mean_{_ma_window}',
-             variable: f'{variable}_run_mean_{_ma_window}',
-            #  f'{_time_var}_bounds': f'{_time_var}_bounds_run_mean_{_ma_window}'
-             })
-        run_mean=run_mean.drop(f'{_time_var}_bounds')
-        data_set = data_set.merge(run_mean)
+        # NB these are DataArrays not Datasets!
+        run_mean = data_set[variable].rolling(
+            time=_ma_window, center=True).mean()
+        detrended = xrft.detrend(
+            data_set[variable], _time_var, detrend_type=_detrend_type)
+        detrended_run_mean = xrft.detrend(run_mean.dropna(
+            _time_var), _time_var, detrend_type=_detrend_type)
+
+        data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
+        data_set[f'{variable}_detrend'] = detrended
+        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
 
     folders = base.split(os.sep)
-    
+
     # start with -1 (for i==0)
     metadata = {k: folders[-i-1] for i, k in enumerate(folder_fmt[::-1])
                 }
+    metadata['path'] = base
+    metadata['file'] = post_processed_file
     data_set.attrs.update(metadata)
-    print(f'Write {post_processed_file}', flush=True, end='\r')
-    # data_set.to_netcdf(post_processed_file)
+
+    if _cache:
+        print(f'Write {post_processed_file}' + ' '*100, flush=True, end='\r')
+        data_set.to_netcdf(post_processed_file)
     return data_set
 
 
-def example_time_series(ds_combined: xr.Dataset) -> None:
+def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
     """Make an example of time series based on datset
 
     Args:
         ds_combined (xr.Dataset): dataset
     """
     sel = dict(x=20, y=90)
-    variable = 'tas_detrend'
-    variable_rm = 'tas_detrend_run_mean_10'
+    detrend_variable = f'{variable}_detrend'
+    detrend_variable_running_mean = f'{variable}_detrend_run_mean_10'
     time = 'time'
-    time_rm = time
 
     _, axes = plt.subplots(3, 1, figsize=(12, 10))
     plt.sca(axes[0])
 
-    ds_combined.isel(**sel)[variable].plot(label='detrended')
-    ds_combined.isel(**sel)[variable_rm].plot(label='detrended, runmean')
+    ds_combined.isel(**sel)[detrend_variable].plot(label='detrended')
+    ds_combined.isel(
+        **sel)[detrend_variable_running_mean].plot(label='detrended, runmean')
     plt.legend()
 
     plt.sca(axes[1])
     # ds_combined.differentiate("time").isel(**sel)[variable].plot(label='detrended')
-    ds_combined.differentiate(time_rm).isel(
-        **sel)[variable_rm].plot(label='detrended, runmean')
+    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(time).isel(
+        **sel).plot(label='detrended, runmean')
     plt.legend()
 
     plt.sca(axes[2])
     # ds_combined.differentiate("time").differentiate("time").isel(**sel)[variable].plot(label='detrended')
-    ds_combined.differentiate(time_rm).differentiate(time_rm).isel(
-        **sel)[variable_rm].plot(label='detrended, runmean')
+    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(time).differentiate(time).isel(
+        **sel).plot(label='detrended, runmean')
     plt.legend()
 
 
@@ -167,7 +194,10 @@ def running_mean_diff(data_set: xr.Dataset,
                       time_var: str = 'time',
                       naming: str = '{variable}_run_mean_10',
                       rename_to: str = 'long_name',
-                      unit: str = 'absolute') -> xr.Dataset:
+                      unit: str = 'absolute',
+                      _t_0_date: tuple = (2015, 1, 1),
+                      _t_1_date: tuple = (2100, 1, 1),
+                      ) -> xr.Dataset:
     """Return difference in running mean of data set
 
     Args:
@@ -181,12 +211,21 @@ def running_mean_diff(data_set: xr.Dataset,
     Returns:
         xr.Dataset
     """
-    t_0 = data_set.isel({time_var: 0})
-    t_1 = data_set.isel({time_var: -1})
-
     var_name = naming.format(variable=variable)
+    _time_values = data_set[time_var].dropna(time_var)
 
-    result = (t_1-t_0)[var_name]
+    if not len(_time_values):
+        raise ValueError(f'No values for {time_var} in dataset?')
+
+    t_0 = _native_date_fmt(_time_values, _t_0_date)
+    t_1 = _native_date_fmt(_time_values, _t_1_date)
+
+    data_t_0 = data_set[var_name].dropna(
+        time_var).sel(time=t_0, method='nearest')
+    data_t_1 = data_set[var_name].dropna(
+        time_var).sel(time=t_1, method='nearest')
+
+    result = (data_t_1-data_t_0)
     result = result.copy()
     var_unit = data_set[variable].attrs.get('units', '{units}')
     name = data_set[variable].attrs.get(rename_to, variable)
@@ -196,7 +235,7 @@ def running_mean_diff(data_set: xr.Dataset,
         return result
 
     if unit == 'relative':
-        result = 100 * result / t_0[var_name]
+        result = 100 * result / data_t_0
         result.name = f't[-1] - t[0] / t[0] for {name} $\%$'
         return result
 
@@ -225,7 +264,7 @@ def running_mean_std(data_set: xr.Dataset,
         return result
 
     if unit == 'relative':
-        results = result / data_set[data_var].mean(dim=time_var)
+        result = result / data_set[data_var].mean(dim=time_var)
         result.name = f'Relative Std. {name} [$\%$]'
         return result
 
@@ -281,8 +320,8 @@ def max_derivative(
 ) -> xr.Dataset:
 
     data_var = naming.format(variable=variable)
-    result = (data_set.differentiate(time_var)[
-              data_var].max(dim=time_var)*_seconds_to_year).copy()
+    result = (data_set[data_var].dropna(time_var).differentiate(
+        time_var).max(dim=time_var)*_seconds_to_year).copy()
 
     var_unit = data_set[data_var].attrs.get('units', '{units}')
     name = data_set[data_var].attrs.get(rename_to, variable)
@@ -315,8 +354,8 @@ def _max_double_derivative(
 ):
 
     data_var = naming.format(variable=variable)
-    result = (data_set.differentiate(time_var).differentiate(time_var)
-              [data_var].max(dim=time_var)*(_seconds_to_year**2)).copy()
+    result = (data_set[data_var].dropna(time_var).differentiate(time_var).differentiate(time_var)
+              .max(dim=time_var)*(_seconds_to_year**2)).copy()
 
     unit = data_set[data_var].attrs.get('units', '{units}')
     name = data_set[data_var].attrs.get(rename_to, variable)
@@ -352,7 +391,10 @@ class MapMaker(object):
 
     _cache: bool = False
 
-    def __init__(self, data_set: xr.Dataset, normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None, cache: bool = False):
+    def __init__(self, 
+                 data_set: xr.Dataset, 
+                 normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None, 
+                 cache: bool = False):
         self.data_set = data_set
         if normalizations is None:
             self.normalizations = {i: [None, None]
@@ -371,7 +413,8 @@ class MapMaker(object):
         )
 
         if self.normalizations is None or _incorrect_format():
-            raise TypeError(f'Normalizations should be mapping from {self.conditions.keys()} to vmin, vmax, '
+            raise TypeError(f'Normalizations should be mapping from' 
+                            f'{self.conditions.keys()} to vmin, vmax, '
                             f'got {self.normalizations} (from {normalizations})')
         self._cache = cache
 
@@ -428,7 +471,7 @@ class MapMaker(object):
     def __getattr__(self, item):
         if item in self.conditions:
 
-            label, function = self.conditions[item]
+            _, function = self.conditions[item]
             key = f'_{item}'
             if self._cache:
                 if not isinstance(self._cache, dict):
@@ -453,12 +496,13 @@ class MapMaker(object):
         variable_det_rm = f'{variable}_detrend_run_mean_10'
 
         time = 'time'
-        time_rm = 'time_run_mean_10'
+        time_rm = time
         ds = self.data_set.mean(dim=['x', 'y'])
-
-        _, axes = plt.subplots(3, 1, figsize=(
-            12, 10), gridspec_kw=dict(hspace=0.3))
-
+        
+        _, axes = plt.subplots(3, 1, 
+                               figsize=( 12, 10), 
+                               gridspec_kw=dict(hspace=0.3))
+        
         plt.sca(axes[0])
         ds[variable].plot(label='variable')
         ds[variable_rm].plot(label='variable_rm')
@@ -472,11 +516,15 @@ class MapMaker(object):
         plt.legend()
 
         plt.sca(axes[2])
-        
-        (ds.differentiate(time)[variable] * _seconds_to_year).plot(label='d/dt variable')
-        (ds.differentiate(time_rm)[variable_rm] * _seconds_to_year).plot(label='d/dt variable rm')
-        plt.ylim((ds.differentiate(time_rm)[variable_rm].min()*1.05*_seconds_to_year),
-                 (ds.differentiate(time_rm)[variable_rm].max()*1.05*_seconds_to_year))
+
+        # Dropna should take care of any nones in the data-array
+        dy_dt = ds[variable].dropna(time).differentiate(time)
+        dy_dt *= _seconds_to_year
+        dy_dt.plot(label='d/dt variable')
+        dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm) 
+        dy_dt_rm *= _seconds_to_year
+        dy_dt_rm.plot(label='d/dt variable rm')
+        plt.ylim(dy_dt_rm.min()/1.05, dy_dt_rm.max()*1.05)
         plt.ylabel('dT/dt [K/yr]')
         plt.legend()
 
