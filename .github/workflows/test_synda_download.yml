@@ -13,8 +13,6 @@ jobs:
   update:
     name: "(${{ matrix.os }}, ${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
-    env:
-      ST_HOME: ~/synda
     strategy:
       fail-fast: False
       matrix:
@@ -39,6 +37,8 @@ jobs:
             activate-environment: "synda"
             mamba-version: "*"
       - name: run install
+        env:
+          ST_HOME: ~/synda
         run:
           |
             conda info
@@ -48,7 +48,9 @@ jobs:
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
-        run: bash .github/scripts/write_synda_cridentials.sh
+        run: 
+          yes | synda init-env
+          bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
