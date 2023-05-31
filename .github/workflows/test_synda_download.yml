@@ -48,27 +48,8 @@ jobs:
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
-        run: |
-          bash -c "yes || true" | synda init-env
-          bash .github/scripts/write_synda_cridentials.sh
+        run: bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          synda search -v cmip5.output1.MPI-M.MPI-ESM-LR.decadal1995.mon.land.Lmon.r2i1p1.v20120529
-          synda search -f cmip5.output1.MPI-M.MPI-ESM-LR.decadal1995.mon.land.Lmon.r2i1p1.v20120529 baresoilFrac
-          synda install cmip5.output1.MPI-M.MPI-ESM-LR.decadal1995.mon.land.Lmon.r2i1p1.v20120529 baresoilFrac -y
-          synda daemon start
-          synda queue
-          synda watch
-          
-          synda queue
-          find $ST_HOME/data -type f
-          synda certificate renew
-          synda install CMIP6.ScenarioMIP.CCCR-IITM.IITM-ESM.ssp585.r1i1p1f1.3hr.tas.gn.v20200915 -y
-          synda daemon start ;
-          sleep 60
-          synda queue; 
-          synda watch
+        run: bash .github/scripts/download_example_data.sh
       - name: goodbye
         run: echo goodbye

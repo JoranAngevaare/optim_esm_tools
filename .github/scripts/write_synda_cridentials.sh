@@ -1,3 +1,5 @@
+#!/bin/sh
+bash -c "yes || true" | synda init-env
 synda_conf_dir=$ST_HOME/conf
 
 if [[ -d "$synda_conf_dir" ]]
