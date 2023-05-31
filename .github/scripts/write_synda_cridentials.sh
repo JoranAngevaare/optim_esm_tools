@@ -6,10 +6,13 @@ then
 else
     mkdir $synda_conf_dir
 fi
-    
 
-cat << EOF > $ST_HOME/conf/credentials.conf
+conf_file=$ST_HOME/conf/credentials.conf
+cat << EOF > $conf_file
 [esgf_credential]
 openid = $OPEN_ID
 password = $OPEN_ID_KEY
 EOF
+
+echo "$conf_file set"
+cat $conf_file
