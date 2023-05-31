@@ -48,14 +48,7 @@ jobs:
           |
             conda info
             conda activate synda
-            git clone https://github.com/JoranAngevaare/optim_esm_base.git base_install
-            cd base_install
-            bash install_software.sh || { echo 'ERROR' ; exit 1; }
-            cd ..
-            pip install coverage pytest coveralls
-            echo ls `ls`
-            echo ls ../. `ls ../.`
-            pip install -e ../optim_esm_tools
+            bash .github/scripts/install_env.sh
       - name: Test package (linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,15 +56,5 @@ jobs:
           coverage run --source=optism_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coveralls --service=github
-      # - name: Coveralls
-      #   if: matrix.test == 'coveralls'
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     NUMBA_DISABLE_JIT: 1
-      #   run: |
-      #     export RUN_TEST_EXTENDED=1
-      #     coverage run --source=optism_esm_tools setup.py test -v
-      #     coverage run --append --source=optism_esm_tools -m pytest --nbmake -n=auto ./notebooks
-      #     coveralls --service=github
       - name: goodbye
         run: echo goodbye
