@@ -12,20 +12,22 @@ class TestMapMaker(unittest.TestCase):
 
         if os.path.exists(self.ayear_file):
             return
-        import cdo
 
         os.makedirs(os.path.split(self.ayear_file)[0], exist_ok=1)
+        # Doesn't work?
         # cdo.Cdo().yearmonmean(self.amon_file, self.ayear_file)
         cmd = f'cdo yearmonmean {self.amon_file} {self.ayear_file}'
         print(cmd)
-        # os.system(cmd)
         subprocess.call(cmd, shell=True)  
         assert os.path.exists(self.ayear_file), self.ayear_file
 
+    @classmethod
+    def setUpClass(cls):
+        cls.base = os.path.join(os.environ['ST_HOME'], 'data')
+        cls.amon_file = os.path.join(cls.base, cls.example_data_set)
+        cls.ayear_file = os.path.join(os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc')
+        
     def setUp(self):
-        self.base = os.path.join(os.environ['ST_HOME'], 'data')
-        self.amon_file = os.path.join(self.base, self.example_data_set)
-        self.ayear_file = os.path.join(os.path.split(self.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc')
         self.from_amon_to_ayear()
         super().setUp()
 
@@ -37,6 +39,17 @@ class TestMapMaker(unittest.TestCase):
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
-    def tearDown(self) -> None:
-        os.remove(self.ayear_file)
-        return super().tearDown()
+    def test_example_time_series(self):
+        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        oet.analyze.cmip_handler.example_time_series(data_set)
+        plt.clf()
+    
+    def test_map_maker_time_series(self):
+        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()
+        plt.clf()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        os.remove(cls.ayear_file)
+        return super().tearDownClass()

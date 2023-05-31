@@ -79,13 +79,13 @@ def setup_plt(use_tex=True):
     register_as = 'custom_map'
     custom = ListedColormap(
         mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
-    mpl.colormaps.register(custom, name=register_as)
+    mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
     register_as += '_r'
     custom = ListedColormap(
         mpl.colormaps['viridis_r'](np.linspace(0.15, 1, 1000)))
-    mpl.colormaps.register(custom, name=register_as)
+    mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
 
