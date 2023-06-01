@@ -27,7 +27,7 @@ def load_glob(
         pattern,
         **kw,
 ) -> xr.Dataset:
-    for k,v in dict(
+    for k, v in dict(
         use_cftime=True,
         concat_dim="time",
         combine="nested",
@@ -36,7 +36,7 @@ def load_glob(
         compat='override',
         decode_times=True,
     ).items():
-        kw.setdefault(k,v)
+        kw.setdefault(k, v)
     return xr.open_mfdataset(
         pattern,
         **kw
@@ -51,8 +51,14 @@ def _interp_nominal_lon_new(lon_1d):
     ret = np.interp(x, x[~idx], lon_1d[~idx], period=len(lon_1d))
     return ret
 
+
 def recast(data_set):
-    ds = rename_cmip6(data_set)
+    ds = data_set.copy()
+    # See https://github.com/jbusecke/xMIP/issues/299
+    for k, v in {'longitude': 'lon', 'latitude': 'lat'}.items():
+        if k in ds:
+            ds.rename(k=v)
+    ds = rename_cmip6(ds)
     ds = promote_empty_dims(ds)
     ds = broadcast_lonlat(ds)
     import xmip.preprocessing

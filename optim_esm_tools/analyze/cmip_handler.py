@@ -18,7 +18,7 @@ import xrft
 
 _seconds_to_year = 365.25*24*3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.4'
+__OPTIM_VERSION__ = '0.1.7'
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -390,9 +390,10 @@ class MapMaker(object):
 
     _cache: bool = False
 
-    def __init__(self, 
-                 data_set: xr.Dataset, 
-                 normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None, 
+    def __init__(self,
+                 data_set: xr.Dataset,
+                 normalizations: ty.Union[None,
+                                          ty.Mapping, ty.Iterable] = None,
                  cache: bool = False):
         self.data_set = data_set
         if normalizations is None:
@@ -412,7 +413,7 @@ class MapMaker(object):
         )
 
         if self.normalizations is None or _incorrect_format():
-            raise TypeError(f'Normalizations should be mapping from' 
+            raise TypeError(f'Normalizations should be mapping from'
                             f'{self.conditions.keys()} to vmin, vmax, '
                             f'got {self.normalizations} (from {normalizations})')
         self._cache = cache
@@ -497,11 +498,11 @@ class MapMaker(object):
         time = 'time'
         time_rm = time
         ds = self.data_set.mean(dim=['x', 'y'])
-        
-        _, axes = plt.subplots(3, 1, 
-                               figsize=( 12, 10), 
+
+        _, axes = plt.subplots(3, 1,
+                               figsize=(12, 10),
                                gridspec_kw=dict(hspace=0.3))
-        
+
         plt.sca(axes[0])
         ds[variable].plot(label='variable')
         ds[variable_rm].plot(label='variable_rm')
@@ -520,7 +521,7 @@ class MapMaker(object):
         dy_dt = ds[variable].dropna(time).differentiate(time)
         dy_dt *= _seconds_to_year
         dy_dt.plot(label='d/dt variable')
-        dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm) 
+        dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
         dy_dt_rm.plot(label='d/dt variable rm')
         plt.ylim(dy_dt_rm.min()/1.05, dy_dt_rm.max()*1.05)
