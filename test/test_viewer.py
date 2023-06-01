@@ -5,7 +5,8 @@ import os
 
 class TestViewer(unittest.TestCase):
     def test_basic(self, **kw):
-        viewer = oet.synda_files.synda_files.SyndaViewer(os.path.join(os.environ.get('ST_HOME', '.'), 'data'), **kw)
+        path = os.path.join(os.environ.get('ST_HOME', '.'), 'data')
+        viewer = oet.synda_files.synda_files.SyndaViewer(path, **kw)
         viewer.tree().show()
 
     def test_max_depth(self):
