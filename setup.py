@@ -37,7 +37,7 @@ setuptools.setup(
     scripts=[],
     keywords=[],
     classifiers=['Intended Audience :: Science/Research',
-                 'Development Status :: 2 - Pre-Alpha'
+                 'Development Status :: 2 - Pre-Alpha',
                  'Programming Language :: Python :: 3.8',
                  'Natural Language :: English',
                  'Programming Language :: Python :: 3.8',
