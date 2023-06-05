@@ -23,7 +23,7 @@ do
         # By now we have waited 1+2+3+4 = 10 s, let's renew the certificate each time, just to be sure
         synda certificate renew
         synda daemon start
-
+    fi
     sleep $n_tries
 done
 
