@@ -11,17 +11,19 @@ on:
 
 jobs:
   update:
-    name: "(${{ matrix.os }}, ${{ matrix.python-version }})"
+    name: "${{ matrix.os }}, ${{ matrix.python-version }} ${{ matrix.test }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
         os: ["ubuntu-latest", "ubuntu-20.04"]
         python-version: ["3.8"]
-        test: ["coveralls"]
+        test: ["all", "some"]
         exclude:
           - python-version: 3.9
             test: coveralls
+          - test: all
+            os: ubuntu-latest
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
@@ -44,11 +46,13 @@ jobs:
           conda activate synda
           bash .github/scripts/install_env.sh
       - name: set Synda config
+        if: ${{ matrix.test }} == 'all'
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
         run: bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
+        if: ${{ matrix.test }} == 'all'
         run: bash .github/scripts/download_example_data.sh
       - name: Test package (linux)
         env:

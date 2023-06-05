@@ -1,12 +1,14 @@
 import unittest
 import optim_esm_tools as oet
 import os
-import glob
 import matplotlib.pyplot as plt
 import subprocess
+from optim_esm_tools._test_utils import synda_test_available, get_example_data_loc
 
+
+@unittest.skipIf(not synda_test_available(), "synda data not available")
 class TestMapMaker(unittest.TestCase):
-    example_data_set = 'CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc'
+    # example_data_set = oet._test_utils.EXAMPLE_DATA_SET
 
     def from_amon_to_ayear(self):
 
@@ -24,7 +26,7 @@ class TestMapMaker(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.base = os.path.join(os.environ['ST_HOME'], 'data')
-        cls.amon_file = os.path.join(cls.base, cls.example_data_set)
+        cls.amon_file = get_example_data_loc()
         cls.ayear_file = os.path.join(os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc')
         
     def setUp(self):
