@@ -62,7 +62,7 @@ jobs:
         run: bash .github/scripts/download_example_data.sh
 
       - name: Run the tests
-        run: 
+        run:
           |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
