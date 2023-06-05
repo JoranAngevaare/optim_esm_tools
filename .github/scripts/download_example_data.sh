@@ -6,7 +6,7 @@ synda queue
 
 example_file=$ST_HOME/data/CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc
 
-for n_tries in {1..6}
+for n_tries in {1..8}
 do
     synda queue
     synda watch
