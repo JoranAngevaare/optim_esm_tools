@@ -11,7 +11,7 @@ on:
 
 jobs:
   update:
-    name: "${{ matrix.os }}, ${{ matrix.python-version }} ${{ matrix.test }}"
+    name: "${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
@@ -22,8 +22,6 @@ jobs:
         exclude:
           - python-version: 3.9
             test: coveralls
-          - test: all
-            os: ubuntu-latest
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
