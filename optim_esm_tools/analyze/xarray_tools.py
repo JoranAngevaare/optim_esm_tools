@@ -3,7 +3,7 @@ import numba
 import numpy as np
 
 
-def _mask2d_to_xy_slice(mask: np.array, cyclic:bool=False)->np.array:
+def _mask2d_to_xy_slice(mask: np.array, cyclic: bool = False) -> np.array:
     where = np.argwhere(mask)
     slices = np.zeros((len(mask), 2, 2), dtype=np.int64)
     n_slices = 1

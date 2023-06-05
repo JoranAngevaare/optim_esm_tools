@@ -3,6 +3,7 @@
 Most basic tests, like imports etc.
 """
 
+
 def test_import():
     import optim_esm_tools
 

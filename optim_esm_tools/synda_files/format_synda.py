@@ -6,9 +6,18 @@ import glob
 import xarray as xr
 from tqdm import tqdm
 import numpy as np
-from xmip.preprocessing import promote_empty_dims, replace_x_y_nominal_lat_lon, rename_cmip6
-from xmip.preprocessing import correct_coordinates, parse_lon_lat_bounds, maybe_convert_bounds_to_vertex, \
-    maybe_convert_vertex_to_bounds, broadcast_lonlat
+from xmip.preprocessing import (
+    promote_empty_dims,
+    replace_x_y_nominal_lat_lon,
+    rename_cmip6,
+)
+from xmip.preprocessing import (
+    correct_coordinates,
+    parse_lon_lat_bounds,
+    maybe_convert_bounds_to_vertex,
+    maybe_convert_vertex_to_bounds,
+    broadcast_lonlat,
+)
 from abc import ABC
 
 
@@ -25,8 +34,8 @@ from abc import ABC
 
 
 def load_glob(
-        pattern,
-        **kw,
+    pattern,
+    **kw,
 ) -> xr.Dataset:
     for k, v in dict(
         use_cftime=True,
@@ -38,10 +47,7 @@ def load_glob(
         decode_times=True,
     ).items():
         kw.setdefault(k, v)
-    return xr.open_mfdataset(
-        pattern,
-        **kw
-    )
+    return xr.open_mfdataset(pattern, **kw)
 
 
 def _interp_nominal_lon_new(lon_1d):
@@ -63,6 +69,7 @@ def recast(data_set):
     ds = promote_empty_dims(ds)
     ds = broadcast_lonlat(ds)
     import xmip.preprocessing
+
     xmip.preprocessing._interp_nominal_lon = _interp_nominal_lon_new
     ds = replace_x_y_nominal_lat_lon(ds)
     return ds
@@ -94,6 +101,7 @@ class ResultOperations(_ResultBase):
 
     def get_yearly_means(self, data: xr.Dataset) -> xr.Dataset:
         import warnings
+
         # https://stackoverflow.com/a/71963300
         if not self._warned:
             warnings.warn('Averaging monthly (not accounting for days/month)')
@@ -136,8 +144,7 @@ class ExtractChange(_ResultBase):
     registry: typing.Dict[str, typing.Dict[str, xr.Dataset]] = None
 
     def set_slices(self) -> None:
-        pbar = self.tqdm(total=(len(self.x_bins) - 1) * (len(self.y_bins) - 1)
-                         )
+        pbar = self.tqdm(total=(len(self.x_bins) - 1) * (len(self.y_bins) - 1))
 
         if self.registry is None:
             self.registry = defaultdict(dict)
@@ -152,14 +159,8 @@ class ExtractChange(_ResultBase):
                 pbar.desc = x_label + y_label
                 pbar.display()
                 pbar.n += 1
-                selection = self.data.sel(
-                    y=slice(y_l, y_r),
-                    x=slice(x_l, x_r)
-                )
-                check = [len(
-                    selection[xy].values
-                )
-                    for xy in 'xy']
+                selection = self.data.sel(y=slice(y_l, y_r), x=slice(x_l, x_r))
+                check = [len(selection[xy].values) for xy in 'xy']
                 if not all(check):
                     print(f'No result for {pbar.desc} {check}')
                     continue
@@ -174,6 +175,8 @@ class Result(ResultIO, ResultShower, ResultOperations, ExtractChange):
 
 
 if __name__ == '__main__':
-    changes = Result('/nobackup/users/angevaar/synda/data/CMIP6/ScenarioMIP'
-                     '/MIROC/MIROC-ES2L/ssp585/r3i1p1f2/Omon/tos/gr1/v20201222/*.nc')
+    changes = Result(
+        '/nobackup/users/angevaar/synda/data/CMIP6/ScenarioMIP'
+        '/MIROC/MIROC-ES2L/ssp585/r3i1p1f2/Omon/tos/gr1/v20201222/*.nc'
+    )
     changes.set_slices()

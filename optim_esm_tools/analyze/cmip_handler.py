@@ -17,7 +17,7 @@ from immutabledict import immutabledict
 import xrft
 
 
-_seconds_to_year = 365.25*24*3600
+_seconds_to_year = 365.25 * 24 * 3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
 __OPTIM_VERSION__ = '0.1.9'
 
@@ -43,7 +43,7 @@ def read_ds(
     _time_var='time',
     _detrend_type='linear',
     _ma_window: int = 10,
-    _cache: bool = True
+    _cache: bool = True,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
 
@@ -58,13 +58,21 @@ def read_ds(
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
     """
-    post_processed_file = os.path.join(
-        base,
-        f'{variable_of_interest}'
-        f'_{min_time if min_time else ""}'
-        f'_{max_time if max_time else ""}'
-        f'_ma{_ma_window}'
-        f'_optimesm_v{__OPTIM_VERSION__}.nc').replace('(', '').replace(')', '').replace(' ', '_').replace(',', '').replace('\'', '')
+    post_processed_file = (
+        os.path.join(
+            base,
+            f'{variable_of_interest}'
+            f'_{min_time if min_time else ""}'
+            f'_{max_time if max_time else ""}'
+            f'_ma{_ma_window}'
+            f'_optimesm_v{__OPTIM_VERSION__}.nc',
+        )
+        .replace('(', '')
+        .replace(')', '')
+        .replace(' ', '_')
+        .replace(',', '')
+        .replace('\'', '')
+    )
 
     if os.path.exists(post_processed_file) and _cache:
         return oet.analyze.analyze.st.load_glob(post_processed_file)
@@ -78,22 +86,25 @@ def read_ds(
     data_set = oet.analyze.analyze.st.recast(data_set)
 
     if min_time or max_time:
-        time_slice = [_native_date_fmt(data_set[_time_var], d)
-                      if d is not None else None
-                      for d in [min_time, max_time]]
+        time_slice = [
+            _native_date_fmt(data_set[_time_var], d) if d is not None else None
+            for d in [min_time, max_time]
+        ]
         data_set = data_set.sel(**{_time_var: slice(*time_slice)})
 
     # Detrend and run_mean on the fly
     for variable in variable_of_interest:
-
         # NB these are DataArrays not Datasets!
-        run_mean = data_set[variable].rolling(
-            time=_ma_window, center=True).mean()
+        run_mean = data_set[variable].rolling(time=_ma_window, center=True).mean()
         detrended = xrft.detrend(
-            data_set[variable], _time_var, detrend_type=_detrend_type)
-        detrended_run_mean = xrft.detrend(run_mean.dropna(
-            _time_var), _time_var, detrend_type=_detrend_type)
-        detrended_run_mean.attrs['units'] = data_set[variable].attrs.get('units', '{units}')
+            data_set[variable], _time_var, detrend_type=_detrend_type
+        )
+        detrended_run_mean = xrft.detrend(
+            run_mean.dropna(_time_var), _time_var, detrend_type=_detrend_type
+        )
+        detrended_run_mean.attrs['units'] = data_set[variable].attrs.get(
+            'units', '{units}'
+        )
         data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
@@ -101,14 +112,13 @@ def read_ds(
     folders = base.split(os.sep)
 
     # start with -1 (for i==0)
-    metadata = {k: folders[-i-1] for i, k in enumerate(folder_fmt[::-1])
-                }
+    metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
     metadata['path'] = base
     metadata['file'] = post_processed_file
     data_set.attrs.update(metadata)
 
     if _cache:
-        print(f'Write {post_processed_file}' + ' '*100, flush=True, end='\r')
+        print(f'Write {post_processed_file}' + ' ' * 100, flush=True, end='\r')
         data_set.to_netcdf(post_processed_file)
     return data_set
 
@@ -128,25 +138,30 @@ def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
     plt.sca(axes[0])
 
     ds_combined.isel(**sel)[detrend_variable].plot(label='detrended')
-    ds_combined.isel(
-        **sel)[detrend_variable_running_mean].plot(label='detrended, runmean')
+    ds_combined.isel(**sel)[detrend_variable_running_mean].plot(
+        label='detrended, runmean'
+    )
     plt.legend()
 
     plt.sca(axes[1])
     # ds_combined.differentiate("time").isel(**sel)[variable].plot(label='detrended')
     ds_combined[detrend_variable_running_mean].dropna(time).differentiate(time).isel(
-        **sel).plot(label='detrended, runmean')
+        **sel
+    ).plot(label='detrended, runmean')
     plt.legend()
 
     plt.sca(axes[2])
     # ds_combined.differentiate("time").differentiate("time").isel(**sel)[variable].plot(label='detrended')
-    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(time).differentiate(time).isel(
-        **sel).plot(label='detrended, runmean')
+    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(
+        time
+    ).differentiate(time).isel(**sel).plot(label='detrended, runmean')
     plt.legend()
 
 
-def check_accepts(accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
-                  do_raise: bool = True):
+def check_accepts(
+    accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
+    do_raise: bool = True,
+):
     """Wrapper for function if certain kwargs are from a defined list of variables.
 
     Example:
@@ -169,6 +184,7 @@ def check_accepts(accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('a
     Returns:
         wrapped function
     """
+
     def somedec_outer(fn):
         @wraps(fn)
         def somedec_inner(*args, **kwargs):
@@ -207,6 +223,7 @@ def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
         apply (bool, optional): apply np.abs. Defaults to True.
         _disable_kw (str, optional): disable with this kw in the function. Defaults to 'apply_abs'.
     """
+
     def somedec_outer(fn):
         @wraps(fn)
         def somedec_inner(*args, **kwargs):
@@ -233,16 +250,17 @@ def _remove_any_none_times(da, time_dim):
 
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def running_mean_diff(data_set: xr.Dataset,
-                      variable: str = 'tas',
-                      time_var: str = 'time',
-                      naming: str = '{variable}_run_mean_10',
-                      rename_to: str = 'long_name',
-                      unit: str = 'absolute',
-                      apply_abs: bool = True,
-                      _t_0_date: ty.Optional[tuple] = (2015, 1, 1),
-                      _t_1_date: ty.Optional[tuple] = (2100, 1, 1),
-                      ) -> xr.Dataset:
+def running_mean_diff(
+    data_set: xr.Dataset,
+    variable: str = 'tas',
+    time_var: str = 'time',
+    naming: str = '{variable}_run_mean_10',
+    rename_to: str = 'long_name',
+    unit: str = 'absolute',
+    apply_abs: bool = True,
+    _t_0_date: ty.Optional[tuple] = (2015, 1, 1),
+    _t_1_date: ty.Optional[tuple] = (2100, 1, 1),
+) -> xr.Dataset:
     """Return difference in running mean of data set
 
     Args:
@@ -276,7 +294,7 @@ def running_mean_diff(data_set: xr.Dataset,
     else:
         data_t_1 = data_var.isel(time=-1)
 
-    result = (data_t_1-data_t_0)
+    result = data_t_1 - data_t_0
     result = result.copy()
     var_unit = data_var.attrs.get('units', '{units}')
     name = data_var.attrs.get(rename_to, variable)
@@ -299,13 +317,15 @@ def running_mean_diff(data_set: xr.Dataset,
 
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def running_mean_std(data_set: xr.Dataset,
-                     variable: str = 'tas',
-                     time_var: str = 'time',
-                     naming: str = '{variable}_detrend_run_mean_10',
-                     rename_to: str = 'long_name',
-                     apply_abs: bool = True,
-                     unit: str = 'absolute') -> xr.Dataset:
+def running_mean_std(
+    data_set: xr.Dataset,
+    variable: str = 'tas',
+    time_var: str = 'time',
+    naming: str = '{variable}_detrend_run_mean_10',
+    rename_to: str = 'long_name',
+    apply_abs: bool = True,
+    unit: str = 'absolute',
+) -> xr.Dataset:
     data_var = naming.format(variable=variable)
     result = data_set[data_var].std(dim=time_var)
     result = result.copy()
@@ -317,9 +337,13 @@ def running_mean_std(data_set: xr.Dataset,
         return result
 
     if unit == 'relative':
-        result = 100 * result / \
-            data_set['{variable}_run_mean_10'.format(
-                variable=variable)].mean(dim=time_var)
+        result = (
+            100
+            * result
+            / data_set['{variable}_run_mean_10'.format(variable=variable)].mean(
+                dim=time_var
+            )
+        )
         result.name = f'Relative Std. {name} [$\%$]'
         return result
 
@@ -332,14 +356,15 @@ def running_mean_std(data_set: xr.Dataset,
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_change_xyr(
-        data_set: xr.Dataset,
-        variable: str = 'tas',
-        time_var: str = 'time',
-        naming: str = '{variable}_run_mean_10',
-        x_yr: ty.Union[int, float] = 10,
-        rename_to: str = 'long_name',
-        apply_abs: bool = True,
-        unit: str = 'absolute') -> xr.Dataset:
+    data_set: xr.Dataset,
+    variable: str = 'tas',
+    time_var: str = 'time',
+    naming: str = '{variable}_run_mean_10',
+    x_yr: ty.Union[int, float] = 10,
+    rename_to: str = 'long_name',
+    apply_abs: bool = True,
+    unit: str = 'absolute',
+) -> xr.Dataset:
     data_var = naming.format(variable=variable)
     plus_10yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
     to_min_10yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
@@ -377,12 +402,10 @@ def max_derivative(
     apply_abs: bool = True,
     unit: str = 'absolute',
 ) -> xr.Dataset:
-
     var_name = naming.format(variable=variable)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
-    result = data_array.differentiate(
-        time_var).max(dim=time_var)*_seconds_to_year
+    result = data_array.differentiate(time_var).max(dim=time_var) * _seconds_to_year
 
     var_unit = data_array.attrs.get('units', '{units}')
     name = data_array.attrs.get(rename_to, variable)
@@ -408,17 +431,26 @@ class MapMaker(object):
 
     # This is a bit rough, conditions is a mapping of keys to decsriptions and functions
     conditions: ty.Mapping[str, ty.Tuple] = immutabledict(
-        {'i ii iii iv v vi vii viii ix x'.split()[i]: props
-         for i, props in enumerate(
-             zip(
-                 ['Difference of running mean (10 yr) between start and end of time series. Not detrended',
-                  'Standard deviation of running mean (10 yr). Detrended',
-                  'Max change in 10 yr in the running mean (10 yr). Not detrended',
-                  'Max value of the first order derivative of the running mean. Not deterended',
-                  ],
-                 [running_mean_diff, running_mean_std,
-                     max_change_xyr, max_derivative]
-             ))})
+        {
+            'i ii iii iv v vi vii viii ix x'.split()[i]: props
+            for i, props in enumerate(
+                zip(
+                    [
+                        'Difference of running mean (10 yr) between start and end of time series. Not detrended',
+                        'Standard deviation of running mean (10 yr). Detrended',
+                        'Max change in 10 yr in the running mean (10 yr). Not detrended',
+                        'Max value of the first order derivative of the running mean. Not deterended',
+                    ],
+                    [
+                        running_mean_diff,
+                        running_mean_std,
+                        max_change_xyr,
+                        max_derivative,
+                    ],
+                )
+            )
+        }
+    )
 
     kw: ty.Mapping = immutabledict(
         fig=dict(dpi=200, figsize=(12, 8)),
@@ -431,47 +463,62 @@ class MapMaker(object):
 
     _cache: bool = False
 
-    def __init__(self,
-                 data_set: xr.Dataset,
-                 normalizations: ty.Union[None,
-                                          ty.Mapping, ty.Iterable] = None,
-                 cache: bool = False):
+    def __init__(
+        self,
+        data_set: xr.Dataset,
+        normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
+        cache: bool = False,
+    ):
         self.data_set = data_set
         if normalizations is None:
-            self.normalizations = {i: [None, None]
-                                   for i in self.conditions.keys()}
+            self.normalizations = {i: [None, None] for i in self.conditions.keys()}
         elif isinstance(normalizations, collections.abc.Mapping):
             self.normalizations = normalizations
         elif isinstance(normalizations, collections.abc.Iterable):
             self.normalizations = {
-                i: normalizations[j] for j, i in enumerate(self.conditions.keys())}
+                i: normalizations[j] for j, i in enumerate(self.conditions.keys())
+            }
 
-        def _incorrect_format(): return (
-            any(not isinstance(v, collections.abc.Iterable)
-                for v in self.normalizations.values())
-            or any(len(v) != 2 for v in self.normalizations.values())
-            or any(k not in self.normalizations for k in self.conditions)
-        )
+        def _incorrect_format():
+            return (
+                any(
+                    not isinstance(v, collections.abc.Iterable)
+                    for v in self.normalizations.values()
+                )
+                or any(len(v) != 2 for v in self.normalizations.values())
+                or any(k not in self.normalizations for k in self.conditions)
+            )
 
         if self.normalizations is None or _incorrect_format():
-            raise TypeError(f'Normalizations should be mapping from'
-                            f'{self.conditions.keys()} to vmin, vmax, '
-                            f'got {self.normalizations} (from {normalizations})')
+            raise TypeError(
+                f'Normalizations should be mapping from'
+                f'{self.conditions.keys()} to vmin, vmax, '
+                f'got {self.normalizations} (from {normalizations})'
+            )
         self._cache = cache
 
     def plot(self, *a, **kw):
         print('Depricated use plot_all')
         self.plot_all(*a, **kw)
 
-    def plot_all(self, nx,  fig=None, **kw,):
-        ny = np.ceil(len(self.conditions)/nx).astype(int)
+    def plot_all(
+        self,
+        nx,
+        fig=None,
+        **kw,
+    ):
+        ny = np.ceil(len(self.conditions) / nx).astype(int)
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
 
         for i, (label, (_, _)) in enumerate(self.conditions.items()):
             ax = fig.add_subplot(
-                gs[i], projection=ccrs.PlateCarree(central_longitude=0.0,))
+                gs[i],
+                projection=ccrs.PlateCarree(
+                    central_longitude=0.0,
+                ),
+            )
 
             plt_ax = self.plot_i(label, ax=ax, **kw)
 
@@ -487,15 +534,19 @@ class MapMaker(object):
         cmap.set_extremes(under='cyan', over='orange')
 
         c_kw = self.kw['cbar'].copy()
-        c_range_kw = {vm: self.normalizations[label][j]
-                      for j, vm in enumerate('vmin vmax'.split())}
+        c_range_kw = {
+            vm: self.normalizations[label][j]
+            for j, vm in enumerate('vmin vmax'.split())
+        }
 
-        for k, v in {**self.kw['plot'],
-                     **c_range_kw,
-                     **dict(cbar_kwargs=c_kw,
-                            cmap=cmap,
-                            )
-                     }.items():
+        for k, v in {
+            **self.kw['plot'],
+            **c_range_kw,
+            **dict(
+                cbar_kwargs=c_kw,
+                cmap=cmap,
+            ),
+        }.items():
             kw.setdefault(k, v)
 
         plt_ax = prop.plot(**kw)
@@ -511,7 +562,6 @@ class MapMaker(object):
 
     def __getattr__(self, item):
         if item in self.conditions:
-
             _, function = self.conditions[item]
             key = f'_{item}'
             if self._cache:
@@ -541,9 +591,7 @@ class MapMaker(object):
         ds = self.data_set.mean(dim=['x', 'y'])
         kw = dict(drawstyle='steps-mid')
 
-        _, axes = plt.subplots(3, 1,
-                               figsize=(12, 10),
-                               gridspec_kw=dict(hspace=0.3))
+        _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
         ds[variable].plot(label=f'{variable}')
@@ -566,7 +614,7 @@ class MapMaker(object):
         dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
         dy_dt_rm.plot(label=f'd/dt {variable} running mean 10')
-        plt.ylim(dy_dt_rm.min()/1.05, dy_dt_rm.max()*1.05)
+        plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
         plt.ylabel('$\partial T/\partial t$ [K/yr]')
         plt.legend()
 
