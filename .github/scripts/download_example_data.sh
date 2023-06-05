@@ -15,15 +15,16 @@ do
     then
         break
     fi
+
     echo "No file sleep $n_tries"
+
     if (( $n_tries > 4 ));
     then    
         # By now we have waited 1+2+3+4 = 10 s, let's renew the certificate each time, just to be sure
         synda certificate renew
         synda daemon start
-    done
+
     sleep $n_tries
-    
 done
 
 
