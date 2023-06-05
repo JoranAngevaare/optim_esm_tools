@@ -57,7 +57,7 @@ def recast(data_set):
     # See https://github.com/jbusecke/xMIP/issues/299
     for k, v in {'longitude': 'lon', 'latitude': 'lat'}.items():
         if k in ds:
-            ds.rename(k=v)
+            ds = ds.rename({k: v})
     ds = rename_cmip6(ds)
     ds = promote_empty_dims(ds)
     ds = broadcast_lonlat(ds)
