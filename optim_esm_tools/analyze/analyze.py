@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Scaffolding"""
 
 import optim_esm_tools as oet
@@ -26,7 +27,7 @@ def requires(*requirements, do_raise=True):
             for r in requirements:
                 if getattr(self, r, None) is None:
                     missing.append(r)
-            message = f'Missing \n\t' + "\n\t".join(missing)
+            message = f'Missing \n\t' + '\n\t'.join(missing)
             if do_raise and missing:
                 raise ValueError(message)
             elif missing:

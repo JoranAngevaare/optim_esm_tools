@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from optim_esm_tools.analyze.xarray_tools import mask2d_to_xy_slice, _mask2d_to_xy_slice
 
