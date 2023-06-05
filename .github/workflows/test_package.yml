@@ -61,12 +61,16 @@ jobs:
         if: matrix.test == 'all'
         run: bash .github/scripts/download_example_data.sh
 
-      - name: Test package (linux)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+      - name: Run the tests
+        run: 
+          |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
-          coveralls --service=github
+
+      - name: Upload coverage
+        if: matrix.test == 'all'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls --service=github
       - name: goodbye
         run: echo goodbye
