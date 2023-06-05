@@ -18,7 +18,7 @@ import xrft
 
 _seconds_to_year = 365.25*24*3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.7'
+__OPTIM_VERSION__ = '0.1.9'
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -92,7 +92,7 @@ def read_ds(
             data_set[variable], _time_var, detrend_type=_detrend_type)
         detrended_run_mean = xrft.detrend(run_mean.dropna(
             _time_var), _time_var, detrend_type=_detrend_type)
-
+        detrended_run_mean.attrs['units'] = data_set[variable].attrs.get('units', '{units}')
         data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
@@ -187,6 +187,50 @@ def check_accepts(accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('a
     return somedec_outer
 
 
+def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
+    """Apply np.max() to output of function (if apply=True)
+    Disable in the function kwargs by using the _disable_kw argument
+
+    Example:
+        ```
+        @apply_abs(apply=True, add_abs_to_name=False)
+        def bla(a=1, **kw):
+            print(a, kw)
+            return a
+        assert bla(-1, apply_abs=True) == 1
+        assert bla(-1, apply_abs=False) == -1
+        assert bla(1) == 1
+        assert bla(1, apply_abs=False) == 1
+        ```
+    Args:
+        apply (bool, optional): apply np.abs. Defaults to True.
+        _disable_kw (str, optional): disable with this kw in the function. Defaults to 'apply_abs'.
+    """
+    def somedec_outer(fn):
+        @wraps(fn)
+        def somedec_inner(*args, **kwargs):
+            response = fn(*args, **kwargs)
+            do_abs = kwargs.get(_disable_kw)
+            if do_abs or (do_abs is None and apply):
+                if add_abs_to_name and isinstance(getattr(response, 'name'), str):
+                    response.name = f'Abs. {response.name}'
+                return np.abs(response)
+            return response
+
+        return somedec_inner
+
+    return somedec_outer
+
+
+def _remove_any_none_times(da, time_dim):
+    data_var = da.copy()
+    time_null = da.isnull().all(dim=set(da.dims) - {time_dim})
+    if np.any(time_null):
+        data_var = data_var.load().where(~time_null, drop=True)
+    return data_var
+
+
+@apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_diff(data_set: xr.Dataset,
                       variable: str = 'tas',
@@ -194,15 +238,16 @@ def running_mean_diff(data_set: xr.Dataset,
                       naming: str = '{variable}_run_mean_10',
                       rename_to: str = 'long_name',
                       unit: str = 'absolute',
-                      _t_0_date: tuple = (2015, 1, 1),
-                      _t_1_date: tuple = (2100, 1, 1),
+                      apply_abs: bool = True,
+                      _t_0_date: ty.Optional[tuple] = (2015, 1, 1),
+                      _t_1_date: ty.Optional[tuple] = (2100, 1, 1),
                       ) -> xr.Dataset:
     """Return difference in running mean of data set
 
     Args:
         data_set (xr.Dataset): data set
         variable (str, optional): Defaults to 'tas'.
-        time_var (str, optional): Defaults to 'time_run_mean_10'.
+        time_var (str, optional): Defaults to 'time'.
         naming (srt, optional): Defaults to '{variable}_run_mean_10'.
         rename_to (str, optional): Defaults to 'long_name'.
         unit (str, optional): Defaults to 'absolute'.
@@ -216,18 +261,24 @@ def running_mean_diff(data_set: xr.Dataset,
     if not len(_time_values):
         raise ValueError(f'No values for {time_var} in dataset?')
 
-    t_0 = _native_date_fmt(_time_values, _t_0_date)
-    t_1 = _native_date_fmt(_time_values, _t_1_date)
+    data_var = _remove_any_none_times(data_set[var_name], time_var)
 
-    data_t_0 = data_set[var_name].dropna(
-        time_var).sel(time=t_0, method='nearest')
-    data_t_1 = data_set[var_name].dropna(
-        time_var).sel(time=t_1, method='nearest')
+    if _t_0_date is not None:
+        t_0 = _native_date_fmt(_time_values, _t_0_date)
+        data_t_0 = data_var.sel(time=t_0, method='nearest')
+    else:
+        data_t_0 = data_var.isel(time=0)
+
+    if _t_0_date is not None:
+        t_1 = _native_date_fmt(_time_values, _t_1_date)
+        data_t_1 = data_var.sel(time=t_1, method='nearest')
+    else:
+        data_t_1 = data_var.isel(time=-1)
 
     result = (data_t_1-data_t_0)
     result = result.copy()
-    var_unit = data_set[variable].attrs.get('units', '{units}')
-    name = data_set[variable].attrs.get(rename_to, variable)
+    var_unit = data_var.attrs.get('units', '{units}')
+    name = data_var.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
         result.name = f't[-1] - t[0] for {name} [{var_unit}]'
@@ -245,12 +296,14 @@ def running_mean_diff(data_set: xr.Dataset,
         return result
 
 
+@apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_std(data_set: xr.Dataset,
                      variable: str = 'tas',
                      time_var: str = 'time',
                      naming: str = '{variable}_detrend_run_mean_10',
                      rename_to: str = 'long_name',
+                     apply_abs: bool = True,
                      unit: str = 'absolute') -> xr.Dataset:
     data_var = naming.format(variable=variable)
     result = data_set[data_var].std(dim=time_var)
@@ -263,7 +316,9 @@ def running_mean_std(data_set: xr.Dataset,
         return result
 
     if unit == 'relative':
-        result = result / data_set[data_var].mean(dim=time_var)
+        result = 100 * result / \
+            data_set['{variable}_run_mean_10'.format(
+                variable=variable)].mean(dim=time_var)
         result.name = f'Relative Std. {name} [$\%$]'
         return result
 
@@ -273,6 +328,7 @@ def running_mean_std(data_set: xr.Dataset,
         return result
 
 
+@apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_change_xyr(
         data_set: xr.Dataset,
@@ -281,6 +337,7 @@ def max_change_xyr(
         naming: str = '{variable}_run_mean_10',
         x_yr: ty.Union[int, float] = 10,
         rename_to: str = 'long_name',
+        apply_abs: bool = True,
         unit: str = 'absolute') -> xr.Dataset:
     data_var = naming.format(variable=variable)
     plus_10yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
@@ -308,6 +365,7 @@ def max_change_xyr(
         return result
 
 
+@apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_derivative(
     data_set: xr.Dataset,
@@ -315,51 +373,33 @@ def max_derivative(
     time_var: str = 'time',
     naming: str = '{variable}_run_mean_10',
     rename_to: str = 'long_name',
+    apply_abs: bool = True,
     unit: str = 'absolute',
 ) -> xr.Dataset:
 
-    data_var = naming.format(variable=variable)
-    result = (data_set[data_var].dropna(time_var).differentiate(
-        time_var).max(dim=time_var)*_seconds_to_year).copy()
+    var_name = naming.format(variable=variable)
 
-    var_unit = data_set[data_var].attrs.get('units', '{units}')
-    name = data_set[data_var].attrs.get(rename_to, variable)
+    data_array = _remove_any_none_times(data_set[var_name], time_var)
+    result = data_array.differentiate(
+        time_var).max(dim=time_var)*_seconds_to_year
+
+    var_unit = data_array.attrs.get('units', '{units}')
+    name = data_array.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
         result.name = f'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
         return result
 
     if unit == 'relative':
-        result = 100 * result / data_set[data_var].mean(dim=time_var)
+        result = 100 * result / data_array.mean(dim=time_var)
         result.name = f'Max $\partial/\partial t$ {name} [$\%$/yr]'
         return result
 
     if unit == 'std':
         # A local unit of sigma might be better X.std(dim=time_var)
-        result = result / data_set[data_var].std()
+        result = result / data_array.std()
         result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
         return result
-
-
-# TODO
-# Numerically instable? Maybe?
-def _max_double_derivative(
-    data_set,
-    variable='tas',
-    time_var='time',
-    naming='{variable}_run_mean_10',
-    rename_to='long_name',
-    unit='absolute'
-):
-
-    data_var = naming.format(variable=variable)
-    result = (data_set[data_var].dropna(time_var).differentiate(time_var).differentiate(time_var)
-              .max(dim=time_var)*(_seconds_to_year**2)).copy()
-
-    unit = data_set[data_var].attrs.get('units', '{units}')
-    name = data_set[data_var].attrs.get(rename_to, variable)
-    result.name = f'Max $\partial^2/\partial t^2$ {name} [{unit}/yr]'
-    return result
 
 
 class MapMaker(object):
