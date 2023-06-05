@@ -113,8 +113,10 @@ def read_ds(
 
     # start with -1 (for i==0)
     metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
-    metadata['path'] = base
-    metadata['file'] = post_processed_file
+    metadata.update(
+        dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
+    )
+
     data_set.attrs.update(metadata)
 
     if _cache:
@@ -123,7 +125,7 @@ def read_ds(
     return data_set
 
 
-def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
+def example_time_series(ds_combined: xr.Dataset, variable='tas', _ma_window=10) -> None:
     """Make an example of time series based on datset
 
     Args:
@@ -131,7 +133,7 @@ def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
     """
     sel = dict(x=20, y=20)
     detrend_variable = f'{variable}_detrend'
-    detrend_variable_running_mean = f'{variable}_detrend_run_mean_10'
+    detrend_variable_running_mean = f'{variable}_detrend_run_mean_{_ma_window}'
     time = 'time'
 
     _, axes = plt.subplots(3, 1, figsize=(12, 10))
@@ -254,7 +256,8 @@ def running_mean_diff(
     data_set: xr.Dataset,
     variable: str = 'tas',
     time_var: str = 'time',
-    naming: str = '{variable}_run_mean_10',
+    naming: str = '{variable}_run_mean_{running_mean}',
+    running_mean: int = 10,
     rename_to: str = 'long_name',
     unit: str = 'absolute',
     apply_abs: bool = True,
@@ -264,17 +267,24 @@ def running_mean_diff(
     """Return difference in running mean of data set
 
     Args:
-        data_set (xr.Dataset): data set
-        variable (str, optional): Defaults to 'tas'.
-        time_var (str, optional): Defaults to 'time'.
-        naming (srt, optional): Defaults to '{variable}_run_mean_10'.
-        rename_to (str, optional): Defaults to 'long_name'.
-        unit (str, optional): Defaults to 'absolute'.
+        data_set (xr.Dataset):
+        variable (str, optional): . Defaults to 'tas'.
+        time_var (str, optional): . Defaults to 'time'.
+        naming (str, optional): . Defaults to '{variable}_run_mean_{running_mean}'.
+        running_mean (int, optional): . Defaults to 10.
+        rename_to (str, optional): . Defaults to 'long_name'.
+        unit (str, optional): . Defaults to 'absolute'.
+        apply_abs (bool, optional): . Defaults to True.
+        _t_0_date (ty.Optional[tuple], optional): . Defaults to (2015, 1, 1).
+        _t_1_date (ty.Optional[tuple], optional): . Defaults to (2100, 1, 1).
+
+    Raises:
+        ValueError: when no timestamps are not none?
 
     Returns:
-        xr.Dataset
+        xr.Dataset:
     """
-    var_name = naming.format(variable=variable)
+    var_name = naming.format(variable=variable, running_mean=running_mean)
     _time_values = data_set[time_var].dropna(time_var)
 
     if not len(_time_values):
@@ -321,12 +331,13 @@ def running_mean_std(
     data_set: xr.Dataset,
     variable: str = 'tas',
     time_var: str = 'time',
-    naming: str = '{variable}_detrend_run_mean_10',
+    naming: str = '{variable}_detrend_run_mean_{running_mean}',
+    running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
 ) -> xr.Dataset:
-    data_var = naming.format(variable=variable)
+    data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
     result = result.copy()
     var_unit = data_set[data_var].attrs.get('units', '{units}')
@@ -337,13 +348,7 @@ def running_mean_std(
         return result
 
     if unit == 'relative':
-        result = (
-            100
-            * result
-            / data_set['{variable}_run_mean_10'.format(variable=variable)].mean(
-                dim=time_var
-            )
-        )
+        result = 100 * result / data_set[data_var].mean(dim=time_var)
         result.name = f'Relative Std. {name} [$\%$]'
         return result
 
@@ -359,18 +364,19 @@ def max_change_xyr(
     data_set: xr.Dataset,
     variable: str = 'tas',
     time_var: str = 'time',
-    naming: str = '{variable}_run_mean_10',
+    naming: str = '{variable}_run_mean_{running_mean}',
     x_yr: ty.Union[int, float] = 10,
+    running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
 ) -> xr.Dataset:
-    data_var = naming.format(variable=variable)
-    plus_10yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
-    to_min_10yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
+    data_var = naming.format(variable=variable, running_mean=running_mean)
+    plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
+    to_min_x_yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
 
-    # Keep the metadata (and time stamps of the to_min_10yr)
-    result = to_min_10yr.copy(data=plus_10yr.values - to_min_10yr.values)
+    # Keep the metadata (and time stamps of the to_min_x_yr)
+    result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
 
     result = result.max(dim=time_var).copy()
     var_unit = data_set[data_var].attrs.get('units', '{units}')
@@ -381,7 +387,7 @@ def max_change_xyr(
         return result
 
     if unit == 'relative':
-        result = 100 * result / to_min_10yr.mean(dim=time_var)
+        result = 100 * result / to_min_x_yr.mean(dim=time_var)
         result.name = f'{x_yr} yr diff. {name} [$\%$]'
         return result
 
@@ -397,12 +403,13 @@ def max_derivative(
     data_set: xr.Dataset,
     variable: str = 'tas',
     time_var: str = 'time',
-    naming: str = '{variable}_run_mean_10',
+    naming: str = '{variable}_run_mean_{running_mean}',
+    running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
 ) -> xr.Dataset:
-    var_name = naming.format(variable=variable)
+    var_name = naming.format(variable=variable, running_mean=running_mean)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
     result = data_array.differentiate(time_var).max(dim=time_var) * _seconds_to_year
@@ -499,7 +506,7 @@ class MapMaker(object):
 
     def plot(self, *a, **kw):
         print('Depricated use plot_all')
-        self.plot_all(*a, **kw)
+        return self.plot_all(*a, **kw)
 
     def plot_all(
         self,
@@ -511,16 +518,18 @@ class MapMaker(object):
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
+        plt_axes = []
 
-        for i, (label, (_, _)) in enumerate(self.conditions.items()):
+        for i, label in enumerate(self.conditions.keys()):
             ax = fig.add_subplot(
                 gs[i],
                 projection=ccrs.PlateCarree(
                     central_longitude=0.0,
                 ),
             )
-
-            plt_ax = self.plot_i(label, ax=ax, **kw)
+            self.plot_i(label, ax=ax, **kw)
+            plt_axes.append(ax)
+        return plt_axes
 
     def plot_i(self, label, ax=None, coastlines=True, **kw):
         if ax is None:
@@ -578,30 +587,32 @@ class MapMaker(object):
 
         return self.__getattribute__(item)
 
-    def time_series(self, variable='tas'):
+    def time_series(self, variable='tas', running_mean=10):
         if variable != 'tas':
             raise NotImplementedError('Currently only works for tas')
 
-        variable_rm = f'{variable}_run_mean_10'
+        variable_rm = f'{variable}_run_mean_{running_mean}'
         variable_det = f'{variable}_detrend'
-        variable_det_rm = f'{variable}_detrend_run_mean_10'
+        variable_det_rm = f'{variable}_detrend_run_mean_{running_mean}'
 
         time = 'time'
         time_rm = time
         ds = self.data_set.mean(dim=['x', 'y'])
-        kw = dict(drawstyle='steps-mid')
+        plot_kw = dict(drawstyle='steps-mid')
 
         _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
-        ds[variable].plot(label=f'{variable}')
-        ds[variable_rm].plot(label=f'{variable} running mean 10')
+        ds[variable].plot(label=f'{variable}', **plot_kw)
+        ds[variable_rm].plot(label=f'{variable} running mean {running_mean}', **plot_kw)
         plt.ylabel('T [K]')
         plt.legend()
 
         plt.sca(axes[1])
-        ds[variable_det].plot(label=f'detrended {variable}')
-        ds[variable_det_rm].plot(label=f'detrended {variable} running mean 10')
+        ds[variable_det].plot(label=f'detrended {variable}', **plot_kw)
+        ds[variable_det_rm].plot(
+            label=f'detrended {variable} running mean {running_mean}', **plot_kw
+        )
         plt.ylabel('detrend(T) [K]')
         plt.legend()
 
@@ -610,10 +621,10 @@ class MapMaker(object):
         # Dropna should take care of any nones in the data-array
         dy_dt = ds[variable].dropna(time).differentiate(time)
         dy_dt *= _seconds_to_year
-        dy_dt.plot(label=f'd/dt {variable}')
+        dy_dt.plot(label=f'd/dt {variable}', **plot_kw)
         dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
-        dy_dt_rm.plot(label=f'd/dt {variable} running mean 10')
+        dy_dt_rm.plot(label=f'd/dt {variable} running mean {running_mean}', **plot_kw)
         plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
         plt.ylabel('$\partial T/\partial t$ [K/yr]')
         plt.legend()
