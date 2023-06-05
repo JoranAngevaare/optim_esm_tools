@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import typing
 from collections import defaultdict
 import os
@@ -29,8 +30,8 @@ def load_glob(
 ) -> xr.Dataset:
     for k, v in dict(
         use_cftime=True,
-        concat_dim="time",
-        combine="nested",
+        concat_dim='time',
+        combine='nested',
         data_vars='minimal',
         coords='minimal',
         compat='override',

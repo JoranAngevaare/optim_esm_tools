@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import unittest
 import optim_esm_tools as oet
 import os
@@ -6,7 +7,7 @@ import subprocess
 from optim_esm_tools._test_utils import synda_test_available, get_example_data_loc
 
 
-@unittest.skipIf(not synda_test_available(), "synda data not available")
+@unittest.skipIf(not synda_test_available(), 'synda data not available')
 class TestMapMaker(unittest.TestCase):
     # example_data_set = oet._test_utils.EXAMPLE_DATA_SET
 
