@@ -51,6 +51,7 @@ jobs:
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh
+          bash .github/scripts/install_tex.sh
       - name: set Synda config
         if: matrix.test == 'all'
         env:
