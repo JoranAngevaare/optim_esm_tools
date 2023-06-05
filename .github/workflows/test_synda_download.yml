@@ -42,7 +42,7 @@ jobs:
         run: |
           conda info
           conda activate synda
-          bash .github/scripts/install_env.sh --synda_dir $ST_HOME --no_cdo --only_synda
+          bash .github/scripts/install_env.sh "--synda_dir $ST_HOME --no_cdo --only_synda"
       - name: set Synda config
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
