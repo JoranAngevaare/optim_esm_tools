@@ -42,25 +42,25 @@ jobs:
           mamba-version: "*"
       # PARTIAL (speed up testing)
       - name: run partial install
-        if: ${{ matrix.test }} == 'partial' 
+        if: matrix.test == 'partial' 
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh "--no_cdo --no_synda"
 
       # ALL    
       - name: run full install
-        if: ${{ matrix.test }} == 'all' 
+        if: matrix.test == 'all' 
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh
       - name: set Synda config
-        if: ${{ matrix.test }} == 'all'
+        if: matrix.test == 'all'
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
         run: bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
-        if: ${{ matrix.test }} == 'all'
+        if: matrix.test == 'all'
         run: bash .github/scripts/download_example_data.sh
 
       - name: Test package (linux)
