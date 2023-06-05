@@ -11,7 +11,7 @@ on:
 
 jobs:
   update:
-    name: "(${{ matrix.os }}, ${{ matrix.python-version }}"
+    name: "${{ matrix.os }}, ${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False

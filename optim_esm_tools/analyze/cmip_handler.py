@@ -146,7 +146,7 @@ def example_time_series(ds_combined: xr.Dataset, variable='tas') -> None:
 
 def check_accepts(accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
                   do_raise: bool = True):
-    """Wrapper for function if certain kwargs are from a defined list of variables. 
+    """Wrapper for function if certain kwargs are from a defined list of variables.
 
     Example:
         ```
