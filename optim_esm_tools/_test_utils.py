@@ -12,7 +12,9 @@ def synda_test_available():
     """Check if we can run a synda-dependent test"""
     synda_home = os.environ.get('ST_HOME')
     if synda_home is None:
+        print(f'No ST_HOME')
         return False
     if not os.path.exists(get_example_data_loc()):
+        print(f'No {get_example_data_loc()}')
         return False
     return True
