@@ -538,20 +538,21 @@ class MapMaker(object):
         time = 'time'
         time_rm = time
         ds = self.data_set.mean(dim=['x', 'y'])
+        kw = dict(drawstyle='steps-mid')
 
         _, axes = plt.subplots(3, 1,
                                figsize=(12, 10),
                                gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
-        ds[variable].plot(label='variable')
-        ds[variable_rm].plot(label='variable_rm')
+        ds[variable].plot(label=f'{variable}')
+        ds[variable_rm].plot(label=f'{variable} running mean 10')
         plt.ylabel('T [K]')
         plt.legend()
 
         plt.sca(axes[1])
-        ds[variable_det].plot(label='variable_det')
-        ds[variable_det_rm].plot(label='variable_det_rm')
+        ds[variable_det].plot(label=f'detrended {variable}')
+        ds[variable_det_rm].plot(label=f'detrended {variable} running mean 10')
         plt.ylabel('detrend(T) [K]')
         plt.legend()
 
@@ -560,12 +561,12 @@ class MapMaker(object):
         # Dropna should take care of any nones in the data-array
         dy_dt = ds[variable].dropna(time).differentiate(time)
         dy_dt *= _seconds_to_year
-        dy_dt.plot(label='d/dt variable')
+        dy_dt.plot(label=f'd/dt {variable}')
         dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
-        dy_dt_rm.plot(label='d/dt variable rm')
+        dy_dt_rm.plot(label=f'd/dt {variable} running mean 10')
         plt.ylim(dy_dt_rm.min()/1.05, dy_dt_rm.max()*1.05)
-        plt.ylabel('dT/dt [K/yr]')
+        plt.ylabel('$\partial T/\partial t$ [K/yr]')
         plt.legend()
 
     @property
