@@ -51,7 +51,6 @@ jobs:
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh
-          conda install -c conda-forge cm-super
       - name: set Synda config
         if: matrix.test == 'all'
         env:
@@ -66,6 +65,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          conda install -c conda-forge cm-super
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coveralls --service=github
