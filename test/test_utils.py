@@ -4,7 +4,7 @@ import tempfile
 import matplotlib.pyplot as plt
 
 
-@unittest.SkipTest('LATEX IS BROKEN :(')
+@unittest.skip('LATEX IS BROKEN :(')
 class TestUtils(unittest.TestCase):
     def test_setup_plt(self):
         oet.utils.setup_plt()
