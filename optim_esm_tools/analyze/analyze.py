@@ -15,7 +15,7 @@ import numpy as np
 def moving_average(a, n=3):
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
+    return ret[n - 1 :] / n
 
 
 def requires(*requirements, do_raise=True):
@@ -40,7 +40,6 @@ def requires(*requirements, do_raise=True):
 
 
 class TippingCondition:
-
     @requires('pi_control', 'historical', 'scenario', do_raise=False)
     def i_mean_difference(self) -> dict:
         data_sets = 'pi_control', 'historical', 'scenario'
@@ -57,7 +56,9 @@ class TippingCondition:
         detrend_historical = self.detrend(self.historical)
         for ds in data_sets:
             detrend = self.detrend(self.getattr(ds))
-            result[ds] = np.max(np.abs(detrend - np.mean(detrend)) / np.std(detrend_historical))
+            result[ds] = np.max(
+                np.abs(detrend - np.mean(detrend)) / np.std(detrend_historical)
+            )
         return result
 
     @requires('pi_control', 'historical', 'scenario', do_raise=False)
@@ -97,7 +98,9 @@ class TippingCondition:
         data = self.time_series(dataset)
         plt.plot(data['time'], data[self.parameter], label='yearly')
         filter_width = self.filter_width
-        plt.plot(data['detrend_time'], data[f'detrend_{self.parameter}'], label='detrend')
+        plt.plot(
+            data['detrend_time'], data[f'detrend_{self.parameter}'], label='detrend'
+        )
         plt.legend()
         plt.ylabel(self.parameter)
 
@@ -106,8 +109,15 @@ class TippingCondition:
 
 
 class TippingBase:
-    def __init__(self, pos, parameter, pi_control=None, historical=None, scenario=None,
-                 filter_width=10, ):
+    def __init__(
+        self,
+        pos,
+        parameter,
+        pi_control=None,
+        historical=None,
+        scenario=None,
+        filter_width=10,
+    ):
         self.pos = pos
         self.parameter = parameter
         self.filter_width = filter_width
@@ -136,6 +146,7 @@ class TippingBase:
 
 class Tipping(TippingBase, TippingCondition):
     pass
+
 
 # if __name__ == '__main__':
 #

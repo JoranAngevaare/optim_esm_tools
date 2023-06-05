@@ -7,13 +7,14 @@ from treelib import Node, Tree
 class SyndaViewer:
     """Visualize synda downloads as a tree structure"""
 
-    def __init__(self,
-                 base: str = '/nobackup/users/angevaar/synda/data',
-                 max_depth: typing.Optional[int] = None,
-                 show_files: bool = False,
-                 concatenate_folders: bool = True,
-                 count_files: bool = False,
-                 ):
+    def __init__(
+        self,
+        base: str = '/nobackup/users/angevaar/synda/data',
+        max_depth: typing.Optional[int] = None,
+        show_files: bool = False,
+        concatenate_folders: bool = True,
+        count_files: bool = False,
+    ):
         """
         Viewer for Synda Folder structure
 
@@ -43,11 +44,19 @@ class SyndaViewer:
                 if last_head in tree.nodes.keys():
                     break
             if last_head in ['', '/']:
-                print(head, directories, files, last_head, look_back, split[:-look_back], tree.nodes.keys())
+                print(
+                    head,
+                    directories,
+                    files,
+                    last_head,
+                    look_back,
+                    split[:-look_back],
+                    tree.nodes.keys(),
+                )
                 last_head = base
 
             if self._add_head(directories):
-                label = os.path.join(*(split[len(self.chopped_path(last_head)):]))
+                label = os.path.join(*(split[len(self.chopped_path(last_head)) :]))
                 if head not in tree.nodes.keys():
                     if self.count_files and files:
                         label += f' ({len(files)})'
@@ -65,7 +74,10 @@ class SyndaViewer:
         return len(directories) != 1
 
     def _skip_deep(self, head) -> bool:
-        return self.max_depth and self.count_depth(head) - self.count_depth(self.base) > self.max_depth
+        return (
+            self.max_depth
+            and self.count_depth(head) - self.count_depth(self.base) > self.max_depth
+        )
 
     @staticmethod
     def chopped_path(path) -> list:

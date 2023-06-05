@@ -35,37 +35,47 @@ root_folder = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 def setup_plt(use_tex=True):
     """Change the plots to have uniform style defaults"""
-    params = {'axes.grid': False,
-              'font.size': 20,
-              'axes.titlesize': 22,
-              'axes.labelsize': 20,
-              'axes.linewidth': 2,
-              'xtick.labelsize': 20,
-              'ytick.labelsize': 20,
-              'ytick.major.size': 8,
-              'ytick.minor.size': 4,
-              'xtick.major.size': 8,
-              'xtick.minor.size': 4,
-              'xtick.major.width': 2,
-              'xtick.minor.width': 2,
-              'ytick.major.width': 2,
-              'ytick.minor.width': 2,
-              'xtick.direction': 'in',
-              'ytick.direction': 'in',
-              'legend.fontsize': 20,
-              'figure.facecolor': 'w',
-              'figure.figsize': (10, 8),
-              'image.cmap': 'viridis',
-              'lines.linewidth': 2,
-              }
+    params = {
+        'axes.grid': False,
+        'font.size': 20,
+        'axes.titlesize': 22,
+        'axes.labelsize': 20,
+        'axes.linewidth': 2,
+        'xtick.labelsize': 20,
+        'ytick.labelsize': 20,
+        'ytick.major.size': 8,
+        'ytick.minor.size': 4,
+        'xtick.major.size': 8,
+        'xtick.minor.size': 4,
+        'xtick.major.width': 2,
+        'xtick.minor.width': 2,
+        'ytick.major.width': 2,
+        'ytick.minor.width': 2,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'legend.fontsize': 20,
+        'figure.facecolor': 'w',
+        'figure.figsize': (10, 8),
+        'image.cmap': 'viridis',
+        'lines.linewidth': 2,
+    }
     plt.rcParams.update(params)
     # from https://github.com/XENONnT/nton/blob/d5d71b2798d74b9632a8846eb2e0f19ab0d1f563/nton/mplconfigs/stylelib/xenonnt.mplstyle
-    custom_cycler = (
-        cycler(
-            color=[f'#{c}' for c in
-                   ['000000', '0052FF', 'FF2A2A', '4AC124', 'ffa500', '00CFFF', 'FF6AFF', 'A54040']]
-        ) +
-        cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x']))
+    custom_cycler = cycler(
+        color=[
+            f'#{c}'
+            for c in [
+                '000000',
+                '0052FF',
+                'FF2A2A',
+                '4AC124',
+                'ffa500',
+                '00CFFF',
+                'FF6AFF',
+                'A54040',
+            ]
+        ]
+    ) + cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x'])
 
     plt.rcParams.update({'axes.prop_cycle': custom_cycler})
     if use_tex and not os.environ.get('DISABLE_LATEX', False):
@@ -77,23 +87,19 @@ def setup_plt(use_tex=True):
 
     # Create capped custom map for printing (yellow does not print well)
     register_as = 'custom_map'
-    custom = ListedColormap(
-        mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
+    custom = ListedColormap(mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
     mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
     register_as += '_r'
-    custom = ListedColormap(
-        mpl.colormaps['viridis_r'](np.linspace(0.15, 1, 1000)))
+    custom = ListedColormap(mpl.colormaps['viridis_r'](np.linspace(0.15, 1, 1000)))
     mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
 
 
-def save_fig(name,
-             file_types=('png', 'pdf'),
-             save_in=root_folder,
-             sub_dir = 'figures',
-             **kwargs):
+def save_fig(
+    name, file_types=('png', 'pdf'), save_in=root_folder, sub_dir='figures', **kwargs
+):
     """Save a figure in the figures dir"""
     kwargs.setdefault('dpi', 150)
     kwargs.setdefault('bbox_inches', "tight")
@@ -107,11 +113,11 @@ def save_fig(name,
 
 
 def print_versions(
-        modules=('optim_esm_tools',),
-        print_output=True,
-        include_python=True,
-        return_string=False,
-        include_git=True
+    modules=('optim_esm_tools',),
+    print_output=True,
+    include_python=True,
+    return_string=False,
+    include_git=True,
 ):
     """
     Print versions of modules installed.
@@ -174,13 +180,15 @@ def _version_info_for_module(module_name, include_git):
     return version, module_path, git
 
 
-def to_str_tuple(x: ty.Union[str, bytes, list, tuple, pd.Series, np.ndarray]) -> ty.Tuple[str]:
+def to_str_tuple(
+    x: ty.Union[str, bytes, list, tuple, pd.Series, np.ndarray]
+) -> ty.Tuple[str]:
     """
     Convert any sensible instance to a tuple of strings
     from https://github.com/AxFoundation/strax/blob/d3608efc77acd52e1d5a208c3092b6b45b27a6e2/strax/utils.py#242
     """
     if isinstance(x, (str, bytes)):
-        return x,
+        return (x,)
     if isinstance(x, list):
         return tuple(x)
     if isinstance(x, tuple):
@@ -196,11 +204,12 @@ def string_to_mathrm(string):
 
 def legend_kw(**kw):
     options = dict(
-        bbox_to_anchor=(0., 1.02, 1, .32),
+        bbox_to_anchor=(0.0, 1.02, 1, 0.32),
         loc=3,
         ncol=3,
         mode="expand",
-        borderaxespad=0.,
-        frameon=True)
+        borderaxespad=0.0,
+        frameon=True,
+    )
     options.update(kw)
     return options

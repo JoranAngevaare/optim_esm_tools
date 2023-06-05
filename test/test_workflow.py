@@ -11,7 +11,6 @@ class TestMapMaker(unittest.TestCase):
     # example_data_set = oet._test_utils.EXAMPLE_DATA_SET
 
     def from_amon_to_ayear(self):
-
         if os.path.exists(self.ayear_file):
             return
 
@@ -27,7 +26,9 @@ class TestMapMaker(unittest.TestCase):
     def setUpClass(cls):
         cls.base = os.path.join(os.environ['ST_HOME'], 'data')
         cls.amon_file = get_example_data_loc()
-        cls.ayear_file = os.path.join(os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc')
+        cls.ayear_file = os.path.join(
+            os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc'
+        )
 
     def setUp(self):
         self.from_amon_to_ayear()
