@@ -42,14 +42,14 @@ jobs:
           mamba-version: "*"
       # PARTIAL (speed up testing)
       - name: run partial install
-        if: matrix.test == 'partial' 
+        if: matrix.test == 'partial'
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh "--no_cdo --no_synda"
 
-      # ALL    
+      # ALL
       - name: run full install
-        if: matrix.test == 'all' 
+        if: matrix.test == 'all'
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh

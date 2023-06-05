@@ -20,7 +20,7 @@ class TestMapMaker(unittest.TestCase):
         # cdo.Cdo().yearmonmean(self.amon_file, self.ayear_file)
         cmd = f'cdo yearmonmean {self.amon_file} {self.ayear_file}'
         print(cmd)
-        subprocess.call(cmd, shell=True)  
+        subprocess.call(cmd, shell=True)
         assert os.path.exists(self.ayear_file), self.ayear_file
 
     @classmethod
@@ -28,14 +28,14 @@ class TestMapMaker(unittest.TestCase):
         cls.base = os.path.join(os.environ['ST_HOME'], 'data')
         cls.amon_file = get_example_data_loc()
         cls.ayear_file = os.path.join(os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc')
-        
+
     def setUp(self):
         self.from_amon_to_ayear()
         super().setUp()
 
     def test_read_data(self):
         data_set = oet.synda_files.format_synda.load_glob(self.ayear_file)
-    
+
     def test_make_map(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
@@ -45,7 +45,7 @@ class TestMapMaker(unittest.TestCase):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
         oet.analyze.cmip_handler.example_time_series(data_set)
         plt.clf()
-    
+
     def test_map_maker_time_series(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()

@@ -13,4 +13,3 @@ def synda_test_available():
     if not os.path.exists(get_example_data_loc()):
         return False
     return True
-    
