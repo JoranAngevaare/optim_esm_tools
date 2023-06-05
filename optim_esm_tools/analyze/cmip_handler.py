@@ -619,7 +619,7 @@ class MapMaker(object):
         # Dropna should take care of any nones in the data-array
         dy_dt = ds[variable].dropna(time).differentiate(time)
         dy_dt *= _seconds_to_year
-        dy_dt.plot(label=f'd/dt {variable}')
+        dy_dt.plot(label=f'd/dt {variable}', **plot_kw)
         dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
         dy_dt_rm.plot(label=f'd/dt {variable} running mean 10', **plot_kw)
