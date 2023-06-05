@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import socket
 import sys
@@ -102,7 +103,7 @@ def save_fig(
 ):
     """Save a figure in the figures dir"""
     kwargs.setdefault('dpi', 150)
-    kwargs.setdefault('bbox_inches', "tight")
+    kwargs.setdefault('bbox_inches', 'tight')
     if sub_dir is None:
         sub_dir = ''
     for file_type in file_types:
@@ -193,7 +194,7 @@ def to_str_tuple(
         return tuple(x)
     if isinstance(x, tuple):
         return x
-    raise TypeError(f"Expected string or tuple of strings, got {type(x)}")
+    raise TypeError(f'Expected string or tuple of strings, got {type(x)}')
 
 
 def string_to_mathrm(string):
@@ -207,8 +208,8 @@ def legend_kw(**kw):
         bbox_to_anchor=(0.0, 1.02, 1, 0.32),
         loc=3,
         ncol=3,
-        mode="expand",
-        borderaxespad=0.0,
+        mode='expand',
+        borderaxespad=0.,
         frameon=True,
     )
     options.update(kw)

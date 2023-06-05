@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Example of how to use xarray, cartopy and numpy to create annual changing maps
 
@@ -15,7 +16,7 @@ from tqdm.notebook import tqdm
 
 import cartopy.feature as cfeature
 
-tas_data = xr.open_dataset("tas_Amon_EC-Earth3_historical_r2i1p1f1_gr_185001-201412.nc")
+tas_data = xr.open_dataset('tas_Amon_EC-Earth3_historical_r2i1p1f1_gr_185001-201412.nc')
 air2d = tas_data.isel(time=500, bnds=0)
 d_avg = tas_data.isel(bnds=0).mean('time')
 

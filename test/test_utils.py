@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import optim_esm_tools as oet
 import unittest
 import tempfile

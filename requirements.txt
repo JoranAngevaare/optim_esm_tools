@@ -1,6 +1,6 @@
-numpy
-treelib
 immutabledict
+numpy
 pandas
-xarray
 tqdm
+treelib
+xarray
