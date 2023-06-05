@@ -114,11 +114,9 @@ def read_ds(
     # start with -1 (for i==0)
     metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
     metadata.update(
-        dict(path= base,
-             file = post_processed_file,
-             running_mean_period=_ma_window
-        ))
-    
+        dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
+    )
+
     data_set.attrs.update(metadata)
 
     if _cache:
@@ -269,7 +267,7 @@ def running_mean_diff(
     """Return difference in running mean of data set
 
     Args:
-        data_set (xr.Dataset): 
+        data_set (xr.Dataset):
         variable (str, optional): . Defaults to 'tas'.
         time_var (str, optional): . Defaults to 'time'.
         naming (str, optional): . Defaults to '{variable}_run_mean_{running_mean}'.
@@ -284,7 +282,7 @@ def running_mean_diff(
         ValueError: when no timestamps are not none?
 
     Returns:
-        xr.Dataset: 
+        xr.Dataset:
     """
     var_name = naming.format(variable=variable, running_mean=running_mean)
     _time_values = data_set[time_var].dropna(time_var)
@@ -350,7 +348,7 @@ def running_mean_std(
         return result
 
     if unit == 'relative':
-        result = ( 100 * result / data_set[data_var].mean( dim=time_var ) )
+        result = 100 * result / data_set[data_var].mean(dim=time_var)
         result.name = f'Relative Std. {name} [$\%$]'
         return result
 
@@ -406,7 +404,7 @@ def max_derivative(
     variable: str = 'tas',
     time_var: str = 'time',
     naming: str = '{variable}_run_mean_{running_mean}',
-    running_mean: int =10,
+    running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
@@ -610,7 +608,9 @@ class MapMaker(object):
 
         plt.sca(axes[1])
         ds[variable_det].plot(label=f'detrended {variable}', **plot_kw)
-        ds[variable_det_rm].plot(label=f'detrended {variable} running mean 10', **plot_kw)
+        ds[variable_det_rm].plot(
+            label=f'detrended {variable} running mean 10', **plot_kw
+        )
         plt.ylabel('detrend(T) [K]')
         plt.legend()
 
