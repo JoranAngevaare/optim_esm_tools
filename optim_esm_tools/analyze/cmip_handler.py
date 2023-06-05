@@ -519,9 +519,14 @@ class MapMaker(object):
             fig = plt.figure(**self.kw['fig'])
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
         plt_axes = []
-        
+
         for i, label in enumerate(self.conditions.keys()):
-            ax = fig.add_subplot(gs[i], projection=ccrs.PlateCarree(central_longitude=0.0, ), )
+            ax = fig.add_subplot(
+                gs[i],
+                projection=ccrs.PlateCarree(
+                    central_longitude=0.0,
+                ),
+            )
             self.plot_i(label, ax=ax, **kw)
             plt_axes.append(ax)
         return plt_axes
