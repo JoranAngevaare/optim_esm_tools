@@ -14,6 +14,5 @@ repos:
     -   id: detect-private-key
     -   id: double-quote-string-fixer
     -   id: requirements-txt-fixer
-    -   id: fix-encoding-pragma
     -   id: mixed-line-ending
     -   id: pretty-format-json
