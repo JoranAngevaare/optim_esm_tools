@@ -65,7 +65,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          conda install -c conda-forge cm-super
+          conda uninstall texlive-core
+          conda install -c conda-forge tectonic
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coveralls --service=github
