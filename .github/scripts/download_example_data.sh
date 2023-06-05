@@ -4,12 +4,29 @@ synda install CMIP6.ScenarioMIP.CCCma.CanESM5.ssp585.r3i1p2f1.Amon.tas.gn.v20190
 synda daemon start
 synda queue
 
-echo sleep 10 and check again
-sleep 10
-synda queue
-synda watch
-
 example_file=$ST_HOME/data/CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc
+
+for n_tries in {1..10}
+do
+    synda queue
+    synda watch
+
+    if [[ -f "$example_file" ]];
+    then
+        break
+    fi
+    echo "No file sleep $n_tries"
+    if (( $n_tries > 4 ));
+    then    
+        # By now we have waited 1+2+3+4 = 10 s, let's renew the certificate each time, just to be sure
+        synda certificate renew
+        synda daemon start
+    done
+    sleep $n_tries
+    
+done
+
+
 if [[ -f "$example_file" ]]; then
     echo "$example_file exists on your filesystem. Succes"
 else
