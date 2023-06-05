@@ -35,10 +35,7 @@ setuptools.setup(
     setup_requires=['pytest-runner'],
     install_requires=requirements,
     python_requires='>=3.8',
-    tests_require=requirements + ['pytest',
-                                  'hypothesis-numpy',
-                                  'unittest',
-                                  'coverage'],
+    tests_require=requirements + ['pytest', 'hypothesis-numpy', 'unittest', 'coverage'],
     scripts=[],
     keywords=[],
     classifiers=[

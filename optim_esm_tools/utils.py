@@ -209,7 +209,7 @@ def legend_kw(**kw):
         loc=3,
         ncol=3,
         mode='expand',
-        borderaxespad=0.,
+        borderaxespad=0.0,
         frameon=True,
     )
     options.update(kw)
