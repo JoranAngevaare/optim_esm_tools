@@ -506,7 +506,7 @@ class MapMaker(object):
 
     def plot(self, *a, **kw):
         print('Depricated use plot_all')
-        self.plot_all(*a, **kw)
+        return self.plot_all(*a, **kw)
 
     def plot_all(
         self,
@@ -518,16 +518,13 @@ class MapMaker(object):
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
-
-        for i, (label, (_, _)) in enumerate(self.conditions.items()):
-            ax = fig.add_subplot(
-                gs[i],
-                projection=ccrs.PlateCarree(
-                    central_longitude=0.0,
-                ),
-            )
-
-            plt_ax = self.plot_i(label, ax=ax, **kw)
+        plt_axes = []
+        
+        for i, label in enumerate(self.conditions.keys()):
+            ax = fig.add_subplot(gs[i], projection=ccrs.PlateCarree(central_longitude=0.0, ), )
+            self.plot_i(label, ax=ax, **kw)
+            plt_axes.append(ax)
+        return plt_axes
 
     def plot_i(self, label, ax=None, coastlines=True, **kw):
         if ax is None:
@@ -602,14 +599,14 @@ class MapMaker(object):
 
         plt.sca(axes[0])
         ds[variable].plot(label=f'{variable}', **plot_kw)
-        ds[variable_rm].plot(label=f'{variable} running mean 10', **plot_kw)
+        ds[variable_rm].plot(label=f'{variable} running mean {running_mean}', **plot_kw)
         plt.ylabel('T [K]')
         plt.legend()
 
         plt.sca(axes[1])
         ds[variable_det].plot(label=f'detrended {variable}', **plot_kw)
         ds[variable_det_rm].plot(
-            label=f'detrended {variable} running mean 10', **plot_kw
+            label=f'detrended {variable} running mean {running_mean}', **plot_kw
         )
         plt.ylabel('detrend(T) [K]')
         plt.legend()
@@ -622,7 +619,7 @@ class MapMaker(object):
         dy_dt.plot(label=f'd/dt {variable}', **plot_kw)
         dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
         dy_dt_rm *= _seconds_to_year
-        dy_dt_rm.plot(label=f'd/dt {variable} running mean 10', **plot_kw)
+        dy_dt_rm.plot(label=f'd/dt {variable} running mean {running_mean}', **plot_kw)
         plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
         plt.ylabel('$\partial T/\partial t$ [K/yr]')
         plt.legend()
