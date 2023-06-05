@@ -51,6 +51,7 @@ jobs:
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh
+          conda install -c conda-forge cm-super
       - name: set Synda config
         if: matrix.test == 'all'
         env:
