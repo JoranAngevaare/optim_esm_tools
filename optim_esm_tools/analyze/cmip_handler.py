@@ -9,10 +9,10 @@ import typing as ty
 import collections
 from warnings import warn
 from functools import wraps
-
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
+
+
 from immutabledict import immutabledict
 import xrft
 
@@ -75,15 +75,15 @@ def read_ds(
     )
 
     if os.path.exists(post_processed_file) and _cache:
-        return oet.analyze.analyze.st.load_glob(post_processed_file)
+        return oet.synda_files.format_synda.load_glob(post_processed_file)
 
     data_path = os.path.join(base, 'merged.nc')
     if not os.path.exists(data_path):
         warn(f'No dataset at {data_path}')
         return None
 
-    data_set = oet.analyze.analyze.st.load_glob(data_path)
-    data_set = oet.analyze.analyze.st.recast(data_set)
+    data_set = oet.synda_files.format_synda.load_glob(data_path)
+    data_set = oet.synda_files.format_synda.recast(data_set)
 
     if min_time or max_time:
         time_slice = [
@@ -517,6 +517,9 @@ class MapMaker(object):
         ny = np.ceil(len(self.conditions) / nx).astype(int)
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
+
+        from matplotlib.gridspec import GridSpec
+
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
         plt_axes = []
 

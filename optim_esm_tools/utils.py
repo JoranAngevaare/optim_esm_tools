@@ -8,8 +8,7 @@ from importlib import import_module
 from platform import python_version
 
 import warnings
-import matplotlib
-import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
 
@@ -19,11 +18,7 @@ try:
     GIT_INSTALLED = True
 except (ImportError, ModuleNotFoundError):
     GIT_INSTALLED = False
-from cycler import cycler
-import json
-from base64 import b32encode
-from hashlib import sha1
-from collections.abc import Mapping
+
 import sys
 
 
@@ -37,12 +32,27 @@ else:
 
 
 # https://github.com/JoranAngevaare/thesis_plots/blob/d828c08e6f6c9c6926527220a23fd0e61e5d8c60/thesis_plots/main.py
-
 root_folder = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 
-def setup_plt(use_tex=True):
+def get_plt_colors():
+    """Get matplotlib colors"""
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    my_colors = [matplotlib.colors.to_hex(c) for c in plt.cm.Set1.colors]
+    # I don't like the yellowish color
+    del my_colors[5]
+    return my_colors
+
+
+def setup_plt(use_tex=True, register_as='custom_map'):
     """Change the plots to have uniform style defaults"""
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from cycler import cycler
+
     params = {
         'axes.grid': False,
         'font.size': 20,
@@ -63,38 +73,25 @@ def setup_plt(use_tex=True):
         'ytick.direction': 'in',
         'legend.fontsize': 20,
         'figure.facecolor': 'w',
-        'figure.figsize': (10, 8),
+        'figure.figsize': (8, 6),
         'image.cmap': 'viridis',
         'lines.linewidth': 2,
+        'font.family': 'Times New Roman',
     }
     plt.rcParams.update(params)
-    # from https://github.com/XENONnT/nton/blob/d5d71b2798d74b9632a8846eb2e0f19ab0d1f563/nton/mplconfigs/stylelib/xenonnt.mplstyle
-    custom_cycler = cycler(
-        color=[
-            f'#{c}'
-            for c in [
-                '000000',
-                '0052FF',
-                'FF2A2A',
-                '4AC124',
-                'ffa500',
-                '00CFFF',
-                'FF6AFF',
-                'A54040',
-            ]
-        ]
-    ) + cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x'])
+
+    custom_cycler = cycler(color=get_plt_colors())
+    # Could add cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x'])
 
     plt.rcParams.update({'axes.prop_cycle': custom_cycler})
     if use_tex and not os.environ.get('DISABLE_LATEX', False):
-        # Allow latex to be disabled from the environment coverage see #30
+        # Allow latex to be disabled from the environment coverage see
         matplotlib.rc('text', usetex=True)
 
     from matplotlib.colors import ListedColormap
     import matplotlib as mpl
 
     # Create capped custom map for printing (yellow does not print well)
-    register_as = 'custom_map'
     custom = ListedColormap(mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
     mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
@@ -109,6 +106,8 @@ def save_fig(
     name, file_types=('png', 'pdf'), save_in=root_folder, sub_dir='figures', **kwargs
 ):
     """Save a figure in the figures dir"""
+    import matplotlib.pyplot as plt
+
     kwargs.setdefault('dpi', 150)
     kwargs.setdefault('bbox_inches', 'tight')
     if sub_dir is None:
@@ -205,6 +204,10 @@ def to_str_tuple(
     if isinstance(x, tuple):
         return x
     raise TypeError(f'Expected string or tuple of strings, got {type(x)}')
+
+
+def mathrm(string):
+    return string_to_mathrm(string)
 
 
 def string_to_mathrm(string):
