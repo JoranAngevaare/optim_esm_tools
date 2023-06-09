@@ -2,9 +2,6 @@
 import os
 import typing
 
-from treelib import Node, Tree
-
-
 class SyndaViewer:
     """Visualize synda downloads as a tree structure"""
 
@@ -31,7 +28,8 @@ class SyndaViewer:
         self.concatenate_folders = concatenate_folders
         self.count_files = count_files
 
-    def tree(self) -> Tree:
+    def tree(self):
+        from treelib import Tree
         base = self.base
         tree = Tree()
         tree.create_node(base, base)

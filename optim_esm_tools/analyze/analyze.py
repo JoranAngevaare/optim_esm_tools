@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 """Scaffolding"""
 
-import optim_esm_tools as oet
-
-import pandas as pd
 import os
-from collections import defaultdict
 from functools import wraps
-from optim_esm_tools.synda_files import format_synda as st
+
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
