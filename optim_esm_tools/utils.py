@@ -42,7 +42,7 @@ root_folder = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 def setup_plt(use_tex=True):
     """Change the plots to have uniform style defaults"""
-    
+
     import matplotlib.pyplot as plt
     import matplotlib
 
@@ -77,9 +77,7 @@ def setup_plt(use_tex=True):
     # I don't like the yellow color
     del my_colors[5]
 
-    custom_cycler = cycler(
-        color=my_colors
-    ) 
+    custom_cycler = cycler(color=my_colors)
     # Could add cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x'])
 
     plt.rcParams.update({'axes.prop_cycle': custom_cycler})
@@ -107,6 +105,7 @@ def save_fig(
 ):
     """Save a figure in the figures dir"""
     import matplotlib.pyplot as plt
+
     kwargs.setdefault('dpi', 150)
     kwargs.setdefault('bbox_inches', 'tight')
     if sub_dir is None:
@@ -204,8 +203,10 @@ def to_str_tuple(
         return x
     raise TypeError(f'Expected string or tuple of strings, got {type(x)}')
 
+
 def mathrm(string):
     return string_to_mathrm(string)
+
 
 def string_to_mathrm(string):
     """wrap a string in mathrm mode for latex labels"""
