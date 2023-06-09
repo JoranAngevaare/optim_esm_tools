@@ -138,7 +138,7 @@ def print_versions(
     """
     versions = defaultdict(list)
     if not GIT_INSTALLED and include_git:
-        warnings.warn('Git is not installed')
+        warnings.warn('Git is not installed, maybe try pip install gitpython')
         include_git = False
     if include_python:
         versions['module'] = ['python']
