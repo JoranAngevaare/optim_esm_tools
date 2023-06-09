@@ -18,11 +18,7 @@ try:
     GIT_INSTALLED = True
 except (ImportError, ModuleNotFoundError):
     GIT_INSTALLED = False
-from cycler import cycler
-import json
-from base64 import b32encode
-from hashlib import sha1
-from collections.abc import Mapping
+
 import sys
 
 
@@ -36,15 +32,25 @@ else:
 
 
 # https://github.com/JoranAngevaare/thesis_plots/blob/d828c08e6f6c9c6926527220a23fd0e61e5d8c60/thesis_plots/main.py
-
 root_folder = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 
-def setup_plt(use_tex=True):
+def get_plt_colors():
+    """Get matplotlib colors"""
+    import matplotlib.pyplot as plt
+    import matplotlib
+    
+    my_colors = [matplotlib.colors.to_hex(c) for c in plt.cm.Set1.colors]
+    # I don't like the yellowish color
+    del my_colors[5]
+    return my_colors
+
+def setup_plt(use_tex=True, register_as = 'custom_map'):
     """Change the plots to have uniform style defaults"""
 
     import matplotlib.pyplot as plt
     import matplotlib
+    from cycler import cycler
 
     params = {
         'axes.grid': False,
@@ -73,11 +79,7 @@ def setup_plt(use_tex=True):
     }
     plt.rcParams.update(params)
 
-    my_colors = [matplotlib.colors.to_hex(c) for c in plt.cm.Set1.colors]
-    # I don't like the yellow color
-    del my_colors[5]
-
-    custom_cycler = cycler(color=my_colors)
+    custom_cycler = cycler(color=get_plt_colors())
     # Could add cycler(marker=['o', 's', 'v', '^', 'D', 'P', '>', 'x'])
 
     plt.rcParams.update({'axes.prop_cycle': custom_cycler})
@@ -89,7 +91,6 @@ def setup_plt(use_tex=True):
     import matplotlib as mpl
 
     # Create capped custom map for printing (yellow does not print well)
-    register_as = 'custom_map'
     custom = ListedColormap(mpl.colormaps['viridis'](np.linspace(0, 0.85, 1000)))
     mpl.colormaps.register(custom, name=register_as, force=True)
     setattr(mpl.pyplot.cm, register_as, custom)
