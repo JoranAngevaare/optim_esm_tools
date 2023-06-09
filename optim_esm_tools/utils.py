@@ -39,13 +39,14 @@ def get_plt_colors():
     """Get matplotlib colors"""
     import matplotlib.pyplot as plt
     import matplotlib
-    
+
     my_colors = [matplotlib.colors.to_hex(c) for c in plt.cm.Set1.colors]
     # I don't like the yellowish color
     del my_colors[5]
     return my_colors
 
-def setup_plt(use_tex=True, register_as = 'custom_map'):
+
+def setup_plt(use_tex=True, register_as='custom_map'):
     """Change the plots to have uniform style defaults"""
 
     import matplotlib.pyplot as plt
