@@ -19,7 +19,7 @@ import xrft
 
 _seconds_to_year = 365.25 * 24 * 3600
 folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.9'
+__OPTIM_VERSION__ = '0.1.10'
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -261,8 +261,8 @@ def running_mean_diff(
     rename_to: str = 'long_name',
     unit: str = 'absolute',
     apply_abs: bool = True,
-    _t_0_date: ty.Optional[tuple] = (2015, 1, 1),
-    _t_1_date: ty.Optional[tuple] = (2100, 1, 1),
+    _t_0_date: ty.Optional[tuple] = None,
+    _t_1_date: ty.Optional[tuple] = None,
 ) -> xr.Dataset:
     """Return difference in running mean of data set
 
@@ -600,7 +600,9 @@ class MapMaker(object):
 
         time = 'time'
         time_rm = time
-        ds = self.data_set.mean(dim=['x', 'y'])
+        ds = self.data_set.copy()
+        if all(xy in ds.dims for xy in 'xy'):
+            ds = ds.mean(dim=['x', 'y'])
         plot_kw = dict(drawstyle='steps-mid')
 
         _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
