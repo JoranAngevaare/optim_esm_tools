@@ -12,11 +12,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
 try:
     from git import Repo, InvalidGitRepositoryError
-    GIT_INSTALLED=True
+
+    GIT_INSTALLED = True
 except (ImportError, ModuleNotFoundError):
-    GIT_INSTALLED=False
+    GIT_INSTALLED = False
 from cycler import cycler
 import json
 from base64 import b32encode
