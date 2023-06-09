@@ -50,11 +50,12 @@ def _interp_nominal_lon_new(lon_1d):
 
 def recast(data_set):
     from xmip.preprocessing import (
-    promote_empty_dims,
-    replace_x_y_nominal_lat_lon,
-    rename_cmip6,
-    broadcast_lonlat,
-)
+        promote_empty_dims,
+        replace_x_y_nominal_lat_lon,
+        rename_cmip6,
+        broadcast_lonlat,
+    )
+
     ds = data_set.copy()
     # See https://github.com/jbusecke/xMIP/issues/299
     for k, v in {'longitude': 'lon', 'latitude': 'lat'}.items():

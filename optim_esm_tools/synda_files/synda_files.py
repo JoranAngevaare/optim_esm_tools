@@ -2,6 +2,7 @@
 import os
 import typing
 
+
 class SyndaViewer:
     """Visualize synda downloads as a tree structure"""
 
@@ -30,6 +31,7 @@ class SyndaViewer:
 
     def tree(self):
         from treelib import Tree
+
         base = self.base
         tree = Tree()
         tree.create_node(base, base)

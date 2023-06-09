@@ -517,8 +517,9 @@ class MapMaker(object):
         ny = np.ceil(len(self.conditions) / nx).astype(int)
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
-        
+
         from matplotlib.gridspec import GridSpec
+
         gs = GridSpec(nx, ny, **self.kw['gridspec'])
         plt_axes = []
 
