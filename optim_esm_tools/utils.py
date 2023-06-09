@@ -7,11 +7,16 @@ from collections import defaultdict
 from importlib import import_module
 from platform import python_version
 
+import warnings
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from git import Repo, InvalidGitRepositoryError
+try:
+    from git import Repo, InvalidGitRepositoryError
+    GIT_INSTALLED=True
+except (ImportError, ModuleNotFoundError):
+    GIT_INSTALLED=False
 from cycler import cycler
 import json
 from base64 import b32encode
@@ -132,6 +137,9 @@ def print_versions(
     :return: optional, the message that would have been printed
     """
     versions = defaultdict(list)
+    if not GIT_INSTALLED and include_git:
+        warnings.warn('Git is not installed')
+        include_git = False
     if include_python:
         versions['module'] = ['python']
         versions['version'] = [python_version()]
