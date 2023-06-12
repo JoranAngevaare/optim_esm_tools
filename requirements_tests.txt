@@ -1,0 +1,5 @@
+coverage
+gitpython
+hypothesis-numpy
+pytest
+scikit-learn

@@ -18,3 +18,36 @@ def synda_test_available():
         print(f'No {get_example_data_loc()}')
         return False
     return True
+
+
+def minimal_xr_ds():
+    import numpy as np
+    import xarray as xr
+
+    lon = np.linspace(0, 360, 513)[:-1]
+    lat = np.linspace(-90, 90, 181)[:-1]
+    time = np.arange(10)
+    # Totally arbitrary data
+    data = (
+        np.zeros(len(lat) * len(lon) * len(time)).reshape(len(time), len(lat), len(lon))
+        * lon
+    )
+
+    # Add some NaN values just as an example
+    data[:, :, len(lon) // 2 + 30 : len(lon) // 2 + 50] = np.nan
+
+    ds_dummy = xr.Dataset(
+        data_vars=dict(
+            var=(
+                ('time', 'x', 'y'),
+                data,
+            )
+        ),
+        coords=dict(
+            time=time,
+            lon=lon,
+            lat=lat,
+        ),
+        attrs=dict(source_id='bla'),
+    )
+    return ds_dummy

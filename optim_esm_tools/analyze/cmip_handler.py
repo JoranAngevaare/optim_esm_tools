@@ -12,7 +12,7 @@ from functools import wraps
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
-
+import datetime
 from immutabledict import immutabledict
 import xrft
 
@@ -510,7 +510,7 @@ class MapMaker(object):
 
     def plot_all(
         self,
-        nx,
+        nx=2,
         fig=None,
         **kw,
     ):
@@ -590,49 +590,181 @@ class MapMaker(object):
 
         return self.__getattribute__(item)
 
-    def time_series(self, variable='tas', running_mean=10):
-        if variable != 'tas':
-            raise NotImplementedError('Currently only works for tas')
+    @staticmethod
+    def _ts_single(time_val, mean, std, plot_kw, fill_kw):
+        if fill_kw is None:
+            fill_kw = dict(alpha=0.4, step='mid')
 
-        variable_rm = f'{variable}_run_mean_{running_mean}'
-        variable_det = f'{variable}_detrend'
-        variable_det_rm = f'{variable}_detrend_run_mean_{running_mean}'
+        l = mean.plot(**plot_kw)
 
-        time = 'time'
-        time_rm = time
-        ds = self.data_set.copy()
-        if all(xy in ds.dims for xy in 'xy'):
-            ds = ds.mean(dim=['x', 'y'])
-        plot_kw = dict(drawstyle='steps-mid')
+        if std is not None:
+            # TODO, make this more elegant!
+            # import cftime
+            # plt.fill_between(   [cftime.real_datetime(dd.year, dd.month, dd.day) for dd in time_val], mean - std, mean+std, **fill_kw)
+            (mean - std).plot(color=l[0]._color, alpha=0.4, drawstyle='steps-mid')
+            (mean + std).plot(color=l[0]._color, alpha=0.4, drawstyle='steps-mid')
 
-        _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
+    def _ts(
+        self,
+        variable,
+        ds=None,
+        time='time',
+        other_dim=(),
+        running_mean=10,
+        fill_kw=None,
+        labels=dict(),
+        only_rm=False,
+        **plot_kw,
+    ):
+        if ds is None:
+            ds = self.data_set
+        if not only_rm:
+            mean, std = self._mean_and_std(ds, variable, other_dim)
+            # return mean, std
+            plot_kw['label'] = labels.get(variable, variable)
+            self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
 
-        plt.sca(axes[0])
-        ds[variable].plot(label=f'{variable}', **plot_kw)
-        ds[variable_rm].plot(label=f'{variable} running mean {running_mean}', **plot_kw)
+        mean, std = self._mean_and_std(
+            ds, f'{variable}_run_mean_{running_mean}', other_dim
+        )
+        plot_kw['label'] = labels.get(
+            f'{variable}_run_mean_{running_mean}',
+            f'{variable} running mean {running_mean}',
+        )
+        self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+
         plt.ylabel('T [K]')
         plt.legend()
+        plt.title('')
 
-        plt.sca(axes[1])
-        ds[variable_det].plot(label=f'detrended {variable}', **plot_kw)
-        ds[variable_det_rm].plot(
-            label=f'detrended {variable} running mean {running_mean}', **plot_kw
+    def _det_ts(
+        self,
+        variable,
+        ds=None,
+        time='time',
+        other_dim=(),
+        running_mean=10,
+        fill_kw=None,
+        labels=dict(),
+        only_rm=False,
+        **plot_kw,
+    ):
+        if ds is None:
+            ds = self.data_set
+        if not only_rm:
+            mean, std = self._mean_and_std(ds, f'{variable}_detrend', other_dim)
+            plot_kw['label'] = labels.get(
+                f'{variable}_detrend', f'detrended {variable}'
+            )
+            self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+
+        mean, std = self._mean_and_std(
+            ds, f'{variable}_detrend_run_mean_{running_mean}', other_dim
         )
+        plot_kw['label'] = labels.get(
+            f'{variable}_detrend_run_mean_{running_mean}',
+            f'detrended {variable} running mean {running_mean}',
+        )
+        self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
         plt.ylabel('detrend(T) [K]')
         plt.legend()
+        plt.title('')
 
-        plt.sca(axes[2])
+    def _ddt_ts(
+        self,
+        variable,
+        ds=None,
+        time='time',
+        other_dim=(),
+        running_mean=10,
+        fill_kw=None,
+        labels=dict(),
+        only_rm=False,
+        **plot_kw,
+    ):
+        if ds is None:
+            ds = self.data_set
+        variable_rm = f'{variable}_run_mean_{running_mean}'
 
-        # Dropna should take care of any nones in the data-array
-        dy_dt = ds[variable].dropna(time).differentiate(time)
-        dy_dt *= _seconds_to_year
-        dy_dt.plot(label=f'd/dt {variable}', **plot_kw)
-        dy_dt_rm = ds[variable_rm].dropna(time).differentiate(time_rm)
+        if not only_rm:
+            # Dropna should take care of any nones in the data-array
+            dy_dt = ds[variable].mean(other_dim).dropna(time).differentiate(time)
+            dy_dt *= _seconds_to_year
+            # mean, std = self._mean_and_std(dy_dt, variable=None, other_dim=other_dim)
+            # plot_kw['label'] = variable
+            # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+            label = f'd/dt {labels.get(variable, variable)}'
+            dy_dt.plot(label=label, **plot_kw)
+
+        dy_dt_rm = ds[variable_rm].mean(other_dim).dropna(time).differentiate(time)
         dy_dt_rm *= _seconds_to_year
-        dy_dt_rm.plot(label=f'd/dt {variable} running mean {running_mean}', **plot_kw)
+        label = (
+            f"d/dt {labels.get(variable_rm, f'{variable} running mean {running_mean}')}"
+        )
+        dy_dt_rm.plot(label=label, **plot_kw)
+        # mean, std = self._mean_and_std(dy_dt_rm, variable=None, other_dim=other_dim)
+        # plot_kw['label'] = variable
+        # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+
         plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
         plt.ylabel('$\partial T/\partial t$ [K/yr]')
         plt.legend()
+        plt.title('')
+
+    @staticmethod
+    def _mean_and_std(ds, variable, other_dim):
+        if variable is None:
+            da = ds
+        else:
+            da = ds[variable]
+        if other_dim is None:
+            return da.mean(other_dim), None
+        return da.mean(other_dim), da.std(other_dim)
+
+    def time_series(
+        self,
+        variable='tas',
+        time='time',
+        other_dim=('x', 'y'),
+        running_mean=10,
+        interval=True,
+        axes=None,
+        **kw,
+    ):
+        if variable != 'tas':
+            raise NotImplementedError('Currently only works for tas')
+
+        ds = self.data_set
+        if interval is False:
+            ds = ds.copy().mean(other_dim)
+            other_dim = None
+
+        plot_kw = dict(drawstyle='steps-mid', **kw)
+
+        if axes is None:
+            _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
+
+        plt.sca(axes[0])
+        self._ts(
+            variable, ds=ds, running_mean=running_mean, other_dim=other_dim, **plot_kw
+        )
+
+        plt.sca(axes[1])
+        self._det_ts(
+            variable, ds=ds, running_mean=running_mean, other_dim=other_dim, **plot_kw
+        )
+
+        plt.sca(axes[2])
+        self._ddt_ts(
+            variable,
+            ds=ds,
+            time=time,
+            running_mean=running_mean,
+            other_dim=other_dim,
+            **plot_kw,
+        )
+
+        return axes
 
     @property
     def ds(self):

@@ -61,7 +61,6 @@ jobs:
       - name: Download data with Synda
         if: matrix.test == 'all'
         run: bash .github/scripts/download_example_data.sh
-
       - name: Run the tests
         run:
           |

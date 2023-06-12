@@ -4,3 +4,4 @@ cd base_install
 bash install_software.sh $1
 cd ..
 pip install -e ../optim_esm_tools
+pip install -r requirements_tests.txt
