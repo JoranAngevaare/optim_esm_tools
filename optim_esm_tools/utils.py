@@ -103,19 +103,28 @@ def setup_plt(use_tex=True, register_as='custom_map'):
 
 
 def save_fig(
-    name, file_types=('png', 'pdf'), save_in=root_folder, sub_dir='figures', **kwargs
+    name,
+    file_types=('png', 'pdf'),
+    save_in=root_folder,
+    sub_dir='figures',
+    skip=False,
+    **kwargs,
 ):
     """Save a figure in the figures dir"""
     import matplotlib.pyplot as plt
 
     kwargs.setdefault('dpi', 150)
     kwargs.setdefault('bbox_inches', 'tight')
+
     if sub_dir is None:
         sub_dir = ''
     for file_type in file_types:
         path = os.path.join(save_in, sub_dir, f'{name}.{file_type}')
         if not os.path.exists(p := os.path.join(save_in, sub_dir)):
             os.makedirs(p, exist_ok=True)
+        if skip:
+            print(f'Skip save {path}')
+            return
         plt.savefig(path, **kwargs)
 
 
