@@ -19,17 +19,13 @@ def test_clustering_double_blob(npoints=100, res_x=5, res_y=5):
     ds = ds.isel(time=0)
 
     arr = np.zeros_like(ds['var'])
-    x0, y0, x1, y1 = (
-        len(ds['x']) // 4,
-        len(ds['y']) // 4,
-        len(ds['x']) // 2,
-        len(ds['y']) // 2,
-    )
+    len_x, len_y = arr.shape[0:]
+    x0, y0, x1, y1 = len_x // 4, len_y // 4, len_x // 2, len_y// 2
 
     for x, y in [x0, y0], [x1, y1]:
         for x_i, y_i in zip(
-            np.clip(np.random.normal(x, res_x, npoints).astype(int), 0, len(ds['x'])),
-            np.clip(np.random.normal(y, res_y, npoints).astype(int), 0, len(ds['y'])),
+            np.clip(np.random.normal(x, res_x, npoints).astype(int), 0, len_x),
+            np.clip(np.random.normal(y, res_y, npoints).astype(int), 0, len_y),
         ):
             arr[x_i][y_i] += 1
 
