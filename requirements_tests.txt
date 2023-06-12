@@ -1,6 +1,6 @@
-gitpython
-sklearn
-pytest
-hypothesis-numpy
-unittest
 coverage
+gitpython
+hypothesis-numpy
+pytest
+sklearn
+unittest
