@@ -3,4 +3,3 @@ gitpython
 hypothesis-numpy
 pytest
 scikit-learn
-unittest
