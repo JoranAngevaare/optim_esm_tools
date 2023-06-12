@@ -2,5 +2,5 @@ coverage
 gitpython
 hypothesis-numpy
 pytest
-sklearn
+scikit-learn
 unittest
