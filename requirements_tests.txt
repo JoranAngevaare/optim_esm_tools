@@ -1,0 +1,6 @@
+gitpython
+sklearn
+pytest
+hypothesis-numpy
+unittest
+coverage

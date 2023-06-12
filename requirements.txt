@@ -5,5 +5,3 @@ tqdm
 treelib
 xarray
 xrft
-# Optional
-# gitpython
