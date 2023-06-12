@@ -20,7 +20,7 @@ def test_clustering_double_blob(npoints=100, res_x=5, res_y=5):
 
     arr = np.zeros_like(ds['var'])
     len_x, len_y = arr.shape[0:]
-    x0, y0, x1, y1 = len_x // 4, len_y // 4, len_x // 2, len_y// 2
+    x0, y0, x1, y1 = len_x // 4, len_y // 4, len_x // 2, len_y // 2
 
     for x, y in [x0, y0], [x1, y1]:
         for x_i, y_i in zip(
