@@ -43,15 +43,47 @@ class TestMapMaker(unittest.TestCase):
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
-    def test_example_time_series(self):
-        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
-        oet.analyze.cmip_handler.example_time_series(data_set)
-        plt.clf()
-
     def test_map_maker_time_series(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()
         plt.clf()
+
+    def test_apply_relative_units(self, unit='relative'):
+        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        mm = oet.analyze.cmip_handler.MapMaker(data_set=data_set)
+        from immutabledict import immutabledict
+        from functools import partial
+
+        mm.kw = immutabledict(
+            {
+                'i ii iii iv v vi vii viii ix x'.split()[i]: props
+                for i, props in enumerate(
+                    zip(
+                        (str(i) for i in range(4)),
+                        [
+                            partial(
+                                oet.analyze.tipping_criteria.running_mean_diff,
+                                unit=unit,
+                            ),
+                            partial(
+                                oet.analyze.tipping_criteria.running_mean_std, unit=unit
+                            ),
+                            partial(
+                                oet.analyze.tipping_criteria.max_change_xyr, unit=unit
+                            ),
+                            partial(
+                                oet.analyze.tipping_criteria.max_derivative, unit=unit
+                            ),
+                        ],
+                    )
+                )
+            }
+        )
+        for i in mm.kw.keys():
+            getattr(mm, i)
+
+    def test_apply_std_unit(self):
+        self.test_apply_relative_units(unit='std')
 
     @classmethod
     def tearDownClass(cls) -> None:
