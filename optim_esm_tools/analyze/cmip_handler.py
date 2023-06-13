@@ -3,11 +3,9 @@ import optim_esm_tools as oet
 
 import os
 import xarray as xr
-import numpy as np
 
 import typing as ty
 from warnings import warn
-import matplotlib.pyplot as plt
 
 import xrft
 

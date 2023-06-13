@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import optim_esm_tools as oet
-
-import os
 import xarray as xr
 import numpy as np
 
 import typing as ty
 import collections
 from warnings import warn
-import cartopy.crs as ccrs
+
 import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
@@ -50,7 +48,11 @@ class MapMaker(object):
         }
     )
 
-    kw: ty.Mapping = immutabledict(
+    kw: ty.Mapping 
+    
+    def set_kw(self):
+        import cartopy.crs as ccrs
+        self.kw = immutabledict(
         fig=dict(dpi=200, figsize=(12, 8)),
         title=dict(fontsize=8),
         gridspec=dict(hspace=0.3),
@@ -68,6 +70,7 @@ class MapMaker(object):
         cache: bool = False,
     ):
         self.data_set = data_set
+        self.set_kw()
         if normalizations is None:
             self.normalizations = {i: [None, None] for i in self.conditions.keys()}
         elif isinstance(normalizations, collections.abc.Mapping):
@@ -105,6 +108,7 @@ class MapMaker(object):
         fig=None,
         **kw,
     ):
+        import cartopy.crs as ccrs
         ny = np.ceil(len(self.conditions) / nx).astype(int)
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
@@ -330,7 +334,7 @@ class MapMaker(object):
             ds = ds.copy().mean(other_dim)
             other_dim = None
 
-        plot_kw = dict(drawstyle='steps-mid', **kw)
+        plot_kw = dict(**kw)
 
         if axes is None:
             _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
