@@ -12,6 +12,7 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
+
 # import xrft
 
 from optim_esm_tools.analyze.globals import __OPTIM_VERSION__, _seconds_to_year
@@ -21,7 +22,6 @@ from optim_esm_tools.analyze.tipping_criteria import (
     max_change_xyr,
     max_derivative,
 )
-
 
 
 class MapMaker(object):
