@@ -1,3 +1,25 @@
+0.1.1 / 2023-06-13
+------------------
+## What's Changed
+* Fix classifier by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/30
+* Fix renaming properly (#30) by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/31
+* Add abs. value comparison method by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/32
+* Improved time series plotting by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/33
+* Add testing for latex by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/34
+* Add more precommit hooks by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/35
+* Add black formatter by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/36
+* Make moving average configurable by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/38
+* Activate latex test by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/37
+* add prints to failing tests by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/39
+* Complete requirements file by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/41
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/40
+* Change mlp settings by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/42
+* Fix defaults for t1-t0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/43
+* Add clustering tools by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/44
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.1.0...v0.1.1
+
+
 0.1.0  / 2023-06-02
 ------------------
 ## What's Changed
