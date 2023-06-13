@@ -8,7 +8,7 @@ class SyndaViewer:
 
     def __init__(
         self,
-        base: str = '/nobackup/users/angevaar/synda/data',
+        base: str = os.path.join(os.environ.get('ST_HOME', 'NO ST HOME?'), 'data'),
         max_depth: typing.Optional[int] = None,
         show_files: bool = False,
         concatenate_folders: bool = True,

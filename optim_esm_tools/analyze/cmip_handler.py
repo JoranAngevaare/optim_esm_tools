@@ -8,31 +8,21 @@ import numpy as np
 import typing as ty
 import collections
 from warnings import warn
-from functools import wraps
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
-import datetime
 from immutabledict import immutabledict
 import xrft
 
 
-_seconds_to_year = 365.25 * 24 * 3600
-folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.10'
-
-
-def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
-    """Create date object using the date formatting from the time-array"""
-    if isinstance(time_array, xr.DataArray):
-        return _native_date_fmt(time_array=time_array.values, date=date)
-
-    if not len(time_array):
-        raise ValueError(f'No values in dataset?')
-
-    # Support cftime.DatetimeJulian, cftime.DatetimeGregorian, cftime.DatetimeNoLeap and similar
-    _time_class = time_array[0].__class__
-    return _time_class(*date)
+from .globals import __OPTIM_VERSION__, folder_fmt, _seconds_to_year
+from .xarray_tools import _native_date_fmt
+from .tipping_criteria import (
+    running_mean_diff,
+    running_mean_std,
+    max_change_xyr,
+    max_derivative,
+)
 
 
 def read_ds(
@@ -58,20 +48,13 @@ def read_ds(
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
     """
-    post_processed_file = (
-        os.path.join(
-            base,
-            f'{variable_of_interest}'
-            f'_{min_time if min_time else ""}'
-            f'_{max_time if max_time else ""}'
-            f'_ma{_ma_window}'
-            f'_optimesm_v{__OPTIM_VERSION__}.nc',
-        )
-        .replace('(', '')
-        .replace(')', '')
-        .replace(' ', '_')
-        .replace(',', '')
-        .replace('\'', '')
+    post_processed_file = _name_cache_file(
+        base,
+        variable_of_interest,
+        min_time,
+        max_time,
+        _ma_window,
+        __OPTIM_VERSION__,
     )
 
     if os.path.exists(post_processed_file) and _cache:
@@ -85,6 +68,67 @@ def read_ds(
     data_set = oet.synda_files.format_synda.load_glob(data_path)
     data_set = oet.synda_files.format_synda.recast(data_set)
 
+    data_set = _calculate_variables(
+        data_set,
+        min_time,
+        max_time,
+        variable_of_interest,
+        _ma_window,
+        _detrend_type,
+        _time_var,
+    )
+
+    folders = base.split(os.sep)
+
+    # start with -1 (for i==0)
+    metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
+    metadata.update(
+        dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
+    )
+
+    data_set.attrs.update(metadata)
+
+    if _cache:
+        print(f'Write {post_processed_file}' + ' ' * 100, flush=True, end='\r')
+        data_set.to_netcdf(post_processed_file)
+    return data_set
+
+
+def _name_cache_file(
+    base,
+    variable_of_interest,
+    min_time,
+    max_time,
+    _ma_window,
+    version,
+):
+    path = os.path.join(
+        base,
+        f'{variable_of_interest}'
+        f'_{min_time if min_time else ""}'
+        f'_{max_time if max_time else ""}'
+        f'_ma{_ma_window}'
+        f'_optimesm_v{version}.nc',
+    )
+    normalized_path = (
+        path.replace('(', '')
+        .replace(')', '')
+        .replace(' ', '_')
+        .replace(',', '')
+        .replace('\'', '')
+    )
+    return normalized_path
+
+
+def _calculate_variables(
+    data_set,
+    min_time,
+    max_time,
+    variable_of_interest,
+    _ma_window,
+    _detrend_type,
+    _time_var,
+):
     if min_time or max_time:
         time_slice = [
             _native_date_fmt(data_set[_time_var], d) if d is not None else None
@@ -108,329 +152,7 @@ def read_ds(
         data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
-
-    folders = base.split(os.sep)
-
-    # start with -1 (for i==0)
-    metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
-    metadata.update(
-        dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
-    )
-
-    data_set.attrs.update(metadata)
-
-    if _cache:
-        print(f'Write {post_processed_file}' + ' ' * 100, flush=True, end='\r')
-        data_set.to_netcdf(post_processed_file)
     return data_set
-
-
-def example_time_series(ds_combined: xr.Dataset, variable='tas', _ma_window=10) -> None:
-    """Make an example of time series based on datset
-
-    Args:
-        ds_combined (xr.Dataset): dataset
-    """
-    sel = dict(x=20, y=20)
-    detrend_variable = f'{variable}_detrend'
-    detrend_variable_running_mean = f'{variable}_detrend_run_mean_{_ma_window}'
-    time = 'time'
-
-    _, axes = plt.subplots(3, 1, figsize=(12, 10))
-    plt.sca(axes[0])
-
-    ds_combined.isel(**sel)[detrend_variable].plot(label='detrended')
-    ds_combined.isel(**sel)[detrend_variable_running_mean].plot(
-        label='detrended, runmean'
-    )
-    plt.legend()
-
-    plt.sca(axes[1])
-    # ds_combined.differentiate("time").isel(**sel)[variable].plot(label='detrended')
-    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(time).isel(
-        **sel
-    ).plot(label='detrended, runmean')
-    plt.legend()
-
-    plt.sca(axes[2])
-    # ds_combined.differentiate("time").differentiate("time").isel(**sel)[variable].plot(label='detrended')
-    ds_combined[detrend_variable_running_mean].dropna(time).differentiate(
-        time
-    ).differentiate(time).isel(**sel).plot(label='detrended, runmean')
-    plt.legend()
-
-
-def check_accepts(
-    accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
-    do_raise: bool = True,
-):
-    """Wrapper for function if certain kwargs are from a defined list of variables.
-
-    Example:
-        ```
-            @check_accepts(accepts=dict(far=('boo', 'booboo')))
-            def bla(far):
-                print(far)
-
-            bla(far='boo')  # prints boo
-            bla(far='booboo')  # prints booboo
-            bla(far=1)  # raises ValueError
-        ```
-
-
-    Args:
-        accepts (ty.Mapping[str, ty.Iterable], optional): which kwarg to accept a limited set of options.
-            Defaults to immutabledict(unit=('absolute', 'std')).
-        do_raise (bool, optional): if False, don't raise an error but just warn. Defaults to True.
-
-    Returns:
-        wrapped function
-    """
-
-    def somedec_outer(fn):
-        @wraps(fn)
-        def somedec_inner(*args, **kwargs):
-            message = ''
-            for k, v in kwargs.items():
-                if k in accepts and v not in accepts[k]:
-                    message += f'{k} for {v} but only accepts {accepts[k]}'
-            if do_raise and message:
-                raise ValueError(message)
-            elif message:
-                warn(message)
-            response = fn(*args, **kwargs)
-            return response
-
-        return somedec_inner
-
-    return somedec_outer
-
-
-def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
-    """Apply np.max() to output of function (if apply=True)
-    Disable in the function kwargs by using the _disable_kw argument
-
-    Example:
-        ```
-        @apply_abs(apply=True, add_abs_to_name=False)
-        def bla(a=1, **kw):
-            print(a, kw)
-            return a
-        assert bla(-1, apply_abs=True) == 1
-        assert bla(-1, apply_abs=False) == -1
-        assert bla(1) == 1
-        assert bla(1, apply_abs=False) == 1
-        ```
-    Args:
-        apply (bool, optional): apply np.abs. Defaults to True.
-        _disable_kw (str, optional): disable with this kw in the function. Defaults to 'apply_abs'.
-    """
-
-    def somedec_outer(fn):
-        @wraps(fn)
-        def somedec_inner(*args, **kwargs):
-            response = fn(*args, **kwargs)
-            do_abs = kwargs.get(_disable_kw)
-            if do_abs or (do_abs is None and apply):
-                if add_abs_to_name and isinstance(getattr(response, 'name'), str):
-                    response.name = f'Abs. {response.name}'
-                return np.abs(response)
-            return response
-
-        return somedec_inner
-
-    return somedec_outer
-
-
-def _remove_any_none_times(da, time_dim):
-    data_var = da.copy()
-    time_null = da.isnull().all(dim=set(da.dims) - {time_dim})
-    if np.any(time_null):
-        data_var = data_var.load().where(~time_null, drop=True)
-    return data_var
-
-
-@apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def running_mean_diff(
-    data_set: xr.Dataset,
-    variable: str = 'tas',
-    time_var: str = 'time',
-    naming: str = '{variable}_run_mean_{running_mean}',
-    running_mean: int = 10,
-    rename_to: str = 'long_name',
-    unit: str = 'absolute',
-    apply_abs: bool = True,
-    _t_0_date: ty.Optional[tuple] = None,
-    _t_1_date: ty.Optional[tuple] = None,
-) -> xr.Dataset:
-    """Return difference in running mean of data set
-
-    Args:
-        data_set (xr.Dataset):
-        variable (str, optional): . Defaults to 'tas'.
-        time_var (str, optional): . Defaults to 'time'.
-        naming (str, optional): . Defaults to '{variable}_run_mean_{running_mean}'.
-        running_mean (int, optional): . Defaults to 10.
-        rename_to (str, optional): . Defaults to 'long_name'.
-        unit (str, optional): . Defaults to 'absolute'.
-        apply_abs (bool, optional): . Defaults to True.
-        _t_0_date (ty.Optional[tuple], optional): . Defaults to (2015, 1, 1).
-        _t_1_date (ty.Optional[tuple], optional): . Defaults to (2100, 1, 1).
-
-    Raises:
-        ValueError: when no timestamps are not none?
-
-    Returns:
-        xr.Dataset:
-    """
-    var_name = naming.format(variable=variable, running_mean=running_mean)
-    _time_values = data_set[time_var].dropna(time_var)
-
-    if not len(_time_values):
-        raise ValueError(f'No values for {time_var} in dataset?')
-
-    data_var = _remove_any_none_times(data_set[var_name], time_var)
-
-    if _t_0_date is not None:
-        t_0 = _native_date_fmt(_time_values, _t_0_date)
-        data_t_0 = data_var.sel(time=t_0, method='nearest')
-    else:
-        data_t_0 = data_var.isel(time=0)
-
-    if _t_0_date is not None:
-        t_1 = _native_date_fmt(_time_values, _t_1_date)
-        data_t_1 = data_var.sel(time=t_1, method='nearest')
-    else:
-        data_t_1 = data_var.isel(time=-1)
-
-    result = data_t_1 - data_t_0
-    result = result.copy()
-    var_unit = data_var.attrs.get('units', '{units}')
-    name = data_var.attrs.get(rename_to, variable)
-
-    if unit == 'absolute':
-        result.name = f't[-1] - t[0] for {name} [{var_unit}]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_t_0
-        result.name = f't[-1] - t[0] / t[0] for {name} $\%$'
-        return result
-
-    # Redundant if just for clarity
-    if unit == 'std':
-        result = result / result.std()
-        result.name = f't[-1] - t[0] for {name} [$\sigma$]'
-        return result
-
-
-@apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def running_mean_std(
-    data_set: xr.Dataset,
-    variable: str = 'tas',
-    time_var: str = 'time',
-    naming: str = '{variable}_detrend_run_mean_{running_mean}',
-    running_mean: int = 10,
-    rename_to: str = 'long_name',
-    apply_abs: bool = True,
-    unit: str = 'absolute',
-) -> xr.Dataset:
-    data_var = naming.format(variable=variable, running_mean=running_mean)
-    result = data_set[data_var].std(dim=time_var)
-    result = result.copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}')
-    name = data_set[data_var].attrs.get(rename_to, variable)
-
-    if unit == 'absolute':
-        result.name = f'Std. {name} [{var_unit}]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_set[data_var].mean(dim=time_var)
-        result.name = f'Relative Std. {name} [$\%$]'
-        return result
-
-    if unit == 'std':
-        result = result / data_set[data_var].std()
-        result.name = f'Std. {name} [$\sigma$]'
-        return result
-
-
-@apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def max_change_xyr(
-    data_set: xr.Dataset,
-    variable: str = 'tas',
-    time_var: str = 'time',
-    naming: str = '{variable}_run_mean_{running_mean}',
-    x_yr: ty.Union[int, float] = 10,
-    running_mean: int = 10,
-    rename_to: str = 'long_name',
-    apply_abs: bool = True,
-    unit: str = 'absolute',
-) -> xr.Dataset:
-    data_var = naming.format(variable=variable, running_mean=running_mean)
-    plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
-    to_min_x_yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
-
-    # Keep the metadata (and time stamps of the to_min_x_yr)
-    result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
-
-    result = result.max(dim=time_var).copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}')
-    name = data_set[data_var].attrs.get(rename_to, variable)
-
-    if unit == 'absolute':
-        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / to_min_x_yr.mean(dim=time_var)
-        result.name = f'{x_yr} yr diff. {name} [$\%$]'
-        return result
-
-    if unit == 'std':
-        result = result / result.std()
-        result.name = f'{x_yr} yr diff. {name} [$\sigma$]'
-        return result
-
-
-@apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
-def max_derivative(
-    data_set: xr.Dataset,
-    variable: str = 'tas',
-    time_var: str = 'time',
-    naming: str = '{variable}_run_mean_{running_mean}',
-    running_mean: int = 10,
-    rename_to: str = 'long_name',
-    apply_abs: bool = True,
-    unit: str = 'absolute',
-) -> xr.Dataset:
-    var_name = naming.format(variable=variable, running_mean=running_mean)
-
-    data_array = _remove_any_none_times(data_set[var_name], time_var)
-    result = data_array.differentiate(time_var).max(dim=time_var) * _seconds_to_year
-
-    var_unit = data_array.attrs.get('units', '{units}')
-    name = data_array.attrs.get(rename_to, variable)
-
-    if unit == 'absolute':
-        result.name = f'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_array.mean(dim=time_var)
-        result.name = f'Max $\partial/\partial t$ {name} [$\%$/yr]'
-        return result
-
-    if unit == 'std':
-        # A local unit of sigma might be better X.std(dim=time_var)
-        result = result / data_array.std()
-        result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
-        return result
 
 
 class MapMaker(object):
@@ -770,6 +492,10 @@ class MapMaker(object):
     def ds(self):
         warn('MapMaker.ds is depricated, use MapMaker.data_set')
         return self.data_set
+
+    @property
+    def title(self):
+        return make_title(self.data_set)
 
 
 def make_title(ds):

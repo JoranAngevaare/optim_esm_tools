@@ -6,7 +6,8 @@ import typing as ty
 from collections import defaultdict
 from importlib import import_module
 from platform import python_version
-
+from functools import wraps
+from immutabledict import immutabledict
 import warnings
 
 import numpy as np
@@ -236,3 +237,49 @@ def legend_kw(**kw):
     )
     options.update(kw)
     return options
+
+
+def check_accepts(
+    accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
+    do_raise: bool = True,
+):
+    """Wrapper for function if certain kwargs are from a defined list of variables.
+
+    Example:
+        ```
+            @check_accepts(accepts=dict(far=('boo', 'booboo')))
+            def bla(far):
+                print(far)
+
+            bla(far='boo')  # prints boo
+            bla(far='booboo')  # prints booboo
+            bla(far=1)  # raises ValueError
+        ```
+
+
+    Args:
+        accepts (ty.Mapping[str, ty.Iterable], optional): which kwarg to accept a limited set of options.
+            Defaults to immutabledict(unit=('absolute', 'std')).
+        do_raise (bool, optional): if False, don't raise an error but just warn. Defaults to True.
+
+    Returns:
+        wrapped function
+    """
+
+    def somedec_outer(fn):
+        @wraps(fn)
+        def somedec_inner(*args, **kwargs):
+            message = ''
+            for k, v in kwargs.items():
+                if k in accepts and v not in accepts[k]:
+                    message += f'{k} for {v} but only accepts {accepts[k]}'
+            if do_raise and message:
+                raise ValueError(message)
+            elif message:
+                warnings.warn(message)
+            response = fn(*args, **kwargs)
+            return response
+
+        return somedec_inner
+
+    return somedec_outer

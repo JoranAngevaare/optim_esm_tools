@@ -43,11 +43,6 @@ class TestMapMaker(unittest.TestCase):
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
-    def test_example_time_series(self):
-        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
-        oet.analyze.cmip_handler.example_time_series(data_set)
-        plt.clf()
-
     def test_map_maker_time_series(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()
