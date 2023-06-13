@@ -48,17 +48,19 @@ class MapMaker(object):
         }
     )
 
-    kw: ty.Mapping 
-    
+    kw: ty.Mapping
+
     def set_kw(self):
         import cartopy.crs as ccrs
+
         self.kw = immutabledict(
-        fig=dict(dpi=200, figsize=(12, 8)),
-        title=dict(fontsize=8),
-        gridspec=dict(hspace=0.3),
-        cbar=dict(orientation='horizontal', extend='both'),
-        plot=dict(transform=ccrs.PlateCarree()),
-    )
+            fig=dict(dpi=200, figsize=(12, 8)),
+            title=dict(fontsize=8),
+            gridspec=dict(hspace=0.3),
+            cbar=dict(orientation='horizontal', extend='both'),
+            plot=dict(transform=ccrs.PlateCarree()),
+        )
+
     normalizations: ty.Optional[ty.Mapping] = None
 
     _cache: bool = False
@@ -109,6 +111,7 @@ class MapMaker(object):
         **kw,
     ):
         import cartopy.crs as ccrs
+
         ny = np.ceil(len(self.conditions) / nx).astype(int)
         if fig is None:
             fig = plt.figure(**self.kw['fig'])
