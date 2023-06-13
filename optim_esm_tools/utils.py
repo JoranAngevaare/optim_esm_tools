@@ -283,3 +283,15 @@ def check_accepts(
         return somedec_inner
 
     return somedec_outer
+
+
+def depricated(func, message='is depricated'):
+    @wraps(func)
+    def dep_fun(*args, **kwargs):
+        warnings.warn(
+            f'calling {func.__name__} {message}',
+            category=DeprecationWarning,
+        )
+        return func(*args, **kwargs)
+
+    return dep_fun
