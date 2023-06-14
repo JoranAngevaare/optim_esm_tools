@@ -191,17 +191,16 @@ class MapMaker(object):
     @staticmethod
     def _ts_single(time_val, mean, std, plot_kw, fill_kw):
         if fill_kw is None:
-            fill_kw = dict(alpha=0.4)
-
+            fill_kw = dict(alpha=0.4, step='mid')
         l = mean.plot(**plot_kw)
 
         if std is not None:
             # TODO, make this more elegant!
             # import cftime
             # plt.fill_between(   [cftime.real_datetime(dd.year, dd.month, dd.day) for dd in time_val], mean - std, mean+std, **fill_kw)
+
             (mean - std).plot(color=l[0]._color, alpha=0.4)
             (mean + std).plot(color=l[0]._color, alpha=0.4)
-
     def _ts(
         self,
         variable,
@@ -283,6 +282,7 @@ class MapMaker(object):
         if ds is None:
             ds = self.data_set
         variable_rm = f'{variable}_run_mean_{running_mean}'
+
 
         da = ds[variable]
         da_rm = ds[variable_rm]
