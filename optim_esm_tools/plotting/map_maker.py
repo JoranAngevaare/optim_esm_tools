@@ -201,6 +201,7 @@ class MapMaker(object):
 
             (mean - std).plot(color=l[0]._color, alpha=0.4)
             (mean + std).plot(color=l[0]._color, alpha=0.4)
+
     def _ts(
         self,
         variable,
@@ -282,7 +283,6 @@ class MapMaker(object):
         if ds is None:
             ds = self.data_set
         variable_rm = f'{variable}_run_mean_{running_mean}'
-
 
         da = ds[variable]
         da_rm = ds[variable_rm]

@@ -1,4 +1,3 @@
-
 from .xarray_tools import apply_abs, _native_date_fmt
 from optim_esm_tools.utils import check_accepts
 import xarray as xr
@@ -170,7 +169,6 @@ def max_derivative(
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
     result = data_array.differentiate(time_var).max(dim=time_var) * _SECONDS_TO_YEAR
-
 
     var_unit = data_array.attrs.get('units', '{units}')
     name = data_array.attrs.get(rename_to, variable)
