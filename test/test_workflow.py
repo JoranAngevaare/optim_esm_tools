@@ -54,7 +54,7 @@ class TestMapMaker(unittest.TestCase):
         from immutabledict import immutabledict
         from functools import partial
 
-        mm.kw = immutabledict(
+        mm.conditions = immutabledict(
             {
                 'i ii iii iv v vi vii viii ix x'.split()[i]: props
                 for i, props in enumerate(
@@ -79,7 +79,7 @@ class TestMapMaker(unittest.TestCase):
                 )
             }
         )
-        for i in mm.kw.keys():
+        for i in mm.conditions.keys():
             getattr(mm, i)
 
     def test_apply_std_unit(self):

@@ -13,7 +13,7 @@ from immutabledict import immutabledict
 
 # import xrft
 
-from optim_esm_tools.analyze.globals import __OPTIM_VERSION__, _seconds_to_year
+from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
 from optim_esm_tools.analyze.tipping_criteria import (
     running_mean_diff,
     running_mean_std,
@@ -54,8 +54,8 @@ class MapMaker(object):
         import cartopy.crs as ccrs
 
         self.kw = immutabledict(
-            fig=dict(dpi=200, figsize=(12, 8)),
-            title=dict(fontsize=8),
+            fig=dict(dpi=200, figsize=(14, 10)),
+            title=dict(fontsize=12),
             gridspec=dict(hspace=0.3),
             cbar=dict(orientation='horizontal', extend='both'),
             plot=dict(transform=ccrs.PlateCarree()),
@@ -192,15 +192,15 @@ class MapMaker(object):
     def _ts_single(time_val, mean, std, plot_kw, fill_kw):
         if fill_kw is None:
             fill_kw = dict(alpha=0.4, step='mid')
-
         l = mean.plot(**plot_kw)
 
         if std is not None:
             # TODO, make this more elegant!
             # import cftime
             # plt.fill_between(   [cftime.real_datetime(dd.year, dd.month, dd.day) for dd in time_val], mean - std, mean+std, **fill_kw)
-            (mean - std).plot(color=l[0]._color, alpha=0.4, drawstyle='steps-mid')
-            (mean + std).plot(color=l[0]._color, alpha=0.4, drawstyle='steps-mid')
+
+            (mean - std).plot(color=l[0]._color, alpha=0.4)
+            (mean + std).plot(color=l[0]._color, alpha=0.4)
 
     def _ts(
         self,
@@ -284,18 +284,24 @@ class MapMaker(object):
             ds = self.data_set
         variable_rm = f'{variable}_run_mean_{running_mean}'
 
+        da = ds[variable]
+        da_rm = ds[variable_rm]
+
+        if other_dim:
+            da = da.mean(other_dim)
+            da_rm = da_rm.mean(other_dim)
         if not only_rm:
             # Dropna should take care of any nones in the data-array
-            dy_dt = ds[variable].mean(other_dim).dropna(time).differentiate(time)
-            dy_dt *= _seconds_to_year
+            dy_dt = da.dropna(time).differentiate(time)
+            dy_dt *= _SECONDS_TO_YEAR
             # mean, std = self._mean_and_std(dy_dt, variable=None, other_dim=other_dim)
             # plot_kw['label'] = variable
             # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
             label = f'd/dt {labels.get(variable, variable)}'
             dy_dt.plot(label=label, **plot_kw)
 
-        dy_dt_rm = ds[variable_rm].mean(other_dim).dropna(time).differentiate(time)
-        dy_dt_rm *= _seconds_to_year
+        dy_dt_rm = da_rm.dropna(time).differentiate(time)
+        dy_dt_rm *= _SECONDS_TO_YEAR
         label = (
             f"d/dt {labels.get(variable_rm, f'{variable} running mean {running_mean}')}"
         )
@@ -316,7 +322,7 @@ class MapMaker(object):
         else:
             da = ds[variable]
         if other_dim is None:
-            return da.mean(other_dim), None
+            return da, None
         return da.mean(other_dim), da.std(other_dim)
 
     def time_series(
@@ -375,4 +381,6 @@ class MapMaker(object):
 
 
 def make_title(ds):
-    return '{model_group} {model} {scenario} {run} {variable}'.format(**ds.attrs)
+    return '{institution_id} {source_id} {experiment_id} {variant_label} {variable_id} {version}'.format(
+        **ds.attrs
+    )
