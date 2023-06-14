@@ -55,13 +55,13 @@ def setup_plt(use_tex=True, register_as='custom_map'):
     from cycler import cycler
 
     params = {
-        'axes.grid': False,
-        'font.size': 20,
-        'axes.titlesize': 22,
-        'axes.labelsize': 20,
+        'axes.grid': True,
+        'font.size': 18,
+        'axes.titlesize': 20,
+        'axes.labelsize': 18,
         'axes.linewidth': 2,
-        'xtick.labelsize': 20,
-        'ytick.labelsize': 20,
+        'xtick.labelsize': 18,
+        'ytick.labelsize': 18,
         'ytick.major.size': 8,
         'ytick.minor.size': 4,
         'xtick.major.size': 8,
@@ -72,7 +72,7 @@ def setup_plt(use_tex=True, register_as='custom_map'):
         'ytick.minor.width': 2,
         'xtick.direction': 'in',
         'ytick.direction': 'in',
-        'legend.fontsize': 20,
+        'legend.fontsize': 18,
         'figure.facecolor': 'w',
         'figure.figsize': (8, 6),
         'image.cmap': 'viridis',

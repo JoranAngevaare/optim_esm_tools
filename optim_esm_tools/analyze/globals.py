@@ -1,3 +1,5 @@
-_seconds_to_year = 365.25 * 24 * 3600
-folder_fmt = 'model_group model scenario run domain variable grid version'.split()
-__OPTIM_VERSION__ = '0.1.11'
+from optim_esm_tools.config import config
+
+_SECONDS_TO_YEAR = int(config['constants']['seconds_to_year'])
+_FOLDER_FMT = config['CMIP_files']['folder_fmt'].split()
+_CMIP_HANDLER_VERSION = config['versions']['cmip_handler']

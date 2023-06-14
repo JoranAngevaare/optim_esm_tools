@@ -11,9 +11,9 @@ import xrft
 
 from optim_esm_tools.utils import depricated
 
-from .globals import __OPTIM_VERSION__, folder_fmt
+from .globals import _CMIP_HANDLER_VERSION, _FOLDER_FMT
 from .xarray_tools import _native_date_fmt
-from optim_esm_tools.plotting.map_maker import MapMaker
+from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 
 
 def read_ds(
@@ -45,7 +45,7 @@ def read_ds(
         min_time,
         max_time,
         _ma_window,
-        __OPTIM_VERSION__,
+        _CMIP_HANDLER_VERSION,
     )
 
     if os.path.exists(post_processed_file) and _cache:
@@ -72,7 +72,7 @@ def read_ds(
     folders = base.split(os.sep)
 
     # start with -1 (for i==0)
-    metadata = {k: folders[-i - 1] for i, k in enumerate(folder_fmt[::-1])}
+    metadata = {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
     metadata.update(
         dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
     )
@@ -140,6 +140,8 @@ def _calculate_variables(
         detrended_run_mean.attrs['units'] = data_set[variable].attrs.get(
             'units', '{units}'
         )
+        for det in detrended, detrended_run_mean:
+            det.attrs.update(data_set[variable].attrs.copy())
         data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
