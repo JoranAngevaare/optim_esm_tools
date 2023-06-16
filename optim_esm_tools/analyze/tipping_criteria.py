@@ -25,7 +25,7 @@ class _Condition(abc.ABC):
                 kwargs.setdefault(k, v)
             self.defaults = immutabledict(kwargs)
 
-    def callculate(self, *arg, **kwarg):
+    def calculate(self, *arg, **kwarg):
         raise NotImplementedError
 
     @property
@@ -36,12 +36,11 @@ class _Condition(abc.ABC):
 class StartEndDifference(_Condition):
     short_description: str = 'start end difference'
 
+    @property
     def long_description(self):
-        return (
-            f'Difference of running mean ({self.running_mean} yr) between start and end of time series. Not detrended',
-        )
+        return f'Difference of running mean ({self.running_mean} yr) between start and end of time series. Not detrended'
 
-    def callculate(self, dataset):
+    def calculate(self, dataset):
         return running_mean_diff(
             dataset,
             variable=self.variable,
@@ -59,12 +58,11 @@ class StartEndDifference(_Condition):
 class StdDetrended(_Condition):
     short_description: str = 'std detrended'
 
+    @property
     def long_description(self):
-        return (
-            f'Standard deviation of running mean ({self.running_mean} yr). Detrended',
-        )
+        return f'Standard deviation of running mean ({self.running_mean} yr). Detrended'
 
-    def callculate(self, dataset):
+    def calculate(self, dataset):
         return running_mean_std(
             dataset,
             variable=self.variable,
@@ -82,10 +80,11 @@ class MaxJump(_Condition):
         super().__init__(*args, **kwargs)
         self.number_of_years = 10
 
+    @property
     def long_description(self):
         return f'Max change in {self.number_of_years} yr in the running mean ({self.running_mean} yr). Not detrended'
 
-    def callculate(self, dataset):
+    def calculate(self, dataset):
         return max_change_xyr(
             dataset,
             variable=self.variable,
@@ -100,10 +99,11 @@ class MaxJump(_Condition):
 class MaxDerivitive(_Condition):
     short_description: str = 'std detrended'
 
+    @property
     def long_description(self):
         return 'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
 
-    def callculate(self, dataset):
+    def calculate(self, dataset):
         return max_derivative(
             dataset,
             variable=self.variable,
