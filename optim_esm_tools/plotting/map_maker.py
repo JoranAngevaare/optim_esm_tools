@@ -11,44 +11,23 @@ import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
 
+
 # import xrft
 
 from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
 from optim_esm_tools.analyze.tipping_criteria import (
-    running_mean_diff,
-    running_mean_std,
-    max_change_xyr,
-    max_derivative,
+    StartEndDifference,
+    StdDetrended,
+    MaxJump,
+    MaxDerivitive,
 )
 
 
 class MapMaker(object):
     data_set: xr.Dataset
-
-    # This is a bit rough, conditions is a mapping of keys to decsriptions and functions
-    conditions: ty.Mapping[str, ty.Tuple] = immutabledict(
-        {
-            'i ii iii iv v vi vii viii ix x'.split()[i]: props
-            for i, props in enumerate(
-                zip(
-                    [
-                        'Difference of running mean (10 yr) between start and end of time series. Not detrended',
-                        'Standard deviation of running mean (10 yr). Detrended',
-                        'Max change in 10 yr in the running mean (10 yr). Not detrended',
-                        'Max value of the first order derivative of the running mean. Not deterended',
-                    ],
-                    [
-                        running_mean_diff,
-                        running_mean_std,
-                        max_change_xyr,
-                        max_derivative,
-                    ],
-                )
-            )
-        }
-    )
-
+    labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
+    contitions: ty.Mapping
 
     def set_kw(self):
         import cartopy.crs as ccrs
@@ -61,6 +40,18 @@ class MapMaker(object):
             plot=dict(transform=ccrs.PlateCarree()),
         )
 
+    def set_conditions(self, **condition_kwargs):
+        conditions = [
+            cls(**condition_kwargs)
+            for cls in [StartEndDifference, StdDetrended, MaxJump, MaxDerivitive]
+        ]
+
+        self.conditions = {
+            label: (condition.short_description, condition.calculate)
+            for label, condition in zip(self.labels, conditions)
+        }
+        self.labels = tuple(self.conditions.keys())
+
     normalizations: ty.Optional[ty.Mapping] = None
 
     _cache: bool = False
@@ -70,9 +61,11 @@ class MapMaker(object):
         data_set: xr.Dataset,
         normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
         cache: bool = False,
+        **conditions,
     ):
         self.data_set = data_set
         self.set_kw()
+        self.set_conditions(**conditions)
         if normalizations is None:
             self.normalizations = {i: [None, None] for i in self.conditions.keys()}
         elif isinstance(normalizations, collections.abc.Mapping):
@@ -173,8 +166,10 @@ class MapMaker(object):
         return plt_ax
 
     def __getattr__(self, item):
+        print(item)
         if item in self.conditions:
-            _, function = self.conditions[item]
+            key, function = self.conditions[item]
+            return self.data_set[key]
             key = f'_{item}'
             if self._cache:
                 if not isinstance(self._cache, dict):

@@ -14,10 +14,34 @@ from optim_esm_tools.utils import depricated
 from .globals import _CMIP_HANDLER_VERSION, _FOLDER_FMT
 from .xarray_tools import _native_date_fmt
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
+from optim_esm_tools.analyze import tipping_criteria
+import logging
+
+
+class ResultDataSet:
+    _logger: logging.Logger = None
+    labels: tuple = tuple('i ii iii iv'.split())
+
+    def __init__(self, path=None, dataset=None) -> None:
+        if path is None:
+            self.log.warning(
+                f'Best is to start {self.__class__.__name__} from a synda path'
+            )
+            self.dataset = transform_ds(dataset)
+        else:
+            self.dataset = read_ds(path)
+
+    @property
+    def log(self):
+        if self._logger is None:
+            self._logger = oet.config.get_logger()
+        return self.logger
 
 
 def transform_ds(
     ds: xr.Dataset,
+    calculate_conditions: ty.Tuple[tipping_criteria._Condition] = None,
+    condition_kwargs: ty.Mapping = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
@@ -38,7 +62,16 @@ def transform_ds(
         _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
     """
-    return _calculate_variables(
+    if calculate_conditions is None:
+        calculate_conditions = (
+            tipping_criteria.StartEndDifference,
+            tipping_criteria.StdDetrended,
+            tipping_criteria.MaxJump,
+            tipping_criteria.MaxDerivitive,
+        )
+    if condition_kwargs is None:
+        condition_kwargs = dict()
+    ds = _calculate_variables(
         oet.synda_files.format_synda.recast(ds),
         min_time,
         max_time,
@@ -48,6 +81,18 @@ def transform_ds(
         _detrend_type,
         _time_var,
     )
+    for cls in calculate_conditions:
+        condition = cls(**condition_kwargs)
+        condition_array = condition.calculate(ds)
+        condition_array = condition_array.assign_attrs(
+            dict(
+                short_description=cls.short_description,
+                long_description=condition.long_description,
+                name=condition_array.name,
+            )
+        )
+        ds[condition.short_description] = condition_array
+    return ds
 
 
 @oet.utils.timed()
@@ -76,6 +121,9 @@ def read_ds(
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
     """
+    if kwargs:
+        oet.config.get_logger().error(f'Not really advised yet to call with {kwargs}')
+        _cache = False
     post_processed_file = _name_cache_file(
         base,
         variable_of_interest,
