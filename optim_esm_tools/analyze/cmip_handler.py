@@ -16,9 +16,8 @@ from .xarray_tools import _native_date_fmt
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 
 
-@oet.utils.timed()
-def read_ds(
-    base: str,
+def transform_ds(
+    ds: xr.Dataset,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
@@ -26,17 +25,53 @@ def read_ds(
     _time_var='time',
     _detrend_type='linear',
     _ma_window: int = 10,
+):
+    """Transform the dataset to get it ready for handling in optim_esm_tools
+
+    Args:
+        ds (xr.Dataset): input dataset
+        variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        strict (bool, optional): raise errors on loading, if any. Defaults to True.
+        _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
+        _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
+        _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
+    """
+    return _calculate_variables(
+        oet.synda_files.format_synda.recast(ds),
+        min_time,
+        max_time,
+        variable_of_interest,
+        strict,
+        _ma_window,
+        _detrend_type,
+        _time_var,
+    )
+
+
+@oet.utils.timed()
+def read_ds(
+    base: str,
+    variable_of_interest: ty.Tuple[str] = ('tas',),
+    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
+    min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    _ma_window: int = 10,
     _cache: bool = True,
+    **kwargs,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
 
     Args:
         base (str): Folder to load the data from
-        variable_of_interest (ty.Tuple[str], optional): _description_. Defaults to ('tas',).
-        _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
-        _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
+        variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
+
+    kwargs:
+        any kwargs are passed onto transfor_ds.
 
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
@@ -59,17 +94,13 @@ def read_ds(
         return None
 
     data_set = oet.synda_files.format_synda.load_glob(data_path)
-    data_set = oet.synda_files.format_synda.recast(data_set)
-
-    data_set = _calculate_variables(
+    data_set = transform_ds(
         data_set,
-        min_time,
-        max_time,
-        variable_of_interest,
-        strict,
-        _ma_window,
-        _detrend_type,
-        _time_var,
+        variable_of_interest=variable_of_interest,
+        max_time=max_time,
+        min_time=min_time,
+        _ma_window=_ma_window,
+        **kwargs,
     )
 
     folders = base.split(os.sep)
