@@ -16,11 +16,13 @@ from .xarray_tools import _native_date_fmt
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 
 
+@oet.utils.timed()
 def read_ds(
     base: str,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    strict: bool = True,
     _time_var='time',
     _detrend_type='linear',
     _ma_window: int = 10,
@@ -64,6 +66,7 @@ def read_ds(
         min_time,
         max_time,
         variable_of_interest,
+        strict,
         _ma_window,
         _detrend_type,
         _time_var,
@@ -111,11 +114,13 @@ def _name_cache_file(
     return normalized_path
 
 
+@oet.utils.timed()
 def _calculate_variables(
     data_set,
     min_time,
     max_time,
     variable_of_interest,
+    strict,
     _ma_window,
     _detrend_type,
     _time_var,
@@ -129,6 +134,11 @@ def _calculate_variables(
 
     # Detrend and run_mean on the fly
     for variable in variable_of_interest:
+        if (ds_len := len(data_set[variable])) < _ma_window:
+            message = f'This data set is shorter {ds_len} than the moving average window ({_ma_window})'
+            if strict:
+                raise ValueError(message)
+            oet.config.get_logger().warning(message)
         # NB these are DataArrays not Datasets!
         run_mean = data_set[variable].rolling(time=_ma_window, center=True).mean()
         detrended = xrft.detrend(

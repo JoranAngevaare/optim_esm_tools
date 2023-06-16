@@ -3,7 +3,6 @@ from optim_esm_tools.utils import root_folder
 import configparser
 import logging
 import os
-import warnings
 
 if 'OPTIM_ESM_CONFIG' in os.environ:
     config_path = os.environ['OPTIM_ESM_CONFIG']
