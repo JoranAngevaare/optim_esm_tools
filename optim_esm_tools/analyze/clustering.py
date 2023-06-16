@@ -117,7 +117,9 @@ def build_cluster_mask(
 
 def _infer_max_step_size(xs, ys):
     ys = ys[ys > 0]
-    coords = [[[xs[0], ys[0]], [xs[0], ys[1]]], [[xs[0], ys[0]], [xs[1], ys[0]]]]
+    # coords = [[[xs[0], ys[0]], [xs[0], ys[1]]], [[xs[0], ys[0]], [xs[1], ys[0]]]]
+    # Return long:lat
+    coords = [[[ys[0], xs[0]], [ys[0], xs[1]]], [[ys[0], xs[0]], [ys[1], xs[0]]]]
     # Return 2x the distance between grid cells
     return 2 * max(_distance(c) for c in coords)
 

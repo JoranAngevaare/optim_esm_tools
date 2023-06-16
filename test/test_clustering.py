@@ -38,6 +38,18 @@ def test_clustering_double_blob(npoints=100, res_x=5, res_y=5):
         ds['x'],
         ds['y'],
         max_distance_km=1000,
-        cluster_opts=dict(min_samples=2),
+        min_samples=2,
     )
     assert len(clusters) == len(masks) == 2
+
+
+def test_geopy_alternative():
+    xs, ys = np.random.rand(1, 4).reshape(2, 2)
+    xs *= 360
+    ys = ys * 180 - 90
+    # LAT:LON!
+    coords = np.array([ys, xs]).T
+    print(coords)
+    assert np.isclose(
+        clustering._distance_bf(coords), clustering._distance(coords), rtol=0.1
+    )

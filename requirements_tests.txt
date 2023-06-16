@@ -1,4 +1,5 @@
 coverage
+geopy
 gitpython
 hypothesis-numpy
 pytest
