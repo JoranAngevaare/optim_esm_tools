@@ -4,6 +4,114 @@ import xarray as xr
 import numpy as np
 import typing as ty
 from .globals import _SECONDS_TO_YEAR
+import abc
+from immutabledict import immutabledict
+
+
+class _Condition(abc.ABC):
+    short_description: str
+    defaults = immutabledict(
+        rename_to='long_name',
+        unit='absolute',
+        apply_abs=True,
+    )
+
+    def __init__(self, variable='tas', running_mean=10, time_var='time', **kwargs):
+        self.variable = variable
+        self.running_mean = running_mean
+        self.time_var = time_var
+        if kwargs:
+            for k, v in self.defaults.items():
+                kwargs.setdefault(k, v)
+            self.defaults = immutabledict(kwargs)
+
+    def callculate(self, *arg, **kwarg):
+        raise NotImplementedError
+
+    @property
+    def long_description(self):
+        raise NotImplementedError
+
+
+class StartEndDifference(_Condition):
+    short_description: str = 'start end difference'
+
+    def long_description(self):
+        return (
+            f'Difference of running mean ({self.running_mean} yr) between start and end of time series. Not detrended',
+        )
+
+    def callculate(self, dataset):
+        return running_mean_diff(
+            dataset,
+            variable=self.variable,
+            time_var=self.time_var,
+            naming='{variable}_run_mean_{running_mean}',
+            running_mean=self.running_mean,
+            # TODO
+            # Pass kw arguments on? I think not
+            _t_0_date=None,
+            _t_1_date=None,
+            **self.defaults,
+        )
+
+
+class StdDetrended(_Condition):
+    short_description: str = 'std detrended'
+
+    def long_description(self):
+        return (
+            f'Standard deviation of running mean ({self.running_mean} yr). Detrended',
+        )
+
+    def callculate(self, dataset):
+        return running_mean_std(
+            dataset,
+            variable=self.variable,
+            time_var=self.time_var,
+            naming='{variable}_detrend_run_mean_{running_mean}',
+            running_mean=self.running_mean,
+            **self.defaults,
+        )
+
+
+class MaxJump(_Condition):
+    short_description: str = 'max jump'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.number_of_years = 10
+
+    def long_description(self):
+        return f'Max change in {self.number_of_years} yr in the running mean ({self.running_mean} yr). Not detrended'
+
+    def callculate(self, dataset):
+        return max_change_xyr(
+            dataset,
+            variable=self.variable,
+            time_var=self.time_var,
+            naming='{variable}_run_mean_{running_mean}',
+            x_yr=self.number_of_years,
+            running_mean=self.running_mean,
+            **self.defaults,
+        )
+
+
+class MaxDerivitive(_Condition):
+    short_description: str = 'std detrended'
+
+    def long_description(self):
+        return 'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
+
+    def callculate(self, dataset):
+        return max_derivative(
+            dataset,
+            variable=self.variable,
+            time_var=self.time_var,
+            naming='{variable}_run_mean_{running_mean}',
+            running_mean=self.running_mean,
+            **self.defaults,
+        )
 
 
 @timed
