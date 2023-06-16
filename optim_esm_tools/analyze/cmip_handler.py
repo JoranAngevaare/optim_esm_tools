@@ -36,6 +36,7 @@ class ResultDataSet:
             self._logger = oet.config.get_logger()
         return self.logger
 
+
 def transform_ds(
     ds: xr.Dataset,
     variable_of_interest: ty.Tuple[str] = ('tas',),
