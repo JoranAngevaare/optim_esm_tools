@@ -26,13 +26,13 @@ def transfor_ds(
     _detrend_type='linear',
     _ma_window: int = 10,
 ):
-    """_summary_
+    """Transform the dataset to get it ready for handling in optim_esm_tools
 
     Args:
-        ds (xr.Dataset): _description_
-        variable_of_interest (ty.Tuple[str], optional): _description_. Defaults to ('tas',).
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): _description_. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): _description_. Defaults to None.
+        ds (xr.Dataset): input dataset
+        variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
         _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
@@ -64,7 +64,7 @@ def read_ds(
 
     Args:
         base (str): Folder to load the data from
-        variable_of_interest (ty.Tuple[str], optional): _description_. Defaults to ('tas',).
+        variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
