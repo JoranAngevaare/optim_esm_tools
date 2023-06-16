@@ -25,7 +25,7 @@ from optim_esm_tools.analyze.tipping_criteria import (
 
 class MapMaker(object):
     data_set: xr.Dataset
-    labels = set('i ii iii iv v vi vii viii ix x'.split())
+    labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
     contitions: ty.Mapping
 
@@ -50,7 +50,7 @@ class MapMaker(object):
             label: (condition.short_description, condition.calculate)
             for label, condition in zip(self.labels, conditions)
         }
-        print(self.conditions)
+        self.labels = tuple(self.conditions.keys())
 
     normalizations: ty.Optional[ty.Mapping] = None
 
