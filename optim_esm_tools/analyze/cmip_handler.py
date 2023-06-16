@@ -97,8 +97,8 @@ def read_ds(
     data_set = transform_ds(
         data_set,
         variable_of_interest=variable_of_interest,
-        max_time=max_timemax_time,
-        min_time=min_timemin_time,
+        max_time=max_time,
+        min_time=min_time,
         _ma_window=_ma_window,
         **kwargs,
     )
