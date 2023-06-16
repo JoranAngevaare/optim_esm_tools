@@ -1,6 +1,9 @@
+aiohttp
 coverage
+gcsfs
 geopy
 gitpython
 hypothesis-numpy
+intake-esm
 pytest
 scikit-learn
