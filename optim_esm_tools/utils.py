@@ -9,7 +9,7 @@ from platform import python_version
 from functools import wraps
 from immutabledict import immutabledict
 import warnings
-
+import time
 import numpy as np
 import pandas as pd
 
@@ -77,8 +77,13 @@ def setup_plt(use_tex=True, register_as='custom_map'):
         'figure.figsize': (8, 6),
         'image.cmap': 'viridis',
         'lines.linewidth': 2,
-        'font.family': 'Times New Roman',
     }
+    if use_tex:
+        params.update(
+            {
+                'font.family': 'Times New Roman',
+            }
+        )
     plt.rcParams.update(params)
 
     custom_cycler = cycler(color=get_plt_colors())
@@ -295,3 +300,48 @@ def depricated(func, message='is depricated'):
         return func(*args, **kwargs)
 
     return dep_fun
+
+
+def _chopped_string(string, max_len):
+    string = str(string)
+    if len(string) < max_len:
+        return string
+    return string[:max_len] + '...'
+
+
+@check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'print')))
+def timed(
+    *a, seconds: int = 5, _report: str = 'print', _args_max: int = 20, _fmt: str = '.2g'
+):
+    """Time a function and print if it takes more than <seconds>
+
+    Args:
+        seconds (int, optional): Defaults to 5.
+        _report (str, optional): Method of reporting, either print or use the global logger. Defaults to 'print'.
+        _args_max (int, optional): Max number of chracters in the message for the args and kwars of the function. Defaults to 10.
+        _fmt (str, optional): time format specification. Defaults to '.2g'.
+    """
+
+    def somedec_outer(fn):
+        @wraps(fn)
+        def timed_func(*args, **kwargs):
+            t0 = time.time()
+            res = fn(*args, **kwargs)
+            dt = time.time() - t0
+            if dt > seconds:
+                hours = '' if dt < 3600 else f' ({dt/3600:{_fmt}} h) '
+                message = f'{fn.__name__} took {dt:{_fmt}} s{hours} (for {_chopped_string(args, _args_max)}, {_chopped_string(kwargs,_args_max)})'
+                if _report == 'print':
+                    print(message)
+                else:
+                    from .config import get_logger
+
+                    getattr(get_logger(), _report)(message)
+            return res
+
+        return timed_func
+
+    if a and isinstance(a[0], ty.Callable):
+        # Decorator that isn't closed
+        return somedec_outer(a[0])
+    return somedec_outer
