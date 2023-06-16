@@ -3,6 +3,7 @@ import optim_esm_tools as oet
 import unittest
 import tempfile
 import matplotlib.pyplot as plt
+import pytest
 
 
 class TestUtils(unittest.TestCase):
@@ -20,3 +21,26 @@ class TestUtils(unittest.TestCase):
 
     def test_print_version(self):
         oet.utils.print_versions(['numpy', 'optim_esm_tools'])
+
+
+class TestTimed:
+    @staticmethod
+    def _timeing_decorator(**kw):
+        @oet.utils.timed(**kw)
+        def foo(a):
+            print(a)
+
+        foo(f'Test {kw}')
+
+    @pytest.mark.parametrize(
+        'seconds,report,args_max,fmt',
+        [
+            [0, 'print', 1, '.1f'],
+            [0, 'info', -1, '.1e'],
+            [0, 'debug', 1, '.06'],
+            [0, 'warning', 1, '.1f'],
+        ],
+    )
+    def test_timing(self, seconds, report, args_max, fmt):
+        kw = dict(seconds=seconds, _report=report, _args_max=args_max, _fmt=fmt)
+        self._timeing_decorator(**kw)
