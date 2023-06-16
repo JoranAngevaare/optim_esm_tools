@@ -47,12 +47,7 @@ def get_example_data_loc():
 
 def synda_test_available():
     """Check if we can run a synda-dependent test"""
-    if os.path.exists(get_example_data_loc()):
-        return True
-    print(f'No {get_example_data_loc()}')
-    # Try from pangeo?
-    get_file_from_pangeo()
-    return os.path.exists(get_example_data_loc())
+    return os.environ.get('ST_HOME') is not None and os.path.exists(get_example_data_loc())
 
 
 def minimal_xr_ds():
