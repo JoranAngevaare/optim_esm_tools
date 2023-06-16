@@ -1,11 +1,12 @@
 from .xarray_tools import apply_abs, _native_date_fmt
-from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import check_accepts, timed
 import xarray as xr
 import numpy as np
 import typing as ty
 from .globals import _SECONDS_TO_YEAR
 
 
+@timed
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_diff(
@@ -81,6 +82,7 @@ def running_mean_diff(
         return result
 
 
+@timed
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_std(
@@ -114,6 +116,7 @@ def running_mean_std(
         return result
 
 
+@timed
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_change_xyr(
@@ -153,6 +156,7 @@ def max_change_xyr(
         return result
 
 
+@timed
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_derivative(
@@ -192,6 +196,13 @@ def max_derivative(
 def _remove_any_none_times(da, time_dim):
     data_var = da.copy()
     time_null = da.isnull().all(dim=set(da.dims) - {time_dim})
+    if np.all(time_null):
+        # If we take a running mean of 10 (the default), and the array is shorter than
+        # 10 years we will run into issues here because a the window is longer than the
+        # array. Perhaps we should raise higher up.
+        raise ValueError(
+            f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
+        )
     if np.any(time_null):
         data_var = data_var.load().where(~time_null, drop=True)
     return data_var

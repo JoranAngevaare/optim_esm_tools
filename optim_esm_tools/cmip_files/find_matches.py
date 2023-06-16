@@ -1,14 +1,24 @@
 import os
 import glob
-from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import check_accepts, timed
 from optim_esm_tools.config import config, get_logger
 from collections import defaultdict
 
 
+@timed
 @check_accepts(
     accepts=dict(
         activity_id=('ScenarioMIP', 'CMIP', '*'),
-        experiment_id=('piControl', 'historical', 'ssp585', '*'),
+        experiment_id=(
+            'piControl',
+            'historical',
+            'ssp119',
+            'sp126',
+            'sp245',
+            'ssp370',
+            'ssp585',
+            '*',
+        ),
     )
 )
 def find_matches(

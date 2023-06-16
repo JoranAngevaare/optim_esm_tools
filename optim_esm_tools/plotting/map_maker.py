@@ -104,6 +104,7 @@ class MapMaker(object):
         print('Depricated use plot_all')
         return self.plot_all(*a, **kw)
 
+    @oet.utils.timed()
     def plot_all(
         self,
         nx=2,
@@ -132,6 +133,7 @@ class MapMaker(object):
             plt_axes.append(ax)
         return plt_axes
 
+    @oet.utils.timed()
     def plot_i(self, label, ax=None, coastlines=True, **kw):
         if ax is None:
             ax = plt.gca()
@@ -325,6 +327,7 @@ class MapMaker(object):
             return da, None
         return da.mean(other_dim), da.std(other_dim)
 
+    @oet.utils.timed()
     def time_series(
         self,
         variable='tas',
