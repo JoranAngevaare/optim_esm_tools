@@ -36,7 +36,7 @@ def get_file_from_pangeo():
 
 
 def get_synda_loc():
-    return os.path.join(os.environ.get('ST_HOME'), 'data')
+    return os.path.join(os.environ.get('ST_HOME', os.path.join(os.path.abspath('.'), 'cmip')), 'data')
 
 
 def get_example_data_loc():
