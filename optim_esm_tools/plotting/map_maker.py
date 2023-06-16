@@ -47,7 +47,7 @@ class MapMaker(object):
         ]
 
         self.conditions = {
-            label: (condition.long_description, condition.calculate)
+            label: (condition.short_description, condition.calculate)
             for label, condition in zip(self.labels, conditions)
         }
         print(self.conditions)
@@ -168,7 +168,8 @@ class MapMaker(object):
     def __getattr__(self, item):
         print(item)
         if item in self.conditions:
-            _, function = self.conditions[item]
+            key, function = self.conditions[item]
+            return self.data_set[key]
             key = f'_{item}'
             if self._cache:
                 if not isinstance(self._cache, dict):
