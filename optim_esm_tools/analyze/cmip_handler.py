@@ -95,11 +95,13 @@ def read_ds(
 
     data_set = oet.synda_files.format_synda.load_glob(data_path)
     data_set = transform_ds(
-        data_set, 
-        variable_of_interest=variable_of_interest, 
-        max_time=max_timemax_time, 
-        min_time=min_timemin_time, _ma_window=_ma_window,
-        **kwargs)
+        data_set,
+        variable_of_interest=variable_of_interest,
+        max_time=max_timemax_time,
+        min_time=min_timemin_time,
+        _ma_window=_ma_window,
+        **kwargs,
+    )
 
     folders = base.split(os.sep)
 
