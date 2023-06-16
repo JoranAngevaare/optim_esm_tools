@@ -16,7 +16,7 @@ from .xarray_tools import _native_date_fmt
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 
 
-def transfor_ds(
+def transform_ds(
     ds: xr.Dataset,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
@@ -94,7 +94,12 @@ def read_ds(
         return None
 
     data_set = oet.synda_files.format_synda.load_glob(data_path)
-    data_set = transfor_ds(max_time, min_time, _ma_window, **kwargs)
+    data_set = transform_ds(
+        data_set, 
+        variable_of_interest=variable_of_interest, 
+        max_time=max_timemax_time, 
+        min_time=min_timemin_time, _ma_window=_ma_window,
+        **kwargs)
 
     folders = base.split(os.sep)
 
