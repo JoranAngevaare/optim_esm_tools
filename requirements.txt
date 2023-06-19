@@ -1,5 +1,6 @@
 immutabledict
 numpy
+numba
 pandas
 tqdm
 treelib
