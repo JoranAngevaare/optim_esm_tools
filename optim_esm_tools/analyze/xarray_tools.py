@@ -50,11 +50,14 @@ def _mask2d_to_xy_slice(mask: np.array, cyclic: bool = False) -> np.array:
             n_slices += 1
     return slices[:n_slices]
 
+
 def mask2d_to_xy_slice(*args, **kwargs):
     try:
         import numba
     except (ImportError, ModuleNotFoundError) as exeception:
-        raise ModuleNotFoundError('Numba is an optional dependency, please try pip install numba') from e
+        raise ModuleNotFoundError(
+            'Numba is an optional dependency, please try pip install numba'
+        ) from e
     return numba.njit(_mask2d_to_xy_slice)(*args, **kwargs)
 
 
