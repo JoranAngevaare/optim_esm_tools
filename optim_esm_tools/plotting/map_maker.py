@@ -166,7 +166,6 @@ class MapMaker(object):
         return plt_ax
 
     def __getattr__(self, item):
-        print(item)
         if item in self.conditions:
             key, function = self.conditions[item]
             return self.data_set[key]
