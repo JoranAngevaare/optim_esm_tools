@@ -18,7 +18,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "ubuntu-20.04"]
         python-version: ["3.8"]
-        test: ["all", "partial"]
+        test: ["all", "partial", "minimal"]
         exclude:
           - python-version: 3.9
             test: coveralls
@@ -27,9 +27,22 @@ jobs:
         # This is needed otherwise we can't activate the conda installation
         shell: bash -l {0}
     steps:
+      - name: Setup python
+        if: matrix.test == 'minimal'
+        uses: actions/setup-python@v4.6.1
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Checkout repo
         uses: actions/checkout@v3
+      - name: minimal install
+        if: matrix.test == 'minimal'
+        run:
+          |
+          pip install -r requirements.txt
+          python setup.py install
+          python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
       - uses: conda-incubator/setup-miniconda@v2
+        if: matrix.test != 'minimal'
         with:
           miniforge-variant: Mambaforge
           miniforge-version: latest
@@ -62,6 +75,7 @@ jobs:
         if: matrix.test == 'all'
         run: bash .github/scripts/download_example_data.sh
       - name: Run the tests
+        if: matrix.test != 'minimal'
         run:
           |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
