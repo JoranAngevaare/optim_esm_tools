@@ -75,6 +75,7 @@ jobs:
         if: matrix.test == 'all'
         run: bash .github/scripts/download_example_data.sh
       - name: Run the tests
+        if: matrix.test != 'minimal'
         run:
           |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
