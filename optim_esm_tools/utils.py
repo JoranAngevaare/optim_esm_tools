@@ -311,7 +311,7 @@ def _chopped_string(string, max_len):
 
 @check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'print')))
 def timed(
-    *a, seconds: int = 5, _report: str = 'print', _args_max: int = 20, _fmt: str = '.2g'
+    *a, seconds: int = None, _report: str = None, _args_max: int = 20, _fmt: str = '.2g'
 ):
     """Time a function and print if it takes more than <seconds>
 
@@ -321,6 +321,13 @@ def timed(
         _args_max (int, optional): Max number of chracters in the message for the args and kwars of the function. Defaults to 10.
         _fmt (str, optional): time format specification. Defaults to '.2g'.
     """
+    if seconds is None or _report is None:
+        from .config import config
+
+        if seconds is None:
+            seconds = float(config['time_tool']['min_seconds'])
+        if _report is None:
+            _report = config['time_tool']['reporter']
 
     def somedec_outer(fn):
         @wraps(fn)
