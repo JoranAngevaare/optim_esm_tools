@@ -32,7 +32,7 @@ jobs:
       - name: minimal install
         if: matrix.test == 'minimal'
         run:
-          pip install -e ../optim_esm_tools
+          python setup.py install
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
       - uses: conda-incubator/setup-miniconda@v2
         if: matrix.test != 'minimal'
