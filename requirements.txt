@@ -1,6 +1,5 @@
 immutabledict
 matplotlib
-numba
 numpy
 pandas
 tqdm

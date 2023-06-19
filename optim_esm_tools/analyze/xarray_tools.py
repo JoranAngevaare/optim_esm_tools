@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import numba
 import numpy as np
 import typing as ty
 import xarray as xr
@@ -51,8 +50,12 @@ def _mask2d_to_xy_slice(mask: np.array, cyclic: bool = False) -> np.array:
             n_slices += 1
     return slices[:n_slices]
 
-
-mask2d_to_xy_slice = numba.njit(_mask2d_to_xy_slice)
+def mask2d_to_xy_slice(*args, **kwargs):
+    try:
+        import numba
+    except (ImportError, ModuleNotFoundError) as exeception:
+        raise ModuleNotFoundError('Numba is an optional dependency, please try pip install numba') from e
+    return numba.njit(_mask2d_to_xy_slice)(*args, **kwargs)
 
 
 def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
