@@ -102,7 +102,7 @@ def read_ds(
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
-    strict:bool =True,
+    strict: bool = True,
     _ma_window: int = 10,
     _cache: bool = True,
     _file_name: str = 'merged.nc',
