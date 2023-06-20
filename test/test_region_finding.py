@@ -49,7 +49,7 @@ class Work(unittest.TestCase):
 
     def test_max_region_wo_time_series(self):
         self.test_max_region('MaxRegion', new_opt=dict(time_series_joined=False))
-        
+
     def test_percentiles(self):
         self.test_max_region('Percentiles', new_opt=dict(time_series_joined=False))
 
