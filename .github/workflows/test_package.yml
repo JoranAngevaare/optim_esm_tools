@@ -17,11 +17,13 @@ jobs:
       fail-fast: False
       matrix:
         os: ["ubuntu-latest", "ubuntu-20.04"]
-        python-version: ["3.8"]
+        python-version: ["3.8", "3.9", "3.10"]
         test: ["all", "partial", "minimal"]
         exclude:
-          - python-version: 3.9
-            test: coveralls
+          - test: "all"
+            python-version: ["3.9", "3.10"]
+          - test: "all"
+            os: ubuntu-latest
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
