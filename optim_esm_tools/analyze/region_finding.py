@@ -204,7 +204,7 @@ class MaxRegion(RegionExtractor):
         self, masks, time_series_joined=True, only_rm=False, axes=None
     ):
         legend_kw = oet.utils.legend_kw(
-            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
+            loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
         )
         for label, mask_2d in zip(self.labels, masks.values()):
             x, y = self._mask_to_coord(mask_2d)
@@ -312,7 +312,7 @@ class Percentiles(RegionExtractor):
                 )
             if legend:
                 plt.legend(**oet.utils.legend_kw())
-        plt.suptitle(f'Clusters {self.title}', y=0.95)
+        plt.suptitle(f'Clusters {self.title}', y=0.97 if len(masks) < 4 else 0.99)
         return ax
 
     def _plot_basic_map(self):
@@ -336,11 +336,14 @@ class Percentiles(RegionExtractor):
 
     @plt_show
     def plot_mask_time_series(self, masks_and_clusters, time_series_joined=True):
+        if not len(masks_and_clusters[0]):
+            self.log.warning('No clusters found!')
+            return
         res = self._plot_mask_time_series(
             masks_and_clusters, time_series_joined=time_series_joined
         )
-        if time_series_joined:
-            self.save(f'{self.title_label}_all_clusters')
+        if time_series_joined and masks_and_clusters:
+            self.save(f'{self.title_label}_time_series_all_clusters')
         return res
 
     @apply_options

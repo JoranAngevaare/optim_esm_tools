@@ -61,8 +61,9 @@ class Units(unittest.TestCase):
         data_set = oet.analyze.cmip_handler.read_ds(
             os.path.split(
                 year_means(
-                    get_file_from_pangeo('ssp585', refresh=refresh), 
-                    refresh=refresh))[0],
+                    get_file_from_pangeo('ssp585', refresh=refresh), refresh=refresh
+                )
+            )[0],
             condition_kwargs=dict(unit=unit),
             _file_name='test_merged.nc',
         )
