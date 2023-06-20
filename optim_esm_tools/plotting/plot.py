@@ -14,6 +14,7 @@ def setup_map():
     gl = ax.gridlines(draw_labels=True)
     gl.top_labels = False
 
+
 def _show(show):
     if show:
         plt.show()
