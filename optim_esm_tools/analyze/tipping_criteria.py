@@ -303,7 +303,7 @@ def max_derivative(
 
 def _remove_any_none_times(da, time_dim):
     data_var = da.copy()
-    time_null = data_var.isnull().all(dim=set(data_var.dims) - {time_dim})
+    time_null = da.isnull().all(dim=set(da.dims) - {time_dim})
     if np.all(time_null):
         # If we take a running mean of 10 (the default), and the array is shorter than
         # 10 years we will run into issues here because a the window is longer than the
@@ -312,14 +312,5 @@ def _remove_any_none_times(da, time_dim):
             f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
         )
     if np.any(time_null):
-        try:
-            # For some reason only alt_calc seems to work even if it should be equivalent to the data_var
-            # I think there is some fishy indexing going on in pandas <-> dask
-            # Maybe worth raising an issue?
-            alt_calc = xr.where(~time_null, da, np.nan).dropna('time')
-            data_var = data_var.load().where(~time_null, drop=True)
-            assert np.all((alt_calc == data_var).values)
-        except IndexError as e:
-            print(e)
-            return alt_calc
+        data_var = data_var.load().where(~time_null, drop=True)
     return data_var

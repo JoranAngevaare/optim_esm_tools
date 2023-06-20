@@ -129,7 +129,7 @@ def _variant_label_id_and_version(full_path):
         raise ValueError(
             f'could not find run and version from {full_path} {run_variant_number} {grid_version}'
         )
-    return -grid_version, run_variant_number
+    return run_variant_number, -grid_version
 
 
 def folder_to_dict(path):
