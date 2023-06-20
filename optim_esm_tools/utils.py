@@ -309,7 +309,7 @@ def _chopped_string(string, max_len):
     return string[:max_len] + '...'
 
 
-@check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'print')))
+@check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))
 def timed(
     *a, seconds: int = None, _report: str = None, _args_max: int = 20, _fmt: str = '.2g'
 ):

@@ -11,17 +11,23 @@ on:
 
 jobs:
   update:
-    name: "${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}"
+    name: '${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
-        os: ["ubuntu-latest", "ubuntu-20.04"]
-        python-version: ["3.8"]
-        test: ["all", "partial", "minimal"]
+        test: [full, partial, minimal]
+        python-version: ['3.8', '3.9', '3.10']
+        os: [ubuntu-latest, ubuntu-20.04]
         exclude:
-          - python-version: 3.9
-            test: coveralls
+          - test: full
+            python-version: '3.9'
+          - test: full
+            python-version: '3.10'
+          - test: full
+            os: ubuntu-latest
+          - test: minimal
+            os: ubuntu-latest
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
@@ -49,8 +55,8 @@ jobs:
           use-mamba: true
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          activate-environment: "synda"
-          mamba-version: "*"
+          activate-environment: 'synda'
+          mamba-version: '*'
       # PARTIAL (speed up testing)
       - name: run partial install
         if: matrix.test == 'partial'
@@ -60,19 +66,19 @@ jobs:
 
       # ALL
       - name: run full install
-        if: matrix.test == 'all'
+        if: matrix.test == 'full'
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh
           bash .github/scripts/install_tex.sh
       - name: set Synda config
-        if: matrix.test == 'all'
+        if: matrix.test == 'full'
         env:
           OPEN_ID: ${{ secrets.OPEN_ID }}
           OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
         run: bash .github/scripts/write_synda_cridentials.sh
       - name: Download data with Synda
-        if: matrix.test == 'all'
+        if: matrix.test == 'full'
         run: bash .github/scripts/download_example_data.sh
       - name: Run the tests
         if: matrix.test != 'minimal'
