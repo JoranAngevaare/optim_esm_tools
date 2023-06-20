@@ -16,9 +16,9 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04]
-        python-version: ['3.8', '3.9', '3.10']
         test: [full, partial, minimal]
+        python-version: ['3.8', '3.9', '3.10']
+        os: [ubuntu-latest, ubuntu-20.04]
         exclude:
           - test: full
             python-version: '3.9'
