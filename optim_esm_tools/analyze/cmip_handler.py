@@ -71,6 +71,7 @@ def transform_ds(
         )
     if condition_kwargs is None:
         condition_kwargs = dict()
+
     ds = _calculate_variables(
         oet.synda_files.format_synda.recast(ds),
         min_time,
@@ -101,6 +102,7 @@ def read_ds(
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    strict:bool =True,
     _ma_window: int = 10,
     _cache: bool = True,
     _file_name: str = 'merged.nc',
@@ -113,6 +115,7 @@ def read_ds(
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        strict (bool, optional): raise errors on loading, if any. Defaults to True.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
 
@@ -139,7 +142,10 @@ def read_ds(
 
     data_path = os.path.join(base, _file_name)
     if not os.path.exists(data_path):
-        warn(f'No dataset at {data_path}')
+        message = f'No dataset at {data_path}'
+        if strict:
+            raise FileNotFoundError(message)
+        warn(message)
         return None
 
     data_set = oet.synda_files.format_synda.load_glob(data_path)
@@ -149,6 +155,7 @@ def read_ds(
         max_time=max_time,
         min_time=min_time,
         _ma_window=_ma_window,
+        strict=strict,
         **kwargs,
     )
 
