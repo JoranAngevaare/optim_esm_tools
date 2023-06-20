@@ -15,27 +15,6 @@ from .globals import _CMIP_HANDLER_VERSION, _FOLDER_FMT
 from .xarray_tools import _native_date_fmt
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 from optim_esm_tools.analyze import tipping_criteria
-import logging
-
-
-class ResultDataSet:
-    _logger: logging.Logger = None
-    labels: tuple = tuple('i ii iii iv'.split())
-
-    def __init__(self, path=None, dataset=None) -> None:
-        if path is None:
-            self.log.warning(
-                f'Best is to start {self.__class__.__name__} from a synda path'
-            )
-            self.dataset = transform_ds(dataset)
-        else:
-            self.dataset = read_ds(path)
-
-    @property
-    def log(self):
-        if self._logger is None:
-            self._logger = oet.config.get_logger()
-        return self.logger
 
 
 def transform_ds(

@@ -28,7 +28,7 @@ def get_logger(name='oet'):
                 '| %(message)s '
                 '| %(funcName)s (l. %(lineno)d)'
             ),
-            datefmt='%m-%d %H:%M',
+            datefmt='%m-%d %H:%M:%S',
         )
 
         log = logging.getLogger(name)
