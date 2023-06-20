@@ -13,3 +13,10 @@ def setup_map():
     ax.coastlines()
     gl = ax.gridlines(draw_labels=True)
     gl.top_labels = False
+
+def _show(show):
+    if show:
+        plt.show()
+    else:
+        plt.clf()
+        plt.close()

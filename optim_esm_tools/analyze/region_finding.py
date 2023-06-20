@@ -13,26 +13,19 @@ from functools import wraps
 
 import inspect
 from optim_esm_tools.analyze.clustering import build_cluster_mask
-from optim_esm_tools.plotting.plot import setup_map
+from optim_esm_tools.plotting.plot import setup_map, _show
 from immutabledict import immutabledict
 
 
-def _show(show):
-    if show:
-        plt.show()
-    else:
-        plt.clf()
-        plt.close()
-
-
-def mask_xr_ds(ds_masked, da_mask):
-    for k, v in ds_masked.data_vars.items():
-        if all(xy in list(v.dims) for xy in 'xy'):
+def mask_xr_ds(ds_masked, da_mask, masked_dims = ('x', 'y')):
+    for k, data_array in ds_masked.data_vars.items():
+        if all(dim in list(data_array.dims) for dim in masked_dims):
             ds_masked[k] = ds_masked[k].where(da_mask, drop=False)
     return ds_masked
 
 
 def plt_show(*a):
+    """Wrapper to disable class methods to follow up with show"""
     def somedec_outer(fn):
         @wraps(fn)
         def plt_func(*args, **kwargs):
@@ -50,6 +43,7 @@ def plt_show(*a):
 
 
 def apply_options(*a):
+    """If a function takes any arguments in self.extra_opt, apply it to the method"""
     def somedec_outer(fn):
         @wraps(fn)
         def timed_func(*args, **kwargs):
@@ -71,8 +65,7 @@ class RegionExtractor:
     _logger: logging.Logger = None
     labels: tuple = tuple('ii iii'.split())
     show: bool = True
-
-    show_basic = True
+    
     criteria = (tipping_criteria.StdDetrended, tipping_criteria.MaxJump)
     extra_opt = None
 
@@ -108,7 +101,7 @@ class RegionExtractor:
                 sub_dir=None,
             )
         if extra_opt is None:
-            extra_opt = dict()
+            extra_opt = dict(show_basic = True)
         extra_opt.update(dict(read_ds_kw=read_ds_kw))
         self.extra_opt = extra_opt
         self.save_kw = save_kw
