@@ -25,10 +25,13 @@ class Work(unittest.TestCase):
     def test_build_plots(
         self,
         make='MaxRegion',
+        new_opt=None
     ):
         cls = getattr(region_finding, make)
         print(cls)
         extra_opt = dict(time_series_joined=True, scatter_medians=True, percentiles=50)
+        if new_opt:
+            extra_opt.update(new_opt)
         with tempfile.TemporaryDirectory() as temp_dir:
             print(make)
             save_kw = dict(
@@ -50,7 +53,7 @@ class Work(unittest.TestCase):
             r.workflow()
 
     def test_percentiles(self):
-        self.test_build_plots('Percentiles')
+        self.test_build_plots('Percentiles', new_opt=dict(time_series_joined=False))
 
     def test_percentiles_history(self):
         self.test_build_plots('PercentilesHistory')
