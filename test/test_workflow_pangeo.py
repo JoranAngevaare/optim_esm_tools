@@ -6,13 +6,13 @@ import tempfile
 import pytest
 import os
 
+
 class Work(unittest.TestCase):
     # example_data_set = oet._test_utils.EXAMPLE_DATA_SET
     def test(self):
         for data_name in ['ssp585', 'piControl']:
             self.get_path(data_name)
 
-    
     @staticmethod
     def get_path(data_name):
         path = optim_esm_tools._test_utils.get_file_from_pangeo(data_name)
@@ -20,22 +20,34 @@ class Work(unittest.TestCase):
         assert year_path
         assert os.path.exists(year_path)
         return year_path
-    
-    @pytest.mark.paramerize('make', ['region_finding', 'Percentiles', 'PercentilesHistory'])
-    def test_build_plots(self, make='MaxRegion',):
+
+    @pytest.mark.paramerize(
+        'make', ['region_finding', 'Percentiles', 'PercentilesHistory']
+    )
+    def test_build_plots(
+        self,
+        make='MaxRegion',
+    ):
         cls = getattr(region_finding, make)
         with tempfile.TemporaryDirectory() as temp_dir:
             print(make)
             save_kw = dict(
-    save_in = temp_dir,
-    sub_dir = None,
-    file_types=('png', 'pdf'),
-    skip= False,
-)   
-            head, tail = os.path.split(self.get_path('ssp585'))        
-            r=cls(path=head, read_ds_kw=dict(_file_name=tail), transform=True, save_kw=save_kw, extra_opt=dict())
-            r.show=False
+                save_in=temp_dir,
+                sub_dir=None,
+                file_types=('png', 'pdf'),
+                skip=False,
+            )
+            head, tail = os.path.split(self.get_path('ssp585'))
+            r = cls(
+                path=head,
+                read_ds_kw=dict(_file_name=tail),
+                transform=True,
+                save_kw=save_kw,
+                extra_opt=dict(),
+            )
+            r.show = False
             r.workflow()
+
     # def from_amon_to_ayear(self):
     #     if os.path.exists(self.ayear_file):
     #         return

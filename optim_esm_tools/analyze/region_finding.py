@@ -16,6 +16,7 @@ from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.plot import setup_map
 from immutabledict import immutabledict
 
+
 def _show(show):
     if show:
         plt.show()
@@ -58,9 +59,7 @@ def apply_options(*a):
         def timed_func(*args, **kwargs):
             self = args[0]
             takes = inspect.signature(fn).parameters
-            kwargs.update({k: v for k, v in self.extra_opt.items()
-                           if k in takes
-                           })
+            kwargs.update({k: v for k, v in self.extra_opt.items() if k in takes})
             res = fn(*args, **kwargs)
             return res
 
@@ -81,14 +80,16 @@ class ResultDataSet:
     criteria = (tipping_criteria.StdDetrended, tipping_criteria.MaxJump)
     extra_opt = None
 
-    def __init__(self,
-                 variable='tas',
-                 path=None,
-                 dataset=None,
-                 transform=True,
-                 save_kw=None,
-                 extra_opt=None,
-                 read_ds_kw=None) -> None:
+    def __init__(
+        self,
+        variable='tas',
+        path=None,
+        dataset=None,
+        transform=True,
+        save_kw=None,
+        extra_opt=None,
+        read_ds_kw=None,
+    ) -> None:
         if path is None:
             if transform:
                 self.log.warning(
@@ -101,10 +102,15 @@ class ResultDataSet:
             read_ds_kw = dict() if read_ds_kw is None else read_ds_kw
             self.dataset = read_ds(path, **read_ds_kw)
         if save_kw is None:
-            save_kw = dict(save_in='./',
-                           file_types=('png', 'pdf',),
-                           skip=False,
-                           sub_dir=None)
+            save_kw = dict(
+                save_in='./',
+                file_types=(
+                    'png',
+                    'pdf',
+                ),
+                skip=False,
+                sub_dir=None,
+            )
         if extra_opt is None:
             extra_opt = dict()
         self.extra_opt = extra_opt
@@ -150,14 +156,19 @@ class MaxRegion(ResultDataSet):
     def get_masks(self) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
-        masks = {label: self.dataset[label].values == self.dataset[label].values.max()
-                 for label in labels
-                 }
+        masks = {
+            label: self.dataset[label].values == self.dataset[label].values.max()
+            for label in labels
+        }
         return masks
 
     @plt_show
     def plot_masks(self, masks, ax=None, legend=True):
-        res = self._plot_masks(masks=masks, ax=ax, legend=legend,)
+        res = self._plot_masks(
+            masks=masks,
+            ax=ax,
+            legend=legend,
+        )
         self.save(f'{self.title_label}_map_maxes_{"-".join(self.labels)}')
 
     @apply_options
@@ -168,10 +179,7 @@ class MaxRegion(ResultDataSet):
         if ax is None:
             oet.plotting.plot.setup_map()
             ax = plt.gca()
-        for i, (label, xy) in enumerate(zip(
-            self.labels,
-            points.values())
-        ):
+        for i, (label, xy) in enumerate(zip(self.labels, points.values())):
             ax.scatter(*xy, marker='oxv^'[i], label=f'Maximum {label}')
         if legend:
             ax.legend(**oet.utils.legend_kw())
@@ -195,23 +203,26 @@ class MaxRegion(ResultDataSet):
 
     @plt_show
     def plot_mask_time_series(self, masks, time_series_joined=True):
-        res = self._plot_mask_time_series(
-            masks, time_series_joined=time_series_joined)
+        res = self._plot_mask_time_series(masks, time_series_joined=time_series_joined)
         if time_series_joined:
-            self.save(
-                f'{self.title_label}_time_series_maxes_{"-".join(self.labels)}')
+            self.save(f'{self.title_label}_time_series_maxes_{"-".join(self.labels)}')
         return res
 
     @apply_options
-    def _plot_mask_time_series(self, masks, time_series_joined=True, only_rm=False, axes=None):
+    def _plot_mask_time_series(
+        self, masks, time_series_joined=True, only_rm=False, axes=None
+    ):
         legend_kw = oet.utils.legend_kw(
-            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4)
+            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
+        )
         for label, mask_2d in zip(self.labels, masks.values()):
             x, y = self._mask_to_coord(mask_2d)
-            plot_labels = {f'{self.variable}': f'{label} at {x:.1f}:{y:.1f}',
-                           f'{self.variable}_detrend': f'{label} at {x:.1f}:{y:.1f}',
-                           f'{self.variable}_detrend_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
-                           f'{self.variable}_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}'}
+            plot_labels = {
+                f'{self.variable}': f'{label} at {x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend': f'{label} at {x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
+                f'{self.variable}_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
+            }
             argwhere = np.argwhere(mask_2d)[0]
             ds_sel = self.dataset.isel(x=argwhere[1], y=argwhere[0])
             mm_sel = MapMaker(ds_sel)
@@ -220,7 +231,8 @@ class MaxRegion(ResultDataSet):
                 interval=False,
                 labels=plot_labels,
                 axes=axes,
-                only_rm=only_rm)
+                only_rm=only_rm,
+            )
             if time_series_joined is False:
                 axes = None
                 plt.suptitle(f'Max. {label} {self.title}', y=0.95)
@@ -253,7 +265,8 @@ class Percentiles(ResultDataSet):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values)
+            all_mask, self.dataset['x'].values, self.dataset['y'].values
+        )
         return masks, clusters
 
     @plt_show
@@ -261,13 +274,22 @@ class Percentiles(ResultDataSet):
         if not len(masks_and_clusters[0]):
             return
         res = self._plot_masks(
-            masks_and_clusters=masks_and_clusters, ax=ax, legend=legend,)
+            masks_and_clusters=masks_and_clusters,
+            ax=ax,
+            legend=legend,
+        )
         self.save(f'{self.title_label}_map_clusters_{"-".join(self.labels)}')
 
     @apply_options
-    def _plot_masks(self, masks_and_clusters,
-                    scatter_medians=True,
-                    ax=None, legend=True, mask_cbar_kw=None,cluster_kw=None):
+    def _plot_masks(
+        self,
+        masks_and_clusters,
+        scatter_medians=True,
+        ax=None,
+        legend=True,
+        mask_cbar_kw=None,
+        cluster_kw=None,
+    ):
         masks, clusters = masks_and_clusters
         all_masks = np.zeros(masks[0].shape, np.int16)
 
@@ -285,15 +307,17 @@ class Percentiles(ResultDataSet):
         all_masks[all_masks == 0] = np.nan
         ds_dummy['n_grid_cells'] = (('y', 'x'), all_masks)
 
-        ds_dummy['n_grid_cells'].plot(cbar_kwargs=mask_cbar_kw,
-
-                                      vmin=0, extend='neither')
+        ds_dummy['n_grid_cells'].plot(
+            cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither'
+        )
         plt.title('')
         if scatter_medians:
             if cluster_kw is None:
                 cluster_kw = dict()
             for m_i, cluster in enumerate(clusters):
-                ax.scatter(*np.median(cluster, axis=0), label=f'cluster {m_i}', **cluster_kw)
+                ax.scatter(
+                    *np.median(cluster, axis=0), label=f'cluster {m_i}', **cluster_kw
+                )
             if legend:
                 plt.legend(**oet.utils.legend_kw())
         plt.suptitle(f'Clusters {self.title}', y=0.95)
@@ -306,38 +330,49 @@ class Percentiles(ResultDataSet):
         return axes
 
         # Could add some masked selection on top
-#         masks, _ = self.get_masks()
 
-#         all_masks = masks[0]
-#         for m in masks[1:]:
-#             all_masks &= m
-#         ds_masked = mask_xr_ds(self.dataset.copy(), all_masks)
-#         mm_sel = MapMaker(ds_masked)
-#         for label, ax in zip(mm.labels, axes):
-#             plt.sca(ax)
-#             mm_sel.plot_i(label, ax=ax, coastlines=False)
+    #         masks, _ = self.get_masks()
+
+    #         all_masks = masks[0]
+    #         for m in masks[1:]:
+    #             all_masks &= m
+    #         ds_masked = mask_xr_ds(self.dataset.copy(), all_masks)
+    #         mm_sel = MapMaker(ds_masked)
+    #         for label, ax in zip(mm.labels, axes):
+    #             plt.sca(ax)
+    #             mm_sel.plot_i(label, ax=ax, coastlines=False)
 
     @plt_show
     def plot_mask_time_series(self, masks_and_clusters, time_series_joined=True):
         res = self._plot_mask_time_series(
-            masks_and_clusters, time_series_joined=time_series_joined)
+            masks_and_clusters, time_series_joined=time_series_joined
+        )
         if time_series_joined:
             self.save(f'{self.title_label}_all_clusters')
         return res
 
     @apply_options
-    def _plot_mask_time_series(self, masks_and_clusters, time_series_joined=True, only_rm=None, axes=None):
+    def _plot_mask_time_series(
+        self, masks_and_clusters, time_series_joined=True, only_rm=None, axes=None
+    ):
         if only_rm is None:
-            only_rm = True if (len(masks_and_clusters[0]) > 1 and time_series_joined) else False
+            only_rm = (
+                True
+                if (len(masks_and_clusters[0]) > 1 and time_series_joined)
+                else False
+            )
         masks, clusters = masks_and_clusters
         legend_kw = oet.utils.legend_kw(
-            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4)
+            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
+        )
         for m_i, (mask, cluster) in enumerate(zip(masks, clusters)):
             x, y = np.median(cluster, axis=0)
-            plot_labels = {f'{self.variable}': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
-                           f'{self.variable}_detrend': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
-                           f'{self.variable}_detrend_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
-                           f'{self.variable}_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}'}
+            plot_labels = {
+                f'{self.variable}': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
+            }
             ds_sel = mask_xr_ds(self.dataset.copy(), mask)
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
@@ -345,7 +380,8 @@ class Percentiles(ResultDataSet):
                 interval=True,
                 labels=plot_labels,
                 axes=axes,
-                only_rm=only_rm)
+                only_rm=only_rm,
+            )
             if time_series_joined == False:
                 axes = None
                 plt.suptitle(f'Cluster. {m_i} {self.title}', y=0.95)
@@ -384,17 +420,22 @@ class PercentilesHistory(Percentiles):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values)
+            all_mask, self.dataset['x'].values, self.dataset['y'].values
+        )
         return masks, clusters
 
     @apply_options
     def find_historical(self, match_to='piControl'):
         from optim_esm_tools.config import config
-        base = os.path.join(os.sep,
-                            *self.dataset.attrs['path'].split(os.sep)[:-len(config['CMIP_files']['folder_fmt'].split())-1])
 
-        search = oet.cmip_files.find_matches.folder_to_dict(
-            self.dataset.attrs['path'])
+        base = os.path.join(
+            os.sep,
+            *self.dataset.attrs['path'].split(os.sep)[
+                : -len(config['CMIP_files']['folder_fmt'].split()) - 1
+            ],
+        )
+
+        search = oet.cmip_files.find_matches.folder_to_dict(self.dataset.attrs['path'])
         search['activity_id'] = 'CMIP'
         if search['experiment_id'] == match_to:
             raise NotImplementedError()
@@ -403,15 +444,22 @@ class PercentilesHistory(Percentiles):
         first_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if first_try:
             return first_try
-        self.log.warning(
-            'No results at first try, retying with any variant_label')
-        search.update(dict(variant_label='*', ))
+        self.log.warning('No results at first try, retying with any variant_label')
+        search.update(
+            dict(
+                variant_label='*',
+            )
+        )
 
         second_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if second_try:
             return second_try
         self.log.warning('No results at second try, retying with any version')
-        search.update(dict(version='*', ))
+        search.update(
+            dict(
+                version='*',
+            )
+        )
         third_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if third_try:
             return third_try
