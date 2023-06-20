@@ -82,7 +82,7 @@ jobs:
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
 
       - name: Upload coverage
-        if: matrix.test == 'all'
+        if: matrix.test == 'partial'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: coveralls --service=github
