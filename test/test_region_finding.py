@@ -14,7 +14,9 @@ class Work(unittest.TestCase):
 
     @staticmethod
     def get_path(data_name, refresh=True):
-        path = optim_esm_tools._test_utils.get_file_from_pangeo(data_name, refresh=refresh)
+        path = optim_esm_tools._test_utils.get_file_from_pangeo(
+            data_name, refresh=refresh
+        )
         year_path = optim_esm_tools._test_utils.year_means(path, refresh=refresh)
         assert year_path
         assert os.path.exists(year_path)
@@ -28,7 +30,7 @@ class Work(unittest.TestCase):
         make='MaxRegion',
     ):
         cls = getattr(region_finding, make)
-        extra_opt=dict(time_series_joined=True, scatter_medians=True)
+        extra_opt = dict(time_series_joined=True, scatter_medians=True)
         with tempfile.TemporaryDirectory() as temp_dir:
             print(make)
             save_kw = dict(
