@@ -80,9 +80,9 @@ jobs:
           |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
-
+          coverage report
       - name: Upload coverage
-        if: matrix.test == 'all'
+        if: matrix.test != 'minimal'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: coveralls --service=github

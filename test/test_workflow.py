@@ -48,16 +48,23 @@ class TestMapMaker(unittest.TestCase):
         oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()
         plt.clf()
 
-    def test_apply_relative_units(self, unit='relative'):
+    @classmethod
+    def tearDownClass(cls) -> None:
+        os.remove(cls.ayear_file)
+        return super().tearDownClass()
+
+
+class Units(unittest.TestCase):
+    def test_apply_relative_units(self, unit='relative', refresh=False):
+        from optim_esm_tools._test_utils import year_means, get_file_from_pangeo
+
         data_set = oet.analyze.cmip_handler.read_ds(
-            os.path.split(self.ayear_file)[0], condition_kwargs=dict(unit=unit)
+            year_means(
+                get_file_from_pangeo('ssp585', refresh=refresh), refresh=refresh
+            ),
+            condition_kwargs=dict(unit=unit),
         )
         mm = oet.analyze.cmip_handler.MapMaker(data_set=data_set)
 
     def test_apply_std_unit(self):
         self.test_apply_relative_units(unit='std')
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        os.remove(cls.ayear_file)
-        return super().tearDownClass()

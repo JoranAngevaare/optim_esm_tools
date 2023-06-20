@@ -6,5 +6,7 @@ exclude_lines =
     raise
     print
     warn
+    plt.show()
+    return
 
 ignore_errors = True

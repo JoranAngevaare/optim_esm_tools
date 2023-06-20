@@ -70,7 +70,8 @@ def find_matches(
         if len(seen_members) < max_members or member in seen_members:
             if len(seen_members.get(version, [])) == max_versions:
                 continue
-
+            if is_excluded(candidate):
+                continue
             seen_members[version].append(candidate)
 
     return [
@@ -129,7 +130,7 @@ def _variant_label_id_and_version(full_path):
         raise ValueError(
             f'could not find run and version from {full_path} {run_variant_number} {grid_version}'
         )
-    return run_variant_number, -grid_version
+    return -grid_version, run_variant_number
 
 
 def folder_to_dict(path):
