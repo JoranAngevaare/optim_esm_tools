@@ -47,8 +47,7 @@ class MapMaker(object):
         ]
 
         self.conditions = {
-            label: condition
-            for label, condition in zip(self.labels, conditions)
+            label: condition for label, condition in zip(self.labels, conditions)
         }
         self.labels = tuple(self.conditions.keys())
 

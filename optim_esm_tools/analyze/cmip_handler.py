@@ -69,7 +69,9 @@ def transform_ds(
             tipping_criteria.MaxJump,
             tipping_criteria.MaxDerivitive,
         )
-    if len(set(desc:=(c.short_description for c in calculate_conditions))) != len(calculate_conditions):
+    if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
+        calculate_conditions
+    ):
         raise ValueError(f'One or more non unique descriptions {desc}')
     if condition_kwargs is None:
         condition_kwargs = dict()
