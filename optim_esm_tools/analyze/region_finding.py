@@ -113,6 +113,7 @@ class ResultDataSet:
             )
         if extra_opt is None:
             extra_opt = dict()
+        extra_opt.update(dict(read_ds_kw=read_ds_kw))
         self.extra_opt = extra_opt
         self.save_kw = save_kw
         self.variable = variable
@@ -425,13 +426,13 @@ class PercentilesHistory(Percentiles):
         return masks, clusters
 
     @apply_options
-    def find_historical(self, match_to='piControl'):
+    def find_historical(self, match_to='piControl', look_back_extra=1):
         from optim_esm_tools.config import config
 
         base = os.path.join(
             os.sep,
             *self.dataset.attrs['path'].split(os.sep)[
-                : -len(config['CMIP_files']['folder_fmt'].split()) - 1
+                : -len(config['CMIP_files']['folder_fmt'].split()) -look_back_extra
             ],
         )
 
@@ -463,7 +464,7 @@ class PercentilesHistory(Percentiles):
         third_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if third_try:
             return third_try
-        raise RuntimeError
+        raise RuntimeError(f'Looked for {search}, in {base} found nothing')
 
     @property
     def log(self):

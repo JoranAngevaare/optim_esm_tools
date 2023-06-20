@@ -3,14 +3,14 @@ import unittest
 import optim_esm_tools._test_utils
 from optim_esm_tools.analyze import region_finding
 import tempfile
-import pytest
 import os
 
 
 class Work(unittest.TestCase):
-    def test(self):
+    @classmethod
+    def setUpClass(cls):
         for data_name in ['ssp585', 'piControl']:
-            self.get_path(data_name)
+            cls.get_path(data_name)
 
     @staticmethod
     def get_path(data_name, refresh=True):
@@ -22,14 +22,12 @@ class Work(unittest.TestCase):
         assert os.path.exists(year_path)
         return year_path
 
-    @pytest.mark.paramerize(
-        'make', ['region_finding', 'Percentiles', 'PercentilesHistory']
-    )
     def test_build_plots(
         self,
         make='MaxRegion',
     ):
         cls = getattr(region_finding, make)
+        print(cls)
         extra_opt = dict(time_series_joined=True, scatter_medians=True)
         with tempfile.TemporaryDirectory() as temp_dir:
             print(make)
@@ -50,3 +48,7 @@ class Work(unittest.TestCase):
             )
             r.show = False
             r.workflow()
+    def test_percentiles(self):
+        self.test_build_plots('Percentiles')
+    def test_percentiles_history(self):
+        self.test_build_plots('PercentilesHistory')

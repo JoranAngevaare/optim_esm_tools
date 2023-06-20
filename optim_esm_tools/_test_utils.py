@@ -8,6 +8,8 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
     dest_folder = os.path.split(
         get_example_data_loc().replace('ssp585', experiment_id)
     )[0]
+    if experiment_id in ['piControl', 'historical']:
+        dest_folder = dest_folder.replace('ScenarioMIP', 'CMIP')
     write_to = os.path.join(dest_folder, 'test.nc')
     if os.path.exists(write_to) and not refresh:
         print(f'already file at {write_to}')
