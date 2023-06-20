@@ -28,7 +28,7 @@ class Work(unittest.TestCase):
     ):
         cls = getattr(region_finding, make)
         print(cls)
-        extra_opt = dict(time_series_joined=True, scatter_medians=True)
+        extra_opt = dict(time_series_joined=True, scatter_medians=True, percentiles=50)
         with tempfile.TemporaryDirectory() as temp_dir:
             print(make)
             save_kw = dict(

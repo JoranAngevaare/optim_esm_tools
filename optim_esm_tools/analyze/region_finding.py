@@ -273,6 +273,7 @@ class Percentiles(ResultDataSet):
     @plt_show
     def plot_masks(self, masks_and_clusters, ax=None, legend=True):
         if not len(masks_and_clusters[0]):
+            self.log.warning('No clusters found!')
             return
         res = self._plot_masks(
             masks_and_clusters=masks_and_clusters,
@@ -446,28 +447,14 @@ class PercentilesHistory(Percentiles):
         if first_try:
             return first_try
         self.log.warning('No results at first try, retying with any variant_label')
-        search.update(
-            dict(
-                variant_label='*',
-            )
-        )
+        search.update( dict( variant_label='*', ) )
 
         second_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if second_try:
             return second_try
         self.log.warning('No results at second try, retying with any version')
-        search.update(
-            dict(
-                version='*',
-            )
-        )
+        search.update( dict( version='*', ) )
         third_try = oet.cmip_files.find_matches.find_matches(base, **search)
         if third_try:
             return third_try
         raise RuntimeError(f'Looked for {search}, in {base} found nothing')
-
-    @property
-    def log(self):
-        if self._logger is None:
-            self._logger = oet.config.get_logger()
-        return self._logger
