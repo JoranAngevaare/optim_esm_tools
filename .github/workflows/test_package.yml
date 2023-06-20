@@ -21,7 +21,9 @@ jobs:
         test: ["all", "partial", "minimal"]
         exclude:
           - test: "all"
-            python-version: ["3.9", "3.10"]
+            python-version: "3.9"
+          - test: "all"
+            python-version: "3.10"
           - test: "all"
             os: ubuntu-latest
     defaults:
