@@ -432,7 +432,7 @@ class PercentilesHistory(Percentiles):
         base = os.path.join(
             os.sep,
             *self.dataset.attrs['path'].split(os.sep)[
-                : -len(config['CMIP_files']['folder_fmt'].split()) -look_back_extra
+                : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
             ],
         )
 

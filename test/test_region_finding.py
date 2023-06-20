@@ -48,7 +48,9 @@ class Work(unittest.TestCase):
             )
             r.show = False
             r.workflow()
+
     def test_percentiles(self):
         self.test_build_plots('Percentiles')
+
     def test_percentiles_history(self):
         self.test_build_plots('PercentilesHistory')
