@@ -22,11 +22,7 @@ class Work(unittest.TestCase):
         assert os.path.exists(year_path)
         return year_path
 
-    def test_build_plots(
-        self,
-        make='MaxRegion',
-        new_opt=None
-    ):
+    def test_build_plots(self, make='MaxRegion', new_opt=None):
         cls = getattr(region_finding, make)
         print(cls)
         extra_opt = dict(time_series_joined=True, scatter_medians=True, percentiles=50)
