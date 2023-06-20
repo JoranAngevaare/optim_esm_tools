@@ -69,6 +69,8 @@ def transform_ds(
             tipping_criteria.MaxJump,
             tipping_criteria.MaxDerivitive,
         )
+    if len(set(desc:=(c.short_description for c in calculate_conditions))) != len(calculate_conditions):
+        raise ValueError(f'One or more non unique descriptions {desc}')
     if condition_kwargs is None:
         condition_kwargs = dict()
 
@@ -170,7 +172,7 @@ def read_ds(
     data_set.attrs.update(metadata)
 
     if _cache:
-        print(f'Write {post_processed_file}' + ' ' * 100, flush=True, end='\r')
+        oet.config.get_logger().info(f'Write {post_processed_file}')
         data_set.to_netcdf(post_processed_file)
     return data_set
 

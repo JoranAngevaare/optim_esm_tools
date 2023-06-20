@@ -47,7 +47,7 @@ class MapMaker(object):
         ]
 
         self.conditions = {
-            label: (condition.short_description, condition.calculate)
+            label: condition
             for label, condition in zip(self.labels, conditions)
         }
         self.labels = tuple(self.conditions.keys())
@@ -135,8 +135,9 @@ class MapMaker(object):
 
         cmap = plt.get_cmap('viridis').copy()
         cmap.set_extremes(under='cyan', over='orange')
-
+        x_label = prop.attrs.get('name', label)
         c_kw = self.kw['cbar'].copy()
+        c_kw.setdefault('label', x_label)
         c_range_kw = {
             vm: self.normalizations[label][j]
             for j, vm in enumerate('vmin vmax'.split())
@@ -156,7 +157,7 @@ class MapMaker(object):
 
         plt.xlim(-180, 180)
         plt.ylim(-90, 90)
-        description = self.conditions[label][0]
+        description = self.conditions[label].long_description
         ax.set_title(label.upper() + '\n' + description, **self.kw['title'])
         gl = ax.gridlines(draw_labels=True)
         gl.top_labels = False
@@ -165,8 +166,8 @@ class MapMaker(object):
 
     def __getattr__(self, item):
         if item in self.conditions:
-            key, _ = self.conditions[item]
-            return self.data_set[key]
+            condition = self.conditions[item]
+            return self.data_set[condition.short_description]
         return self.__getattribute__(item)
 
     @staticmethod
