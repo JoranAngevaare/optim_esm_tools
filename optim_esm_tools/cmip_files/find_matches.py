@@ -70,7 +70,8 @@ def find_matches(
         if len(seen_members) < max_members or member in seen_members:
             if len(seen_members.get(version, [])) == max_versions:
                 continue
-
+            if is_excluded(candidate):
+                continue
             seen_members[version].append(candidate)
 
     return [
