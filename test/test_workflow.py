@@ -59,10 +59,12 @@ class Units(unittest.TestCase):
         from optim_esm_tools._test_utils import year_means, get_file_from_pangeo
 
         data_set = oet.analyze.cmip_handler.read_ds(
-            year_means(
-                get_file_from_pangeo('ssp585', refresh=refresh), refresh=refresh
-            ),
+            os.path.split(
+                year_means(
+                    get_file_from_pangeo('ssp585', refresh=refresh), 
+                    refresh=refresh))[0],
             condition_kwargs=dict(unit=unit),
+            _file_name='test_merged.nc',
         )
         mm = oet.analyze.cmip_handler.MapMaker(data_set=data_set)
 
