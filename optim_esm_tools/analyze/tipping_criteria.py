@@ -97,11 +97,11 @@ class MaxJump(_Condition):
 
 
 class MaxDerivitive(_Condition):
-    short_description: str = 'std detrended'
+    short_description: str = 'max derivative'
 
     @property
     def long_description(self):
-        return 'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
+        return f'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
 
     def calculate(self, dataset):
         return max_derivative(

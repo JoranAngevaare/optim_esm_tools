@@ -32,7 +32,9 @@ def load_glob(
 
 
 def _interp_nominal_lon_new(lon_1d):
-    print('Using altered version')
+    from optim_esm_tools.config import get_logger
+
+    get_logger().debug('Using altered version _interp_nominal_lon_new')
     x = np.arange(len(lon_1d))
     idx = np.isnan(lon_1d)
     # TODO assume that longitudes are cyclic see https://github.com/jbusecke/xMIP/issues/299
