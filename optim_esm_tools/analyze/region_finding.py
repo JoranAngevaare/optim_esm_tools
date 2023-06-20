@@ -205,7 +205,6 @@ class MaxRegion(RegionExtractor):
     ):
         legend_kw = oet.utils.legend_kw(
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
-        )
         for label, mask_2d in zip(self.labels, masks.values()):
             x, y = self._mask_to_coord(mask_2d)
             plot_labels = {
