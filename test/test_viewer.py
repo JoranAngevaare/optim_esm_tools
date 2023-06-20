@@ -5,12 +5,9 @@ import os
 
 
 class TestViewer(unittest.TestCase):
-    
     @classmethod
     def setUpClass(cls) -> None:
-        path = oet._test_utils.get_file_from_pangeo(
-            'ssp585', refresh=False
-        )
+        path = oet._test_utils.get_file_from_pangeo('ssp585', refresh=False)
         while os.path.split(path)[1] != 'data':
             path = os.path.split(path)[0]
         cls.base = path
