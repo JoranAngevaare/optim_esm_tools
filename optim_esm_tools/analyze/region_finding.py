@@ -38,11 +38,7 @@ def plt_show(*a):
         def plt_func(*args, **kwargs):
             res = fn(*args, **kwargs)
             self = args[0]
-            if getattr(self, 'show', False):
-                plt.show()
-            else:
-                plt.clf()
-                plt.close()
+            _show(getattr(self, 'show', False))
             return res
 
         return plt_func
@@ -71,7 +67,7 @@ def apply_options(*a):
     return somedec_outer
 
 
-class ResultDataSet:
+class RegionExtractor:
     _logger: logging.Logger = None
     labels: tuple = tuple('ii iii'.split())
     show: bool = True
@@ -138,8 +134,7 @@ class ResultDataSet:
         self.save(f'{self.title_label}_global_map')
 
     def _plot_basic_map(self):
-        mm = MapMaker(self.dataset)
-        return mm.plot_all(2)
+        raise NotImplemented(f'{self.__class__.__class__} has no _plot_basic_map')
 
     def save(self, name):
         oet.utils.save_fig(name, **self.save_kw)
@@ -153,7 +148,7 @@ class ResultDataSet:
         return MapMaker(self.dataset).title.replace(' ', '_')
 
 
-class MaxRegion(ResultDataSet):
+class MaxRegion(RegionExtractor):
     def get_masks(self) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
@@ -247,7 +242,7 @@ class MaxRegion(ResultDataSet):
         plt.suptitle(f'Max. {"-".join(self.labels)} {self.title}', y=0.95)
 
 
-class Percentiles(ResultDataSet):
+class Percentiles(RegionExtractor):
     @apply_options
     def get_masks(self, percentiles=99) -> dict:
         """Get mask for max of ii and iii and a box arround that"""

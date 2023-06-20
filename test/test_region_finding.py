@@ -22,14 +22,12 @@ class Work(unittest.TestCase):
         assert os.path.exists(year_path)
         return year_path
 
-    def test_build_plots(self, make='MaxRegion', new_opt=None):
+    def test_max_region(self, make='MaxRegion', new_opt=None):
         cls = getattr(region_finding, make)
-        print(cls)
         extra_opt = dict(time_series_joined=True, scatter_medians=True, percentiles=50)
         if new_opt:
             extra_opt.update(new_opt)
         with tempfile.TemporaryDirectory() as temp_dir:
-            print(make)
             save_kw = dict(
                 save_in=temp_dir,
                 sub_dir=None,
@@ -38,18 +36,25 @@ class Work(unittest.TestCase):
                 skip=False,
             )
             head, tail = os.path.split(self.get_path('ssp585', refresh=False))
-            r = cls(
+            region_finder = cls(
                 path=head,
                 read_ds_kw=dict(_file_name=tail),
                 transform=True,
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )
-            r.show = False
-            r.workflow()
+            region_finder.show = False
+            region_finder.workflow()
+            return region_finder
 
+    def test_max_region_wo_time_series(self):
+        self.test_max_region('MaxRegion', new_opt=dict(time_series_joined=False))
+        
     def test_percentiles(self):
-        self.test_build_plots('Percentiles', new_opt=dict(time_series_joined=False))
+        self.test_max_region('Percentiles', new_opt=dict(time_series_joined=False))
 
     def test_percentiles_history(self):
-        self.test_build_plots('PercentilesHistory')
+        region_finder = self.test_max_region('PercentilesHistory')
+        with self.assertRaises(RuntimeError):
+            # We only have piControl (so this should fail)!
+            region_finder.find_historical('historical')
