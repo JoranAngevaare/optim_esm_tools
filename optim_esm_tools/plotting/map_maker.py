@@ -60,7 +60,6 @@ class MapMaker(object):
         self,
         data_set: xr.Dataset,
         normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
-        cache: bool = False,
         **conditions,
     ):
         self.data_set = data_set
@@ -91,7 +90,6 @@ class MapMaker(object):
                 f'{self.conditions.keys()} to vmin, vmax, '
                 f'got {self.normalizations} (from {normalizations})'
             )
-        self._cache = cache
 
     def plot(self, *a, **kw):
         print('Depricated use plot_all')
@@ -167,21 +165,8 @@ class MapMaker(object):
 
     def __getattr__(self, item):
         if item in self.conditions:
-            key, function = self.conditions[item]
+            key, _ = self.conditions[item]
             return self.data_set[key]
-            key = f'_{item}'
-            if self._cache:
-                if not isinstance(self._cache, dict):
-                    self._cache = dict()
-                if key in self._cache:
-                    data = self._cache.get(key)
-                    return data
-
-            data = function(self.data_set)
-            if self._cache or isinstance(self._cache, dict):
-                self._cache[key] = data.load()
-            return data
-
         return self.__getattribute__(item)
 
     @staticmethod
@@ -293,14 +278,12 @@ class MapMaker(object):
             # mean, std = self._mean_and_std(dy_dt, variable=None, other_dim=other_dim)
             # plot_kw['label'] = variable
             # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-            label = f'd/dt {labels.get(variable, variable)}'
+            label = labels.get(variable, variable)
             dy_dt.plot(label=label, **plot_kw)
 
         dy_dt_rm = da_rm.dropna(time).differentiate(time)
         dy_dt_rm *= _SECONDS_TO_YEAR
-        label = (
-            f"d/dt {labels.get(variable_rm, f'{variable} running mean {running_mean}')}"
-        )
+        label = f"{labels.get(variable_rm, f'{variable} running mean {running_mean}')}"
         dy_dt_rm.plot(label=label, **plot_kw)
         # mean, std = self._mean_and_std(dy_dt_rm, variable=None, other_dim=other_dim)
         # plot_kw['label'] = variable

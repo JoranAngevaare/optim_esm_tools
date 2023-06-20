@@ -103,6 +103,7 @@ def read_ds(
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     _ma_window: int = 10,
     _cache: bool = True,
+    _file_name: str = 'merged.nc',
     **kwargs,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
@@ -136,7 +137,7 @@ def read_ds(
     if os.path.exists(post_processed_file) and _cache:
         return oet.synda_files.format_synda.load_glob(post_processed_file)
 
-    data_path = os.path.join(base, 'merged.nc')
+    data_path = os.path.join(base, _file_name)
     if not os.path.exists(data_path):
         warn(f'No dataset at {data_path}')
         return None
@@ -178,8 +179,8 @@ def _name_cache_file(
     path = os.path.join(
         base,
         f'{variable_of_interest}'
-        f'_{min_time if min_time else ""}'
-        f'_{max_time if max_time else ""}'
+        f'_s{min_time if min_time else ""}'
+        f'_e{max_time if max_time else ""}'
         f'_ma{_ma_window}'
         f'_optimesm_v{version}.nc',
     )
