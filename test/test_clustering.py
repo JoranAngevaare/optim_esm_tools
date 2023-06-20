@@ -14,7 +14,7 @@ def test_clustering_empty():
     assert len(clusters) == len(masks) == 0
 
 
-def test_clustering_double_blob(npoints=100, res_x=5, res_y=5):
+def test_clustering_double_blob(npoints=100, res_x=3, res_y=3):
     ds = optim_esm_tools._test_utils.minimal_xr_ds().copy()
     ds = ds.isel(time=0)
 
@@ -40,7 +40,8 @@ def test_clustering_double_blob(npoints=100, res_x=5, res_y=5):
         max_distance_km=1000,
         min_samples=2,
     )
-    assert len(clusters) == len(masks) == 2
+    assert len(clusters) == len(masks)
+    assert len(clusters) == 2
 
 
 def test_geopy_alternative():
