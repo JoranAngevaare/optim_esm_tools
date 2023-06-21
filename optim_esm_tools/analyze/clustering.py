@@ -7,7 +7,6 @@ from warnings import warn
 @timed()
 def build_clusters(
     coordinates_deg: np.ndarray,
-    # TODO maybe, this shouldn't be a hardcoded number but depend on the spatial difference between two points
     max_distance_km: ty.Union[float, int] = 750,
     only_core: bool = True,
     min_samples: int = 10,
