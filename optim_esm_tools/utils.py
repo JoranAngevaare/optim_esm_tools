@@ -72,7 +72,7 @@ def setup_plt(use_tex=True, register_as='custom_map'):
         'ytick.minor.width': 2,
         'xtick.direction': 'in',
         'ytick.direction': 'in',
-        'legend.fontsize': 18,
+        'legend.fontsize': 14,
         'figure.facecolor': 'w',
         'figure.figsize': (8, 6),
         'image.cmap': 'viridis',
