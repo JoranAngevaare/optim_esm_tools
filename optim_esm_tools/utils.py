@@ -280,7 +280,7 @@ def check_accepts(
                     message += f'{k} for {v} but only accepts {accepts[k]}'
             if do_raise and message:
                 raise ValueError(message)
-            elif message:
+            if message:
                 warnings.warn(message)
             response = fn(*args, **kwargs)
             return response
