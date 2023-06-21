@@ -10,7 +10,7 @@ def build_clusters(
     # TODO maybe, this shouldn't be a hardcoded number but depend on the spatial difference between two points
     max_distance_km: ty.Union[float, int] = 750,
     only_core: bool = True,
-    min_samples: int = 20,
+    min_samples: int = 10,
     cluster_opts: ty.Optional[dict] = None,
 ) -> ty.List[np.ndarray]:
     """Build clusters based on a list of coordinates, use halfsine metric for spherical spatiol data

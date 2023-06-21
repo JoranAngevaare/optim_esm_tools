@@ -16,6 +16,10 @@ from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.plot import setup_map, _show
 from immutabledict import immutabledict
 
+# >>> import scipy
+# >>> scipy.stats.norm.cdf(3)
+# 0.9986501019683699
+_three_sigma_percent=99.86501019683699
 
 def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y')):
     for k, data_array in ds_masked.data_vars.items():
@@ -132,6 +136,7 @@ class RegionExtractor:
         raise NotImplemented(f'{self.__class__.__class__} has no _plot_basic_map')
 
     def save(self, name):
+        assert self.__class__.__name__ in name
         oet.utils.save_fig(name, **self.save_kw)
 
     @property
@@ -140,7 +145,7 @@ class RegionExtractor:
 
     @property
     def title_label(self):
-        return MapMaker(self.dataset).title.replace(' ', '_')
+        return self.title.replace(' ', '_') + f'_{self.__class__.__name__}'
 
 
 class MaxRegion(RegionExtractor):
@@ -193,6 +198,7 @@ class MaxRegion(RegionExtractor):
         plt.suptitle(self.title, y=0.95)
 
     @plt_show
+    @apply_options
     def plot_mask_time_series(self, masks, time_series_joined=True):
         res = self._plot_mask_time_series(masks, time_series_joined=time_series_joined)
         if time_series_joined:
@@ -239,7 +245,7 @@ class MaxRegion(RegionExtractor):
 
 class Percentiles(RegionExtractor):
     @apply_options
-    def get_masks(self, percentiles=99) -> dict:
+    def get_masks(self, percentiles=_three_sigma_percent) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []
@@ -335,6 +341,7 @@ class Percentiles(RegionExtractor):
     #             mm_sel.plot_i(label, ax=ax, coastlines=False)
 
     @plt_show
+    @apply_options
     def plot_mask_time_series(self, masks_and_clusters, time_series_joined=True):
         if not len(masks_and_clusters[0]):
             self.log.warning('No clusters found!')
@@ -380,7 +387,7 @@ class Percentiles(RegionExtractor):
             if time_series_joined == False:
                 axes = None
                 plt.suptitle(f'Cluster. {m_i} {self.title}', y=0.95)
-                self.save(f'{self.title_label}_cluster_{m_i}')
+                self.save(f'{self.title_label}_time_series_cluster_{m_i}')
                 _show(self.show)
         if not time_series_joined:
             return
@@ -393,7 +400,7 @@ class Percentiles(RegionExtractor):
 
 class PercentilesHistory(Percentiles):
     @apply_options
-    def get_masks(self, percentiles=99, read_ds_kw=None) -> dict:
+    def get_masks(self, percentiles=_three_sigma_percent, read_ds_kw=None) -> dict:
         if read_ds_kw is None:
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
