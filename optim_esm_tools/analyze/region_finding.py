@@ -420,7 +420,9 @@ class PercentilesHistory(Percentiles):
         return masks, clusters
 
     @apply_options
-    def find_historical(self, match_to='piControl', look_back_extra=1):
+    def find_historical(
+        self, match_to='piControl', look_back_extra=1, query_updates=None
+    ):
         from optim_esm_tools.config import config
 
         base = os.path.join(
@@ -436,26 +438,21 @@ class PercentilesHistory(Percentiles):
             raise NotImplementedError()
         search['experiment_id'] = match_to
 
-        first_try = oet.cmip_files.find_matches.find_matches(base, **search)
-        if first_try:
-            return first_try
-        self.log.warning('No results at first try, retying with any variant_label')
-        search.update(
-            dict(
-                variant_label='*',
-            )
-        )
+        if query_updates is None:
+            query_updates = [
+                dict(),
+                dict(variant_label='*'),
+                dict(grid='*'),
+                dict(version='*'),
+            ]
 
-        second_try = oet.cmip_files.find_matches.find_matches(base, **search)
-        if second_try:
-            return second_try
-        self.log.warning('No results at second try, retying with any version')
-        search.update(
-            dict(
-                version='*',
-            )
-        )
-        third_try = oet.cmip_files.find_matches.find_matches(base, **search)
-        if third_try:
-            return third_try
+        for try_n, update_query in enumerate(query_updates):
+            if try_n:
+                self.log.warning(
+                    f'No results after {try_n} try, retying with {update_query}'
+                )
+            search.update(update_query)
+            this_try = oet.cmip_files.find_matches.find_matches(base, **search)
+            if this_try:
+                return this_try
         raise RuntimeError(f'Looked for {search}, in {base} found nothing')
