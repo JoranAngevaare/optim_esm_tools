@@ -34,5 +34,5 @@ else
     # Did not find anything in the downloaded folder
     echo "perhaphs anything in the logs?"
     tail $ST_HOME/log/*
-    exit -1
+    exit 10
 fi

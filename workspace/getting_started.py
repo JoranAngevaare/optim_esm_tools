@@ -104,7 +104,7 @@ def changes_with_respect_to_t0():
 
 
 def to_annual(data, time_index=0, rebin_by=12):  # months
-    if not time_index == 0:
+    if time_index != 0:
         raise ValueError
     shape = list(data.shape)
 
