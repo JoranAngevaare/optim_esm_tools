@@ -19,7 +19,8 @@ from immutabledict import immutabledict
 # >>> import scipy
 # >>> scipy.stats.norm.cdf(3)
 # 0.9986501019683699
-_three_sigma_percent=99.86501019683699
+_three_sigma_percent = 99.86501019683699
+
 
 def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y')):
     for k, data_array in ds_masked.data_vars.items():
