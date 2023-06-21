@@ -1,3 +1,13 @@
+0.2.1 / 2023-06-21
+------------------
+* Add few badges (#62) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/62
+* Fix few codefactor issues (#63) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/63
+* Delete workspace directory (#64) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/64
+* simplify find_historical (#65) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/65
+* Fix finding (#66) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/66
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.1.1...v0.2.1
+
 0.2.0 / 2023-06-21
 ------------------
 ## What's Changed
