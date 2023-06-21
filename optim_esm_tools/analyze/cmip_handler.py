@@ -169,8 +169,8 @@ def _name_cache_file(
     path = os.path.join(
         base,
         f'{variable_of_interest}'
-        f'_s{min_time if min_time else ""}'
-        f'_e{max_time if max_time else ""}'
+        f'_s{tuple(min_time) if min_time else ""}'
+        f'_e{tuple(max_time) if max_time else ""}'
         f'_ma{_ma_window}'
         f'_optimesm_v{version}.nc',
     )
