@@ -19,7 +19,9 @@ from immutabledict import immutabledict
 # >>> import scipy
 # >>> scipy.stats.norm.cdf(3)
 # 0.9986501019683699
-_three_sigma_percent = 99.86501019683699
+# >> scipy.stats.norm.cdf(2)
+# 0.9772498680518208
+_two_sigma_percent = 97.72498680518208
 
 
 def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y')):
@@ -246,7 +248,7 @@ class MaxRegion(RegionExtractor):
 
 class Percentiles(RegionExtractor):
     @apply_options
-    def get_masks(self, percentiles=_three_sigma_percent) -> dict:
+    def get_masks(self, percentiles=_two_sigma_percent) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []
@@ -401,7 +403,7 @@ class Percentiles(RegionExtractor):
 
 class PercentilesHistory(Percentiles):
     @apply_options
-    def get_masks(self, percentiles=_three_sigma_percent, read_ds_kw=None) -> dict:
+    def get_masks(self, percentiles_historical=_two_sigma_percent, read_ds_kw=None) -> dict:
         if read_ds_kw is None:
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
@@ -415,7 +417,7 @@ class PercentilesHistory(Percentiles):
         for lab in labels:
             arr = self.dataset[lab].values.T
             arr_historical = historical_ds[lab].values.T
-            thr = np.percentile(arr_historical, percentiles)
+            thr = np.percentile(arr_historical, percentiles_historical)
             masks.append(arr >= thr)
 
         all_mask = np.ones_like(masks[0])
