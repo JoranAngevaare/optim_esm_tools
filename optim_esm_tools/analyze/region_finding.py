@@ -403,7 +403,9 @@ class Percentiles(RegionExtractor):
 
 class PercentilesHistory(Percentiles):
     @apply_options
-    def get_masks(self, percentiles_historical=_two_sigma_percent, read_ds_kw=None) -> dict:
+    def get_masks(
+        self, percentiles_historical=_two_sigma_percent, read_ds_kw=None
+    ) -> dict:
         if read_ds_kw is None:
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
