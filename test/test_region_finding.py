@@ -58,3 +58,9 @@ class Work(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             # We only have piControl (so this should fail)!
             region_finder.find_historical('historical')
+
+    def test_percentiles_product(self):
+        self.test_max_region('ProductPercentiles')
+
+    def test_local_history(self):
+        self.test_max_region('LocalHistory')

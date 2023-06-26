@@ -21,3 +21,7 @@ def _show(show):
     else:
         plt.clf()
         plt.close()
+
+
+def default_variable_labels():
+    return dict(tas='T', siconc='S.I.C.')

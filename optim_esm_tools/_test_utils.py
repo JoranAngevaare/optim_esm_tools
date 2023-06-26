@@ -79,13 +79,13 @@ def synda_test_available():
     )
 
 
-def minimal_xr_ds():
+def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     import numpy as np
     import xarray as xr
 
-    lon = np.linspace(0, 360, 513)[:-1]
-    lat = np.linspace(-90, 90, 181)[:-1]
-    time = np.arange(10)
+    lon = np.linspace(0, 360, len_x)[:-1]
+    lat = np.linspace(-90, 90, len_y)[:-1]
+    time = np.arange(len_time)
     # Totally arbitrary data
     data = (
         np.zeros(len(lat) * len(lon) * len(time)).reshape(len(time), len(lat), len(lon))
@@ -93,7 +93,8 @@ def minimal_xr_ds():
     )
 
     # Add some NaN values just as an example
-    data[:, :, len(lon) // 2 + 30 : len(lon) // 2 + 50] = np.nan
+    if add_nans:
+        data[:, :, len(lon) // 2 + 30 : len(lon) // 2 + 50] = np.nan
 
     ds_dummy = xr.Dataset(
         data_vars=dict(

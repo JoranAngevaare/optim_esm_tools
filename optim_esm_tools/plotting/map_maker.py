@@ -10,7 +10,7 @@ from warnings import warn
 import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
-
+from .plot import default_variable_labels
 
 # import xrft
 
@@ -28,6 +28,17 @@ class MapMaker(object):
     labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
     contitions: ty.Mapping
+
+    def __init__(
+        self,
+        data_set: xr.Dataset,
+        normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
+        **conditions,
+    ):
+        self.data_set = data_set
+        self.set_kw()
+        self.set_conditions(**conditions)
+        self.set_normalizations(normalizations)
 
     def set_kw(self):
         import cartopy.crs as ccrs
@@ -55,15 +66,10 @@ class MapMaker(object):
 
     _cache: bool = False
 
-    def __init__(
+    def set_normalizations(
         self,
-        data_set: xr.Dataset,
         normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
-        **conditions,
     ):
-        self.data_set = data_set
-        self.set_kw()
-        self.set_conditions(**conditions)
         if normalizations is None:
             self.normalizations = {i: [None, None] for i in self.conditions.keys()}
         elif isinstance(normalizations, collections.abc.Mapping):
@@ -212,7 +218,7 @@ class MapMaker(object):
         )
         self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
 
-        plt.ylabel('T [K]')
+        plt.ylabel(f'{self.variable_name(variable)} [{self.unit(variable)}]')
         plt.legend()
         plt.title('')
 
@@ -245,7 +251,7 @@ class MapMaker(object):
             f'detrended {variable} running mean {running_mean}',
         )
         self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-        plt.ylabel('detrend(T) [K]')
+        plt.ylabel(f'Detrend {self.variable_name(variable)} [{self.unit(variable)}]')
         plt.legend()
         plt.title('')
 
@@ -290,7 +296,9 @@ class MapMaker(object):
         # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
 
         plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
-        plt.ylabel('$\partial T/\partial t$ [K/yr]')
+        plt.ylabel(
+            f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        )
         plt.legend()
         plt.title('')
 
@@ -315,9 +323,6 @@ class MapMaker(object):
         axes=None,
         **kw,
     ):
-        if variable != 'tas':
-            raise NotImplementedError('Currently only works for tas')
-
         ds = self.data_set
         if interval is False:
             ds = ds.copy().mean(other_dim)
@@ -358,6 +363,19 @@ class MapMaker(object):
     @property
     def title(self):
         return make_title(self.data_set)
+
+    def variable_name(self, variable):
+        return default_variable_labels().get(
+            variable,
+            variable,  # self.data_set[variable].attrs.get('long_name', variable)
+        )
+
+    def unit(self, variable):
+        return (
+            self.data_set[variable]
+            .attrs.get('units', f'?{variable}?')
+            .replace('%', '\%')
+        )
 
 
 def make_title(ds):

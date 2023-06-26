@@ -53,7 +53,7 @@ def recast(data_set):
     ds = data_set.copy()
     # See https://github.com/jbusecke/xMIP/issues/299
     for k, v in {'longitude': 'lon', 'latitude': 'lat'}.items():
-        if k in ds:
+        if k in ds and v not in ds:
             ds = ds.rename({k: v})
     ds = rename_cmip6(ds)
     ds = promote_empty_dims(ds)

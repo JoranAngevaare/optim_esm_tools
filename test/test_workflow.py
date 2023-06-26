@@ -36,16 +36,16 @@ class TestMapMaker(unittest.TestCase):
         super().setUp()
 
     def test_read_data(self):
-        data_set = oet.synda_files.format_synda.load_glob(self.ayear_file)
+        data_set = oet.cmip_files.io.load_glob(self.ayear_file)
 
     def test_make_map(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
-        oet.analyze.cmip_handler.MapMaker(data_set=data_set).plot_all(2)
+        oet.plotting.map_maker.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
     def test_map_maker_time_series(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
-        oet.analyze.cmip_handler.MapMaker(data_set=data_set).time_series()
+        oet.plotting.map_maker.MapMaker(data_set=data_set).time_series()
         plt.clf()
 
     @classmethod
@@ -67,7 +67,7 @@ class Units(unittest.TestCase):
             condition_kwargs=dict(unit=unit),
             _file_name='test_merged.nc',
         )
-        mm = oet.analyze.cmip_handler.MapMaker(data_set=data_set)
+        mm = oet.plotting.map_maker.MapMaker(data_set=data_set)
 
     def test_apply_std_unit(self):
         self.test_apply_relative_units(unit='std')

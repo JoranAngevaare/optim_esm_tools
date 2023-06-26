@@ -44,3 +44,13 @@ class TestTimed:
     def test_timing(self, seconds, report, args_max, fmt):
         kw = dict(seconds=seconds, _report=report, _args_max=args_max, _fmt=fmt)
         self._timeing_decorator(**kw)
+
+
+class TestDepricated(unittest.TestCase):
+    def test(self):
+        @oet.utils.deprecated
+        def bla(a):
+            return a
+
+        with self.assertWarns(DeprecationWarning):
+            bla(1)

@@ -10,11 +10,10 @@ from optim_esm_tools.analyze.cmip_handler import transform_ds, read_ds
 import typing as ty
 import matplotlib.pyplot as plt
 from functools import wraps
-
+import xarray as xr
 import inspect
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.plot import setup_map, _show
-from immutabledict import immutabledict
 
 # >>> import scipy
 # >>> scipy.stats.norm.cdf(3)
@@ -24,7 +23,14 @@ from immutabledict import immutabledict
 _two_sigma_percent = 97.72498680518208
 
 
-def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y')):
+# TODO this has too many hardcoded defaults
+def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
+    no_drop = set(masked_dims) | set(keep_dims)
+    for spurious_dim in set(ds_masked.dims) - no_drop:
+        oet.config.get_logger().warn(
+            f'Spurious coordinate {spurious_dim} dropping for safety. Keep {no_drop}'
+        )
+        ds_masked = ds_masked.mean(spurious_dim)
     for k, data_array in ds_masked.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             ds_masked[k] = ds_masked[k].where(da_mask, drop=False)
@@ -88,6 +94,7 @@ class RegionExtractor:
         extra_opt=None,
         read_ds_kw=None,
     ) -> None:
+        read_ds_kw = dict() if read_ds_kw is None else read_ds_kw
         if path is None:
             if transform:
                 self.log.warning(
@@ -97,7 +104,6 @@ class RegionExtractor:
             else:
                 self.dataset = dataset
         else:
-            read_ds_kw = dict() if read_ds_kw is None else read_ds_kw
             self.dataset = read_ds(path, **read_ds_kw)
         if save_kw is None:
             save_kw = dict(
@@ -155,19 +161,19 @@ class MaxRegion(RegionExtractor):
     def get_masks(self) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
-        masks = {
-            label: self.dataset[label].values == self.dataset[label].values.max()
-            for label in labels
-        }
+
+        def _val(label):
+            return self.dataset[label].values
+
+        def _max(label):
+            return _val(label)[~np.isnan(_val(label))].max()
+
+        masks = {label: _val(label) == _max(label) for label in labels}
         return masks
 
     @plt_show
     def plot_masks(self, masks, ax=None, legend=True):
-        res = self._plot_masks(
-            masks=masks,
-            ax=ax,
-            legend=legend,
-        )
+        self._plot_masks(masks=masks, ax=ax, legend=legend)
         self.save(f'{self.title_label}_map_maxes_{"-".join(self.labels)}')
 
     @apply_options
@@ -227,6 +233,7 @@ class MaxRegion(RegionExtractor):
             ds_sel = self.dataset.isel(x=argwhere[1], y=argwhere[0])
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
+                variable=self.variable,
                 other_dim=(),
                 interval=False,
                 labels=plot_labels,
@@ -256,8 +263,9 @@ class Percentiles(RegionExtractor):
 
         for lab in labels:
             arr = self.dataset[lab].values.T
-            vmin_vmax.append([np.min(arr), np.max(arr)])
-            thr = np.percentile(arr, percentiles)
+            arr_no_nan = arr[~np.isnan(arr)]
+            vmin_vmax.append([np.min(arr_no_nan), np.max(arr_no_nan)])
+            thr = np.percentile(arr_no_nan, percentiles)
             masks.append(arr >= thr)
 
         all_mask = np.ones_like(masks[0])
@@ -274,7 +282,7 @@ class Percentiles(RegionExtractor):
         if not len(masks_and_clusters[0]):
             self.log.warning('No clusters found!')
             return
-        res = self._plot_masks(
+        self._plot_masks(
             masks_and_clusters=masks_and_clusters,
             ax=ax,
             legend=legend,
@@ -292,6 +300,8 @@ class Percentiles(RegionExtractor):
         cluster_kw=None,
     ):
         masks, clusters = masks_and_clusters
+        # if masks == [] or masks == [[]]:
+        #     return
         all_masks = np.zeros(masks[0].shape, np.int16)
 
         for m, c in zip(masks, clusters):
@@ -381,6 +391,7 @@ class Percentiles(RegionExtractor):
             ds_sel = mask_xr_ds(self.dataset.copy(), mask)
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
+                variable=self.variable,
                 other_dim=('x', 'y'),
                 interval=True,
                 labels=plot_labels,
@@ -410,16 +421,17 @@ class PercentilesHistory(Percentiles):
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
-        historical_path = self.find_historical()[0]
-        historical_ds = read_ds(historical_path, **read_ds_kw)
 
+        historical_ds = self.get_historical_ds(read_ds_kw=read_ds_kw)
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
         for lab in labels:
             arr = self.dataset[lab].values.T
             arr_historical = historical_ds[lab].values.T
-            thr = np.percentile(arr_historical, percentiles_historical)
+            thr = np.percentile(
+                arr_historical[~np.isnan(arr_historical)], percentiles_historical
+            )
             masks.append(arr >= thr)
 
         all_mask = np.ones_like(masks[0])
@@ -468,3 +480,134 @@ class PercentilesHistory(Percentiles):
             if this_try:
                 return this_try
         raise RuntimeError(f'Looked for {search}, in {base} found nothing')
+
+    @apply_options
+    def get_historical_ds(self, read_ds_kw=None, **kw):
+        if read_ds_kw is None:
+            read_ds_kw = dict()
+        for k, v in dict(min_time=None, max_time=None).items():
+            read_ds_kw.setdefault(k, v)
+        historical_path = self.find_historical(**kw)[0]
+        return read_ds(historical_path, **read_ds_kw)
+
+
+class ProductPercentiles(Percentiles):
+    @staticmethod
+    def var_to_perc(ds: xr.Dataset, dest_var: str, source_var: str) -> xr.Dataset:
+        """Calculate the percentile score of each of the data var, and assign it to the data set to get
+
+        Args:
+            ds (xr.Dataset): dataset with data-var to calculate the percentiles of
+            dest_var (str): under wich name the scores should be combined under.
+            source_var (str): property to calculate the percentiles of
+
+        Returns:
+            xr.Dataset: Original dataset with one extra colum (dest_var)
+        """
+        from scipy.stats import percentileofscore
+
+        a = ds[source_var].values
+        a_flat = a[~np.isnan(a)].flatten()
+        pcts = [
+            [percentileofscore(a_flat, i, kind='strict') / 100 for i in aa]
+            for aa in oet.utils.tqdm(a)
+        ]
+        ds[dest_var] = (ds[source_var].dims, pcts)
+        return ds
+
+    @apply_options
+    def get_masks(self, product_percentiles=_two_sigma_percent) -> dict:
+        """Get mask for max of ii and iii and a box arround that"""
+        labels = [crit.short_description for crit in self.criteria]
+        masks = []
+
+        ds = self.dataset.copy()
+        combined_score = np.ones_like(ds[labels[0]].values)
+        for label in labels:
+            _name = f'percentile {label}'
+            combined_score *= self.var_to_perc(ds, _name, label)[_name].values
+
+        # Combined score is fraction, not percent!
+        all_mask = (combined_score > (product_percentiles / 100)).T
+
+        masks, clusters = build_cluster_mask(
+            all_mask, self.dataset['x'].values, self.dataset['y'].values
+        )
+        return masks, clusters
+
+
+class LocalHistory(PercentilesHistory):
+    @apply_options
+    def get_masks(self, n_times_historical=4, read_ds_kw=None) -> dict:
+        if read_ds_kw is None:
+            read_ds_kw = dict()
+        for k, v in dict(min_time=None, max_time=None).items():
+            read_ds_kw.setdefault(k, v)
+
+        historical_ds = self.get_historical_ds(read_ds_kw=read_ds_kw)
+        labels = [crit.short_description for crit in self.criteria]
+        masks = []
+
+        for lab in labels:
+            arr = self.dataset[lab].values.T
+            arr_historical = historical_ds[lab].values.T
+            mask_divide = arr / arr_historical > n_times_historical
+            # If arr_historical is 0, the devision is going to get a nan assigned,
+            # despite this being the most interesting region (no historical
+            # changes, only in the scenario's)!
+            mask_no_std = (arr_historical == 0) & (arr > 0)
+            masks.append(mask_divide | mask_no_std)
+
+        all_mask = np.ones_like(masks[0])
+        for m in masks:
+            all_mask &= m
+
+        masks, clusters = build_cluster_mask(
+            all_mask, self.dataset['x'].values, self.dataset['y'].values
+        )
+        return masks, clusters
+
+    @apply_options
+    def _plot_basic_map(self, read_ds_kw=None):
+        if read_ds_kw is None:
+            read_ds_kw = dict()
+        for k, v in dict(min_time=None, max_time=None).items():
+            read_ds_kw.setdefault(k, v)
+        ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
+
+        class TempMapMaker(MapMaker):
+            def __getattr__(self, item):
+                if item in self.conditions:
+                    condition = self.conditions[item]
+                    da = self.data_set[condition.short_description]
+                    da_historical = ds_historical[condition.short_description]
+
+                    result = da / da_historical
+                    ret_array = result.values
+                    max_val = ret_array.max()
+                    mask_divide_by_zero = (da_historical == 0) & (da > 0)
+                    ret_array[mask_divide_by_zero.values] = 10 * max_val
+                    result.data = ret_array
+                    current_norm = self.normalizations.copy()
+
+                    current_norm.update(dict(item=[None, max_val]))
+
+                    self.set_normalizations(current_norm)
+
+                    result.assign_attrs(
+                        dict(
+                            short_description=condition.short_description,
+                            long_description=condition.long_description,
+                            name=f'Change w.r.t. historical of\n{da.name}',
+                        )
+                    )
+
+                    return result
+                return self.__getattribute__(item)
+
+        mm = TempMapMaker(self.dataset)
+        axes = mm.plot_all(2)
+        # masks = self.get_masks()
+        # for ax in axes:
+        #     self._plot_masks(masks, ax=ax, legend=False)
+        plt.suptitle(self.title, y=0.95)
