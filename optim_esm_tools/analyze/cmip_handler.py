@@ -7,12 +7,10 @@ import xarray as xr
 import typing as ty
 from warnings import warn
 
-import xrft
-
-from optim_esm_tools.utils import depricated
+from optim_esm_tools.utils import deprecated
 
 from .globals import _CMIP_HANDLER_VERSION, _FOLDER_FMT
-from .xarray_tools import _native_date_fmt
+from .xarray_tools import _native_date_fmt, _remove_any_none_times, detrend
 from optim_esm_tools.plotting.map_maker import MapMaker, make_title
 from optim_esm_tools.analyze import tipping_criteria
 
@@ -56,7 +54,7 @@ def transform_ds(
         condition_kwargs = dict()
 
     ds = _calculate_variables(
-        oet.synda_files.format_synda.recast(ds),
+        ds,
         min_time,
         max_time,
         variable_of_interest,
@@ -65,17 +63,18 @@ def transform_ds(
         _detrend_type,
         _time_var,
     )
-    for cls in calculate_conditions:
-        condition = cls(**condition_kwargs)
-        condition_array = condition.calculate(ds)
-        condition_array = condition_array.assign_attrs(
-            dict(
-                short_description=cls.short_description,
-                long_description=condition.long_description,
-                name=condition_array.name,
+    for variable in oet.utils.to_str_tuple(variable_of_interest):
+        for cls in calculate_conditions:
+            condition = cls(**condition_kwargs, variable=variable)
+            condition_array = condition.calculate(ds)
+            condition_array = condition_array.assign_attrs(
+                dict(
+                    short_description=cls.short_description,
+                    long_description=condition.long_description,
+                    name=condition_array.name,
+                )
             )
-        )
-        ds[condition.short_description] = condition_array
+            ds[condition.short_description] = condition_array
     return ds
 
 
@@ -85,6 +84,7 @@ def read_ds(
     variable_of_interest: ty.Tuple[str] = ('tas',),
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    apply_transform: bool = True,
     strict: bool = True,
     _ma_window: int = 10,
     _cache: bool = True,
@@ -98,6 +98,7 @@ def read_ds(
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        transform_ds: (boolm optional): Apply analysis specific postprocessing algoritms. Defaults to True.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
@@ -111,6 +112,11 @@ def read_ds(
     if kwargs:
         oet.config.get_logger().error(f'Not really advised yet to call with {kwargs}')
         _cache = False
+    if not apply_transform:
+        # Don't cache the partial ds
+        _cache = False
+
+    oet.config.get_logger().debug(f'read_ds {variable_of_interest}')
     post_processed_file = _name_cache_file(
         base,
         variable_of_interest,
@@ -132,15 +138,18 @@ def read_ds(
         return None
 
     data_set = oet.synda_files.format_synda.load_glob(data_path)
-    data_set = transform_ds(
-        data_set,
-        variable_of_interest=variable_of_interest,
-        max_time=max_time,
-        min_time=min_time,
-        _ma_window=_ma_window,
-        strict=strict,
-        **kwargs,
-    )
+    data_set = oet.synda_files.format_synda.recast(data_set)
+
+    if apply_transform:
+        data_set = transform_ds(
+            data_set,
+            variable_of_interest=variable_of_interest,
+            max_time=max_time,
+            min_time=min_time,
+            _ma_window=_ma_window,
+            strict=strict,
+            **kwargs,
+        )
 
     folders = base.split(os.sep)
 
@@ -177,10 +186,13 @@ def _name_cache_file(
     normalized_path = (
         path.replace('(', '')
         .replace(')', '')
+        .replace(']', '')
+        .replace('[', '')
         .replace(' ', '_')
         .replace(',', '')
         .replace('\'', '')
     )
+    oet.config.get_logger().debug(f'got {normalized_path}')
     return normalized_path
 
 
@@ -209,26 +221,23 @@ def _calculate_variables(
             if strict:
                 raise ValueError(message)
             oet.config.get_logger().warning(message)
+
         # NB these are DataArrays not Datasets!
         run_mean = data_set[variable].rolling(time=_ma_window, center=True).mean()
-        detrended = xrft.detrend(
-            data_set[variable], _time_var, detrend_type=_detrend_type
-        )
-        detrended_run_mean = xrft.detrend(
-            run_mean.dropna(_time_var), _time_var, detrend_type=_detrend_type
-        )
-        detrended_run_mean.attrs['units'] = data_set[variable].attrs.get(
-            'units', '{units}'
-        )
+        kw = dict(dimension=_time_var, detrend_type=_detrend_type)
+        detrended = detrend(data_set[variable], **kw)
+        detrended_run_mean = detrend(_remove_any_none_times(run_mean, _time_var), **kw)
+
         for det in detrended, detrended_run_mean:
             det.attrs.update(data_set[variable].attrs.copy())
+
         data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
         data_set[f'{variable}_detrend'] = detrended
         data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
     return data_set
 
 
-class MapMaker(MapMaker):
-    @depricated
-    def __init__(self, *a, **kw):
-        return super().__init__(*a, **kw)
+# class MapMaker(MapMaker):
+#     @depricated
+#     def __init__(self, *a, **kw):
+#         return super().__init__(*a, **kw)

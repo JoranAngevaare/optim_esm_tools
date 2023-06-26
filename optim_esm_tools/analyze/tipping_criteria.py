@@ -1,4 +1,4 @@
-from .xarray_tools import apply_abs, _native_date_fmt
+from .xarray_tools import apply_abs, _native_date_fmt, _remove_any_none_times
 from optim_esm_tools.utils import check_accepts, timed
 import xarray as xr
 import numpy as np
@@ -119,7 +119,7 @@ class MaxDerivitive(_Condition):
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_diff(
     data_set: xr.Dataset,
-    variable: str = 'tas',
+    variable: str,
     time_var: str = 'time',
     naming: str = '{variable}_run_mean_{running_mean}',
     running_mean: int = 10,
@@ -171,7 +171,7 @@ def running_mean_diff(
 
     result = data_t_1 - data_t_0
     result = result.copy()
-    var_unit = data_var.attrs.get('units', '{units}')
+    var_unit = data_var.attrs.get('units', '{units}').replace('%', '\%')
     name = data_var.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -195,7 +195,7 @@ def running_mean_diff(
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_std(
     data_set: xr.Dataset,
-    variable: str = 'tas',
+    variable: str,
     time_var: str = 'time',
     naming: str = '{variable}_detrend_run_mean_{running_mean}',
     running_mean: int = 10,
@@ -206,7 +206,7 @@ def running_mean_std(
     data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
     result = result.copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}')
+    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', '\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -229,7 +229,7 @@ def running_mean_std(
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_change_xyr(
     data_set: xr.Dataset,
-    variable: str = 'tas',
+    variable: str,
     time_var: str = 'time',
     naming: str = '{variable}_run_mean_{running_mean}',
     x_yr: ty.Union[int, float] = 10,
@@ -246,7 +246,7 @@ def max_change_xyr(
     result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
 
     result = result.max(dim=time_var).copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}')
+    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', '\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -269,7 +269,7 @@ def max_change_xyr(
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_derivative(
     data_set: xr.Dataset,
-    variable: str = 'tas',
+    variable: str,
     time_var: str = 'time',
     naming: str = '{variable}_run_mean_{running_mean}',
     running_mean: int = 10,
@@ -282,7 +282,7 @@ def max_derivative(
     data_array = _remove_any_none_times(data_set[var_name], time_var)
     result = data_array.differentiate(time_var).max(dim=time_var) * _SECONDS_TO_YEAR
 
-    var_unit = data_array.attrs.get('units', '{units}')
+    var_unit = data_array.attrs.get('units', '{units}').replace('%', '\%')
     name = data_array.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -299,27 +299,3 @@ def max_derivative(
         result = result / data_array.std()
         result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
         return result
-
-
-def _remove_any_none_times(da, time_dim):
-    data_var = da.copy()
-    time_null = data_var.isnull().all(dim=set(data_var.dims) - {time_dim})
-    if np.all(time_null):
-        # If we take a running mean of 10 (the default), and the array is shorter than
-        # 10 years we will run into issues here because a the window is longer than the
-        # array. Perhaps we should raise higher up.
-        raise ValueError(
-            f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
-        )
-    if np.any(time_null):
-        try:
-            # For some reason only alt_calc seems to work even if it should be equivalent to the data_var
-            # I think there is some fishy indexing going on in pandas <-> dask
-            # Maybe worth raising an issue?
-            alt_calc = xr.where(~time_null, da, np.nan).dropna('time')
-            data_var = data_var.load().where(~time_null, drop=True)
-            assert np.all((alt_calc == data_var).values)
-        except IndexError as e:
-            print(e)
-            return alt_calc
-    return data_var

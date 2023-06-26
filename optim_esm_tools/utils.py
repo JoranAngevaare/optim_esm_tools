@@ -290,7 +290,7 @@ def check_accepts(
     return somedec_outer
 
 
-def depricated(func, message='is depricated'):
+def deprecated(func, message='is deprecated'):
     @wraps(func)
     def dep_fun(*args, **kwargs):
         warnings.warn(
@@ -337,7 +337,11 @@ def timed(
             dt = time.time() - t0
             if dt > seconds:
                 hours = '' if dt < 3600 else f' ({dt/3600:{_fmt}} h) '
-                message = f'{fn.__name__} took {dt:{_fmt}} s{hours} (for {_chopped_string(args, _args_max)}, {_chopped_string(kwargs,_args_max)})'
+                message = (
+                    f'{fn.__name__} took {dt:{_fmt}} s{hours} (for '
+                    f'{_chopped_string(args, _args_max)}, '
+                    f'{_chopped_string(kwargs,_args_max)})'
+                ).replace('\n', ' ')
                 if _report == 'print':
                     print(message)
                 else:
