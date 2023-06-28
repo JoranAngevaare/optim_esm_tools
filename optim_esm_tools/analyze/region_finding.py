@@ -445,7 +445,11 @@ class PercentilesHistory(Percentiles):
 
     @apply_options
     def find_historical(
-        self, match_to='piControl', look_back_extra=1, query_updates=None
+        self,
+        match_to='piControl',
+        look_back_extra=1,
+        query_updates=None,
+        search_kw=None,
     ):
         from optim_esm_tools.config import config
 
@@ -461,7 +465,8 @@ class PercentilesHistory(Percentiles):
         if search['experiment_id'] == match_to:
             raise NotImplementedError()
         search['experiment_id'] = match_to
-
+        if search_kw:
+            search.update(search_kw)
         if query_updates is None:
             query_updates = [
                 dict(),
