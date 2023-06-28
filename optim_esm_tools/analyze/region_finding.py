@@ -466,8 +466,9 @@ class PercentilesHistory(Percentiles):
             query_updates = [
                 dict(),
                 dict(variant_label='*'),
-                dict(grid='*'),
                 dict(version='*'),
+                # can lead to funny behavior as grid differences may cause breaking compares
+                dict(grid='*'),
             ]
 
         for try_n, update_query in enumerate(query_updates):
@@ -584,7 +585,12 @@ class LocalHistory(PercentilesHistory):
 
                     result = da / da_historical
                     ret_array = result.values
-                    max_val = ret_array.max()
+                    if len(ret_array) == 0:
+                        raise ValueError(
+                            f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
+                            f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
+                        )
+                    max_val = np.nanmax(ret_array)
                     mask_divide_by_zero = (da_historical == 0) & (da > 0)
                     ret_array[mask_divide_by_zero.values] = 10 * max_val
                     result.data = ret_array

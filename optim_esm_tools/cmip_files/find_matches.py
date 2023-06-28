@@ -22,7 +22,7 @@ from collections import defaultdict
     )
 )
 def find_matches(
-    base,
+    base: str,
     activity_id='ScenarioMIP',
     institution_id='*',
     source_id='*',
@@ -32,10 +32,30 @@ def find_matches(
     variable_id='tas',
     grid='*',
     version='*',
-    max_versions=1,
-    max_members=1,
-):
-    """Follow synda folder format to find matches"""
+    max_versions: int = 1,
+    max_members: int = 1,
+    required_file='merged.nc',
+) -> list:
+    """Follow synda folder format to find matches
+
+    Args:
+        base (str): where start looking for matches
+        activity_id (str, optional): As synda convention. Defaults to 'ScenarioMIP'.
+        institution_id (str, optional): As synda convention. Defaults to '*'.
+        source_id (str, optional): As synda convention. Defaults to '*'.
+        experiment_id (str, optional): As synda convention. Defaults to 'ssp585'.
+        variant_label (str, optional): As synda convention. Defaults to '*'.
+        domain (str, optional): As synda convention. Defaults to 'Ayear'.
+        variable_id (str, optional): As synda convention. Defaults to 'tas'.
+        grid (str, optional): As synda convention. Defaults to '*'.
+        version (str, optional): As synda convention. Defaults to '*'.
+        max_versions (int, optional): Max mumber of different versions that match. Defaults to 1.
+        max_members (int, optional): Max mumber of different members that match. Defaults to 1.
+        required_file (str, optional): Filename to match. Defaults to 'merged.nc'.
+
+    Returns:
+        list: of matches corresponding to the query
+    """
     if max_versions is None:
         max_versions = int(9e9)
     if max_members is None:
@@ -68,6 +88,9 @@ def find_matches(
             seen[group] = defaultdict(list)
         seen_members = seen[group]
         if len(seen_members) < max_members or member in seen_members:
+            if required_file and required_file not in os.listdir(candidate):
+                get_logger().warning(f'{required_file} not in {candidate}')
+                continue
             if len(seen_members.get(version, [])) == max_versions:
                 continue
             if is_excluded(candidate):
