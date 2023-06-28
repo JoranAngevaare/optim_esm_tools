@@ -20,7 +20,6 @@ class TestMatches(unittest.TestCase):
         assert len(
             oet.cmip_files.find_matches.find_matches(
                 base=head,
-                required_file = os.path.split(path)[1]
-                **kw,
+                required_file=os.path.split(path)[1] ** kw,
             )
         )
