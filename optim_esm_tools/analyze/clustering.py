@@ -2,6 +2,8 @@ import numpy as np
 from optim_esm_tools.utils import tqdm, timed
 import typing as ty
 from warnings import warn
+import numba
+from math import sin, cos, sqrt, atan2, radians
 
 
 @timed()
@@ -123,27 +125,33 @@ def _infer_max_step_size(xs, ys):
     return 2 * max(_distance(c) for c in coords)
 
 
-def _distance(coords):
+def _distance(coords, force_math=False):
     """Wrapper for if geopy is not installed"""
-    try:
-        import geopy.distance
+    if not force_math:
+        try:
+            import geopy.distance
 
-        return geopy.distance.geodesic(*coords).km
-    except (ImportError, ModuleNotFoundError):
-        return _distance_bf(coords)
+            return geopy.distance.geodesic(*coords).km
+        except (ImportError, ModuleNotFoundError):
+            pass
+    return _distance_bf_coord(*coords)
 
 
-def _distance_bf(coords):
+@numba.njit
+def _distance_bf_coord(lat1, lon1, lat2, lon2):
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+    return _distance_bf(lat1, lon1, lat2, lon2)
+
+
+@numba.njit
+def _distance_bf(lat1, lon1, lat2, lon2):
     # https://stackoverflow.com/a/19412565/18280620
-    from math import sin, cos, sqrt, atan2, radians
 
     # Approximate radius of earth in km
     R = 6373.0
-
-    lat1 = radians(coords[0][0])
-    lon1 = radians(coords[0][1])
-    lat2 = radians(coords[1][0])
-    lon2 = radians(coords[1][1])
 
     dlon = lon2 - lon1
     dlat = lat2 - lat1

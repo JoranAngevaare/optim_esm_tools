@@ -78,6 +78,7 @@ def transform_ds(
     return ds
 
 
+@oet.utils.add_load_kw
 @oet.utils.timed()
 def read_ds(
     base: str,
@@ -86,6 +87,7 @@ def read_ds(
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
     strict: bool = True,
+    load: bool = True,
     _ma_window: int = 10,
     _cache: bool = True,
     _file_name: str = 'merged.nc',
@@ -100,6 +102,7 @@ def read_ds(
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         transform_ds: (boolm optional): Apply analysis specific postprocessing algoritms. Defaults to True.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
+        load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
 
@@ -127,7 +130,7 @@ def read_ds(
     )
 
     if os.path.exists(post_processed_file) and _cache:
-        return oet.synda_files.format_synda.load_glob(post_processed_file)
+        return oet.analyze.io.load_glob(post_processed_file)
 
     data_path = os.path.join(base, _file_name)
     if not os.path.exists(data_path):
@@ -137,8 +140,8 @@ def read_ds(
         warn(message)
         return None
 
-    data_set = oet.synda_files.format_synda.load_glob(data_path)
-    data_set = oet.synda_files.format_synda.recast(data_set)
+    data_set = oet.analyze.io.load_glob(data_path, load=load)
+    data_set = oet.analyze.io.recast(data_set)
 
     if apply_transform:
         data_set = transform_ds(

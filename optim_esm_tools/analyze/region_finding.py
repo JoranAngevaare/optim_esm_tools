@@ -1,19 +1,22 @@
-import os
 import optim_esm_tools as oet
-from optim_esm_tools.plotting.map_maker import MapMaker
-import numpy as np
-import matplotlib.pyplot as plt
-import typing as ty
+from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
-import logging
 from optim_esm_tools.analyze.cmip_handler import transform_ds, read_ds
-import typing as ty
-import matplotlib.pyplot as plt
-from functools import wraps
-import xarray as xr
-import inspect
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.plot import setup_map, _show
+
+import os
+
+import numpy as np
+import xarray as xr
+
+import matplotlib.pyplot as plt
+import logging
+
+import typing as ty
+from functools import wraps
+import inspect
+import matplotlib.pyplot as plt
 
 # >>> import scipy
 # >>> scipy.stats.norm.cdf(3)
@@ -200,7 +203,7 @@ class MaxRegion(RegionExtractor):
 
     def _plot_basic_map(self):
         mm = MapMaker(self.dataset)
-        axes = mm.plot_all(2)
+        axes = mm.plot_selected(items=self.labels)
         masks = self.get_masks()
         for ax in axes:
             self._plot_masks(masks, ax=ax, legend=False)
@@ -302,25 +305,24 @@ class Percentiles(RegionExtractor):
         masks, clusters = masks_and_clusters
         # if masks == [] or masks == [[]]:
         #     return
-        all_masks = np.zeros(masks[0].shape, np.int16)
+        all_masks = np.zeros(masks[0].shape, np.float64)
 
+        ds_dummy = self.dataset.copy()
+        area = ds_dummy['cell_area'].values
         for m, c in zip(masks, clusters):
-            all_masks[m] = len(c)
+            all_masks[m] = area[m].sum()
         if ax is None:
             setup_map()
             ax = plt.gca()
         if mask_cbar_kw is None:
-            mask_cbar_kw = dict(extend='neither', label='Number of gridcells')
+            mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
-        ds_dummy = self.dataset.copy()
 
         all_masks = all_masks.astype(np.float16)
         all_masks[all_masks == 0] = np.nan
-        ds_dummy['n_grid_cells'] = (('y', 'x'), all_masks)
+        ds_dummy['area_square'] = (('y', 'x'), all_masks)
 
-        ds_dummy['n_grid_cells'].plot(
-            cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither'
-        )
+        ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
         plt.title('')
         if scatter_medians:
             if cluster_kw is None:
@@ -336,7 +338,7 @@ class Percentiles(RegionExtractor):
 
     def _plot_basic_map(self):
         mm = MapMaker(self.dataset)
-        axes = mm.plot_all(2)
+        axes = mm.plot_selected(items=self.labels)
         plt.suptitle(self.title, y=0.95)
         return axes
 
@@ -574,51 +576,16 @@ class LocalHistory(PercentilesHistory):
         return masks, clusters
 
     @apply_options
-    def _plot_basic_map(self, read_ds_kw=None):
+    def _plot_basic_map(self, normalizations=None, read_ds_kw=None):
         if read_ds_kw is None:
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
         ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
 
-        class TempMapMaker(MapMaker):
-            def __getattr__(self, item):
-                if item in self.conditions:
-                    condition = self.conditions[item]
-                    da = self.data_set[condition.short_description]
-                    da_historical = ds_historical[condition.short_description]
-
-                    result = da / da_historical
-                    ret_array = result.values
-                    if len(ret_array) == 0:
-                        raise ValueError(
-                            f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
-                            f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
-                        )
-                    max_val = np.nanmax(ret_array)
-                    mask_divide_by_zero = (da_historical == 0) & (da > 0)
-                    ret_array[mask_divide_by_zero.values] = 10 * max_val
-                    result.data = ret_array
-                    current_norm = self.normalizations.copy()
-
-                    current_norm.update(dict(item=[None, max_val]))
-
-                    self.set_normalizations(current_norm)
-
-                    result.assign_attrs(
-                        dict(
-                            short_description=condition.short_description,
-                            long_description=condition.long_description,
-                            name=f'Change w.r.t. historical of\n{da.name}',
-                        )
-                    )
-
-                    return result
-                return self.__getattribute__(item)
-
-        mm = TempMapMaker(self.dataset)
-        axes = mm.plot_all(2)
-        # masks = self.get_masks()
-        # for ax in axes:
-        #     self._plot_masks(masks, ax=ax, legend=False)
+        mm = HistoricalMapMaker(
+            self.dataset, ds_historical=ds_historical, normalizations=normalizations
+        )
+        mm.plot_selected()
         plt.suptitle(self.title, y=0.95)
+        return mm

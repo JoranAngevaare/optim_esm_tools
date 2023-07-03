@@ -1,9 +1,10 @@
 from .xarray_tools import apply_abs, _native_date_fmt, _remove_any_none_times
 from optim_esm_tools.utils import check_accepts, timed
-import xarray as xr
-import numpy as np
-import typing as ty
 from .globals import _SECONDS_TO_YEAR
+
+import xarray as xr
+
+import typing as ty
 import abc
 from immutabledict import immutabledict
 

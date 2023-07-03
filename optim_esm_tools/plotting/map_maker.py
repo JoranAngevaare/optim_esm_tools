@@ -38,7 +38,8 @@ class MapMaker(object):
         self.data_set = data_set
         self.set_kw()
         self.set_conditions(**conditions)
-        self.set_normalizations(normalizations)
+        if normalizations is not None:
+            self.set_normalizations(normalizations)
 
     def set_kw(self):
         import cartopy.crs as ccrs
@@ -49,6 +50,11 @@ class MapMaker(object):
             gridspec=dict(hspace=0.3),
             cbar=dict(orientation='horizontal', extend='both'),
             plot=dict(transform=ccrs.PlateCarree()),
+            subplot=dict(
+                projection=ccrs.PlateCarree(
+                    central_longitude=0.0,
+                ),
+            ),
         )
 
     def set_conditions(self, **condition_kwargs):
@@ -66,16 +72,21 @@ class MapMaker(object):
 
     _cache: bool = False
 
-    def set_normalizations(
-        self,
-        normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
-    ):
+    def get_normalizations(self, normalizations=None):
+        normalizations_start = (
+            normalizations.copy() if normalizations is not None else None
+        )
+
+        if normalizations is None and self.normalizations is not None:
+            # once set, they should be retrievable
+            return self.normalizations
+
         if normalizations is None:
-            self.normalizations = {i: [None, None] for i in self.conditions.keys()}
+            normalizations = {i: [None, None] for i in self.conditions.keys()}
         elif isinstance(normalizations, collections.abc.Mapping):
-            self.normalizations = normalizations
+            normalizations = normalizations
         elif isinstance(normalizations, collections.abc.Iterable):
-            self.normalizations = {
+            normalizations = {
                 i: normalizations[j] for j, i in enumerate(self.conditions.keys())
             }
 
@@ -83,51 +94,60 @@ class MapMaker(object):
             return (
                 any(
                     not isinstance(v, collections.abc.Iterable)
-                    for v in self.normalizations.values()
+                    for v in normalizations.values()
                 )
-                or any(len(v) != 2 for v in self.normalizations.values())
-                or any(k not in self.normalizations for k in self.conditions)
+                or any(len(v) != 2 for v in normalizations.values())
+                or any(k not in normalizations for k in self.conditions)
             )
 
-        if self.normalizations is None or _incorrect_format():
+        if normalizations is None or _incorrect_format():
             raise TypeError(
                 f'Normalizations should be mapping from'
                 f'{self.conditions.keys()} to vmin, vmax, '
-                f'got {self.normalizations} (from {normalizations})'
+                f'got {normalizations} (from {normalizations_start})'
             )
+        return normalizations
+
+    def set_normalizations(
+        self,
+        normalizations: ty.Union[None, ty.Mapping, ty.Iterable] = None,
+    ):
+        # run even if we don't set to check if there are no errors
+        norm = self.get_normalizations(normalizations)
+        if normalizations is not None:
+            self.normalizations = norm
 
     def plot(self, *a, **kw):
         print('Depricated use plot_all')
         return self.plot_all(*a, **kw)
 
-    @oet.utils.timed()
-    def plot_all(
-        self,
-        nx=2,
-        fig=None,
-        **kw,
-    ):
-        import cartopy.crs as ccrs
-
-        ny = np.ceil(len(self.conditions) / nx).astype(int)
-        if fig is None:
-            fig = plt.figure(**self.kw['fig'])
-
+    def plot_selected(self, items=('ii', 'iii'), nx=None, fig=None, **_gkw):
         from matplotlib.gridspec import GridSpec
 
-        gs = GridSpec(nx, ny, **self.kw['gridspec'])
+        if nx is None:
+            nx = len(items) if len(items) <= 3 else 2
+
+        ny = np.ceil(len(items) / nx).astype(int)
+
+        if fig is None:
+            kw = self.kw['fig'].copy()
+            # Defaults are set for a 2x2 matrix
+            kw['figsize'] = kw['figsize'][0] / (2 / nx), kw['figsize'][1] / (2 / ny)
+            fig = plt.figure(**kw)
+
+        gs = GridSpec(ny, nx, **self.kw['gridspec'])
         plt_axes = []
 
-        for i, label in enumerate(self.conditions.keys()):
-            ax = fig.add_subplot(
-                gs[i],
-                projection=ccrs.PlateCarree(
-                    central_longitude=0.0,
-                ),
-            )
-            self.plot_i(label, ax=ax, **kw)
+        i = 0
+        for i, label in enumerate(items):
+            ax = fig.add_subplot(gs[i], **self.kw['subplot'])
+            self.plot_i(label, ax=ax, **_gkw)
             plt_axes.append(ax)
         return plt_axes
+
+    @oet.utils.timed()
+    def plot_all(self, nx=2, **kw):
+        return self.plot_selected(nx=nx, items=self.conditions.keys(), **kw)
 
     @oet.utils.timed()
     def plot_i(self, label, ax=None, coastlines=True, **kw):
@@ -143,9 +163,9 @@ class MapMaker(object):
         x_label = prop.attrs.get('name', label)
         c_kw = self.kw['cbar'].copy()
         c_kw.setdefault('label', x_label)
+        normalizations = self.get_normalizations()
         c_range_kw = {
-            vm: self.normalizations[label][j]
-            for j, vm in enumerate('vmin vmax'.split())
+            vm: normalizations[label][j] for j, vm in enumerate('vmin vmax'.split())
         }
 
         for k, v in {
@@ -376,6 +396,66 @@ class MapMaker(object):
             .attrs.get('units', f'?{variable}?')
             .replace('%', '\%')
         )
+
+
+class HistoricalMapMaker(MapMaker):
+    def __init__(self, *args, ds_historical=None, **kwargs):
+        if ds_historical is None:
+            raise ValueError('Argument ds_historical is required')
+        self.ds_historical = ds_historical
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def calculate_ratio_and_max(da, da_historical):
+        result = da / da_historical
+        ret_array = result.values
+        if len(ret_array) == 0:
+            raise ValueError(
+                f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
+                f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
+            )
+        max_val = np.nanmax(ret_array)
+        mask_divide_by_zero = (da_historical == 0) & (da > 0)
+        ret_array[mask_divide_by_zero.values] = 10 * max_val
+        result.data = ret_array
+        return result, max_val
+
+    def set_norm_for_item(self, item, max_val):
+        current_norm = self.get_normalizations()
+        low, high = current_norm.get(item, [None, None])
+        if high is None:
+            oet.config.get_logger().debug(f'Update max val for {item} to {max_val}')
+            current_norm.update({item: [low, max_val]})
+        self.set_normalizations(current_norm)
+
+    @staticmethod
+    def add_meta_to_da(result, name, short, long):
+        name = '$\\frac{\\mathrm{scenario}}{\\mathrm{picontrol}}$' + f' of {name}'
+        result = result.assign_attrs(
+            dict(short_description=short, long_description=long, name=name)
+        )
+        result.name = name
+        return result
+
+    def get_compare(self, item):
+        """Get the ratio of historical and the current data set"""
+        condition = self.conditions[item]
+
+        da = self.data_set[condition.short_description]
+        da_historical = self.ds_historical[condition.short_description]
+
+        result, max_val = self.calculate_ratio_and_max(da, da_historical)
+        self.set_norm_for_item(item, max_val)
+
+        result = self.add_meta_to_da(
+            result, da.name, condition.short_description, condition.long_description
+        )
+        return result
+
+    def __getattr__(self, item):
+        if item in self.conditions:
+            return self.get_compare(item)
+        return self.__getattribute__(item)
 
 
 def make_title(ds):
