@@ -1,3 +1,14 @@
+0.2.2 / 2023-07-02
+------------------
+* Remove todo by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/67
+* small tas tweaks by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/68
+* Add non-tas support by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/69
+* Match fuzzy for version last by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/70
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.2.1...v0.2.2
+
+
 0.2.1 / 2023-06-21
 ------------------
 * Add few badges (#62) by @JoranAngevarae in https://github.com/JoranAngevaare/optim_esm_tools/pull/62

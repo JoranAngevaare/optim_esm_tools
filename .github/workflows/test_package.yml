@@ -10,7 +10,7 @@ on:
       - master
 
 jobs:
-  update:
+  test:
     name: '${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}'
     runs-on: ${{ matrix.os }}
     strategy:
