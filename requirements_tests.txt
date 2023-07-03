@@ -6,6 +6,6 @@ gitpython
 hypothesis-numpy
 intake-esm
 numba
-pytest
 pydantic=v1.10.10
+pytest
 scikit-learn
