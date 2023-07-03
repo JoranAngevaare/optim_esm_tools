@@ -45,6 +45,7 @@ def transform_ds(
             tipping_criteria.StdDetrended,
             tipping_criteria.MaxJump,
             tipping_criteria.MaxDerivitive,
+            tipping_criteria.MaxJumpAndStd,
         )
     if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
         calculate_conditions

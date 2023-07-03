@@ -4,6 +4,8 @@ from optim_esm_tools.analyze import tipping_criteria
 from optim_esm_tools.analyze.cmip_handler import transform_ds, read_ds
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.plot import setup_map, _show
+from optim_esm_tools.analyze.tipping_criteria import var_to_perc
+
 
 import os
 
@@ -145,7 +147,7 @@ class RegionExtractor:
         self.save(f'{self.title_label}_global_map')
 
     def _plot_basic_map(self):
-        raise NotImplemented(f'{self.__class__.__class__} has no _plot_basic_map')
+        raise NotImplementedError(f'{self.__class__.__class__} has no _plot_basic_map')
 
     def save(self, name):
         assert self.__class__.__name__ in name
@@ -500,29 +502,6 @@ class PercentilesHistory(Percentiles):
 
 
 class ProductPercentiles(Percentiles):
-    @staticmethod
-    def var_to_perc(ds: xr.Dataset, dest_var: str, source_var: str) -> xr.Dataset:
-        """Calculate the percentile score of each of the data var, and assign it to the data set to get
-
-        Args:
-            ds (xr.Dataset): dataset with data-var to calculate the percentiles of
-            dest_var (str): under wich name the scores should be combined under.
-            source_var (str): property to calculate the percentiles of
-
-        Returns:
-            xr.Dataset: Original dataset with one extra colum (dest_var)
-        """
-        from scipy.stats import percentileofscore
-
-        a = ds[source_var].values
-        a_flat = a[~np.isnan(a)].flatten()
-        pcts = [
-            [percentileofscore(a_flat, i, kind='strict') / 100 for i in aa]
-            for aa in oet.utils.tqdm(a)
-        ]
-        ds[dest_var] = (ds[source_var].dims, pcts)
-        return ds
-
     @apply_options
     def get_masks(self, product_percentiles=_two_sigma_percent) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
@@ -533,7 +512,7 @@ class ProductPercentiles(Percentiles):
         combined_score = np.ones_like(ds[labels[0]].values)
         for label in labels:
             _name = f'percentile {label}'
-            combined_score *= self.var_to_perc(ds, _name, label)[_name].values
+            combined_score *= var_to_perc(ds, _name, label)[_name].values
 
         # Combined score is fraction, not percent!
         all_mask = (combined_score > (product_percentiles / 100)).T

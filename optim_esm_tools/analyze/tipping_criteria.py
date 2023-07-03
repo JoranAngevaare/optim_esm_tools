@@ -7,6 +7,7 @@ import xarray as xr
 import typing as ty
 import abc
 from immutabledict import immutabledict
+import numpy as np
 
 
 class _Condition(abc.ABC):
@@ -112,6 +113,34 @@ class MaxDerivitive(_Condition):
             naming='{variable}_run_mean_{running_mean}',
             running_mean=self.running_mean,
             **self.defaults,
+        )
+
+
+class MaxJumpAndStd(MaxJump, StdDetrended):
+    short_description: str = 'percentile score std and max jump'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.number_of_years = 10
+
+    @property
+    def long_description(self):
+        return f'Product of\n{super(MaxJumpAndStd, self).long_description} and \n{super(MaxJump, self).long_description}'
+
+    def calculate(self, dataset):
+        super_1 = super(MaxJump, self)
+        super_2 = super(MaxJumpAndStd, self)
+        da_1 = super_1.calculate(dataset)
+        da_2 = super_2.calculate(dataset)
+
+        combined_score = np.ones_like(da_1.values)
+        for da, label in zip(
+            [da_1, da_2], [super_1.short_description, super_2.short_description]
+        ):
+            _name = f'percentile {label}'
+            combined_score *= var_to_perc(da, _name, None)
+        return xr.DataArray(
+            combined_score, dims=('y', 'x'), name=self.short_description
         )
 
 
@@ -300,3 +329,38 @@ def max_derivative(
         result = result / data_array.std()
         result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
         return result
+
+
+def var_to_perc(
+    ds: ty.Union[xr.Dataset, xr.DataArray], dest_var: str, source_var: str
+) -> ty.Union[xr.Dataset, np.ndarray]:
+    """Calculate the percentile score of each of the data var, and assign it to the data set to get
+
+    Args:
+        ds (xr.Dataset): dataset with data-var to calculate the percentiles of
+        dest_var (str): under wich name the scores should be combined under.
+        source_var (str): property to calculate the percentiles of
+
+    Returns:
+        xr.Dataset: Original dataset with one extra colum (dest_var)
+    """
+    from scipy.stats import percentileofscore
+    import optim_esm_tools as oet
+
+    if source_var is None:
+        # data array
+        source_array = ds
+    else:
+        source_array = ds[source_var]
+
+    a = source_array.values
+    a_flat = a[~np.isnan(a)].flatten()
+    pcts = [
+        [percentileofscore(a_flat, i, kind='strict') / 100 for i in aa]
+        for aa in oet.utils.tqdm(a)
+    ]
+    if source_var is None:
+        return np.array(pcts)
+
+    ds[dest_var] = (source_array.dims, pcts)
+    return ds
