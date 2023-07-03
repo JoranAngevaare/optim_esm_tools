@@ -34,17 +34,6 @@ def load_glob(
     return xr.open_mfdataset(pattern, **kw)
 
 
-def _interp_nominal_lon_new(lon_1d):
-    from optim_esm_tools.config import get_logger
-
-    get_logger().debug('Using altered version _interp_nominal_lon_new')
-    x = np.arange(len(lon_1d))
-    idx = np.isnan(lon_1d)
-    # TODO assume that longitudes are cyclic see https://github.com/jbusecke/xMIP/issues/299
-    ret = np.interp(x, x[~idx], lon_1d[~idx], period=len(lon_1d))
-    return ret
-
-
 def recast(data_set):
     from xmip.preprocessing import (
         promote_empty_dims,
@@ -95,8 +84,17 @@ def recast(data_set):
     return ds
 
 
+# Keeping this arround for sake of the old times
+# def _interp_nominal_lon_new(lon_1d):
+#     from optim_esm_tools.config import get_logger
+#     get_logger().debug('Using altered version _interp_nominal_lon_new')
+#     x = np.arange(len(lon_1d))
+#     idx = np.isnan(lon_1d)
+#     # TODO assume that longitudes are cyclic see https://github.com/jbusecke/xMIP/issues/299
+#     ret = np.interp(x, x[~idx], lon_1d[~idx], period=len(lon_1d))
+#     return ret
+
 # def recast(data_set):
-#     Keeping this arround for sake of the old times
 #     from xmip.preprocessing import (
 #         promote_empty_dims,
 #         replace_x_y_nominal_lat_lon,
