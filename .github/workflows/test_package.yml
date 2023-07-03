@@ -82,6 +82,8 @@ jobs:
         run: bash .github/scripts/download_example_data.sh
       - name: Run the tests
         if: matrix.test != 'minimal'
+        env:
+          NUMBA_DISABLE_JIT: 1
         run:
           |
           coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
