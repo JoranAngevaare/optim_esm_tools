@@ -23,14 +23,12 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     author='Joran R. Angevaare',
     url='https://github.com/JoranAngevaare/optim_esm_tools',
-    packages=setuptools.find_packages() + ['extra_requirements'],
+    packages=setuptools.find_packages(),
     package_dir={
         'optim_esm_tools': 'optim_esm_tools',
-        'extra_requirements': 'extra_requirements',
     },
     package_data={
         'optim_esm_tools': ['data/*'],
-        'extra_requirements': ['requirements-tests.txt'],
     },
     setup_requires=['pytest-runner'],
     install_requires=requirements,
