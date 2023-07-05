@@ -86,7 +86,7 @@ jobs:
           NUMBA_DISABLE_JIT: 1
         run:
           |
-          coverage run --source=optim_esm_tools -m pytest -vsx --durations 0
+          coverage run --source=optim_esm_tools -m pytest -vx --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coverage report
       - name: Upload coverage
