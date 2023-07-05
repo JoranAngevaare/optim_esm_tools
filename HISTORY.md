@@ -1,3 +1,12 @@
+0.3.0 / 2023-07-05
+------------------
+* Remove old setup by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/77
+* Area calculation  & percentile recombination & weighted clustering by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/76
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.2.2...v0.3.0
+
+
 0.2.2 / 2023-07-02
 ------------------
 * Remove todo by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/67
