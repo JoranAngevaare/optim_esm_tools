@@ -1,2 +1,3 @@
-from . import io
-from . import find_matches
+# legacy structure
+from ..analyze import io
+from ..analyze import find_matches

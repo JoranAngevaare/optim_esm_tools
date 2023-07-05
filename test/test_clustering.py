@@ -50,7 +50,10 @@ def test_geopy_alternative():
     ys = ys * 180 - 90
     # LAT:LON!
     coords = np.array([ys, xs]).T
-    print(coords)
+    flat_coord = coords.flatten()
+    print(coords, flat_coord)
     assert np.isclose(
-        clustering._distance_bf(coords), clustering._distance(coords), rtol=0.1
+        clustering._distance_bf_coord(*flat_coord),
+        clustering._distance(coords),
+        rtol=0.1,
     )

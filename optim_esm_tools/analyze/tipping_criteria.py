@@ -1,11 +1,13 @@
 from .xarray_tools import apply_abs, _native_date_fmt, _remove_any_none_times
 from optim_esm_tools.utils import check_accepts, timed
-import xarray as xr
-import numpy as np
-import typing as ty
 from .globals import _SECONDS_TO_YEAR
+
+import xarray as xr
+
+import typing as ty
 import abc
 from immutabledict import immutabledict
+import numpy as np
 
 
 class _Condition(abc.ABC):
@@ -40,9 +42,9 @@ class StartEndDifference(_Condition):
     def long_description(self):
         return f'Difference of running mean ({self.running_mean} yr) between start and end of time series. Not detrended'
 
-    def calculate(self, dataset):
+    def calculate(self, data_set):
         return running_mean_diff(
-            dataset,
+            data_set,
             variable=self.variable,
             time_var=self.time_var,
             naming='{variable}_run_mean_{running_mean}',
@@ -62,9 +64,9 @@ class StdDetrended(_Condition):
     def long_description(self):
         return f'Standard deviation of running mean ({self.running_mean} yr). Detrended'
 
-    def calculate(self, dataset):
+    def calculate(self, data_set):
         return running_mean_std(
-            dataset,
+            data_set,
             variable=self.variable,
             time_var=self.time_var,
             naming='{variable}_detrend_run_mean_{running_mean}',
@@ -84,9 +86,9 @@ class MaxJump(_Condition):
     def long_description(self):
         return f'Max change in {self.number_of_years} yr in the running mean ({self.running_mean} yr). Not detrended'
 
-    def calculate(self, dataset):
+    def calculate(self, data_set):
         return max_change_xyr(
-            dataset,
+            data_set,
             variable=self.variable,
             time_var=self.time_var,
             naming='{variable}_run_mean_{running_mean}',
@@ -103,14 +105,42 @@ class MaxDerivitive(_Condition):
     def long_description(self):
         return f'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
 
-    def calculate(self, dataset):
+    def calculate(self, data_set):
         return max_derivative(
-            dataset,
+            data_set,
             variable=self.variable,
             time_var=self.time_var,
             naming='{variable}_run_mean_{running_mean}',
             running_mean=self.running_mean,
             **self.defaults,
+        )
+
+
+class MaxJumpAndStd(MaxJump, StdDetrended):
+    short_description: str = 'percentile score std and max jump'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.number_of_years = 10
+
+    @property
+    def long_description(self):
+        return f'Product of {super(MaxJumpAndStd, self).short_description} and {super(MaxJump, self).short_description}'
+
+    def calculate(self, data_set):
+        super_1 = super(MaxJump, self)
+        super_2 = super(MaxJumpAndStd, self)
+        da_1 = super_1.calculate(data_set)
+        da_2 = super_2.calculate(data_set)
+
+        combined_score = np.ones_like(da_1.values)
+        for da, label in zip(
+            [da_1, da_2], [super_1.short_description, super_2.short_description]
+        ):
+            _name = f'percentile {label}'
+            combined_score *= var_to_perc(da, _name, None)
+        return xr.DataArray(
+            combined_score, dims=('y', 'x'), name=self.short_description
         )
 
 
@@ -153,7 +183,7 @@ def running_mean_diff(
     _time_values = data_set[time_var].dropna(time_var)
 
     if not len(_time_values):
-        raise ValueError(f'No values for {time_var} in dataset?')
+        raise ValueError(f'No values for {time_var} in data_set?')
 
     data_var = _remove_any_none_times(data_set[var_name], time_var)
 
@@ -299,3 +329,47 @@ def max_derivative(
         result = result / data_array.std()
         result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
         return result
+
+
+def rank2d(a):
+    """Calculate precentiles of values in `a`"""
+    from scipy.interpolate import interp1d
+
+    a_flat = a[~np.isnan(a)].flatten()
+    # This is equivalent to
+    # from scipy.stats import percentileofscore
+    # import optim_esm_tools as oet
+    # pcts = [[percentileofscore(a_flat, i, kind='mean') / 100 for i in aa]
+    #         for aa in oet.utils.tqdm(a)]
+    # return pcts
+    n = len(a_flat)
+    itp = interp1d(np.sort(a_flat), np.arange(n) / n, bounds_error=False)
+    return itp(a)
+
+
+def var_to_perc(
+    ds: ty.Union[xr.Dataset, xr.DataArray], dest_var: str, source_var: str
+) -> ty.Union[xr.Dataset, np.ndarray]:
+    """Calculate the percentile score of each of the data var, and assign it to the data set to get
+
+    Args:
+        ds (xr.Dataset): data_set with data-var to calculate the percentiles of
+        dest_var (str): under wich name the scores should be combined under.
+        source_var (str): property to calculate the percentiles of
+
+    Returns:
+        xr.Dataset: Original data_set with one extra colum (dest_var)
+    """
+    if source_var is None:
+        # data array
+        source_array = ds
+    else:
+        source_array = ds[source_var]
+
+    percentiles = rank2d(source_array.values)
+
+    if source_var is None:
+        return percentiles
+
+    ds[dest_var] = (source_array.dims, percentiles)
+    return ds

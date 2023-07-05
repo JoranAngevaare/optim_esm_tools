@@ -36,7 +36,7 @@ class TestMapMaker(unittest.TestCase):
         super().setUp()
 
     def test_read_data(self):
-        data_set = oet.cmip_files.io.load_glob(self.ayear_file)
+        dataset = oet.cmip_files.io.load_glob(self.ayear_file)
 
     def test_make_map(self):
         data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])

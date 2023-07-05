@@ -3,6 +3,7 @@ import numpy as np
 import typing as ty
 import xarray as xr
 from functools import wraps
+import numba
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -51,14 +52,11 @@ def _mask2d_to_xy_slice(mask: np.array, cyclic: bool = False) -> np.array:
     return slices[:n_slices]
 
 
+_n_mask2d_to_xy_slice = numba.njit(_mask2d_to_xy_slice)
+
+
 def mask2d_to_xy_slice(*args, **kwargs):
-    try:
-        import numba
-    except (ImportError, ModuleNotFoundError) as exeception:
-        raise ModuleNotFoundError(
-            'Numba is an optional dependency, please try pip install numba'
-        ) from e
-    return numba.njit(_mask2d_to_xy_slice)(*args, **kwargs)
+    return _n_mask2d_to_xy_slice(*args, **kwargs)
 
 
 def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):

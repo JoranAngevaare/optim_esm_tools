@@ -1,6 +1,6 @@
 ## Depricated module, will remove in future
 
-from ..cmip_files.io import load_glob, recast
+from ..analyze.io import load_glob, recast
 from optim_esm_tools.utils import deprecated
 
 

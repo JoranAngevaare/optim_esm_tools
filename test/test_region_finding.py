@@ -22,13 +22,15 @@ class Work(unittest.TestCase):
         assert os.path.exists(year_path)
         return year_path
 
-    def test_max_region(self, make='MaxRegion', new_opt=None):
+    def test_max_region(self, make='MaxRegion', new_opt=None, skip_save=True):
         cls = getattr(region_finding, make)
+        file_path = self.get_path('ssp585', refresh=False)
+        head, tail = os.path.split(file_path)
         extra_opt = dict(
             time_series_joined=True,
             scatter_medians=True,
             percentiles=50,
-            search_kw=dict(required_file=os.path.split(self.get_path('ssp585'))[1]),
+            search_kw=dict(required_file=tail),
         )
         if new_opt:
             extra_opt.update(new_opt)
@@ -38,9 +40,8 @@ class Work(unittest.TestCase):
                 sub_dir=None,
                 file_types=('png',),
                 dpi=25,
-                skip=False,
+                skip=skip_save,
             )
-            head, tail = os.path.split(self.get_path('ssp585', refresh=False))
             region_finder = cls(
                 path=head,
                 read_ds_kw=dict(_file_name=tail),
@@ -58,6 +59,9 @@ class Work(unittest.TestCase):
     def test_percentiles(self):
         self.test_max_region('Percentiles', new_opt=dict(time_series_joined=False))
 
+    def test_percentiles_weighted(self):
+        self.test_max_region('Percentiles', new_opt=dict(cluster_method='weighted'))
+
     def test_percentiles_history(self):
         region_finder = self.test_max_region('PercentilesHistory')
         with self.assertRaises(RuntimeError):
@@ -65,7 +69,12 @@ class Work(unittest.TestCase):
             region_finder.find_historical('historical')
 
     def test_percentiles_product(self):
-        self.test_max_region('ProductPercentiles')
+        self.test_max_region('ProductPercentiles', skip_save=False)
 
     def test_local_history(self):
         self.test_max_region('LocalHistory')
+
+    def test_percentiles_product_weighted(self):
+        self.test_max_region(
+            'ProductPercentiles', new_opt=dict(cluster_method='weighted')
+        )

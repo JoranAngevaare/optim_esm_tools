@@ -12,6 +12,7 @@ import warnings
 import time
 import numpy as np
 import pandas as pd
+import inspect
 
 try:
     from git import Repo, InvalidGitRepositoryError
@@ -288,6 +289,23 @@ def check_accepts(
         return somedec_inner
 
     return somedec_outer
+
+
+def add_load_kw(func):
+    """Add apply `.load` method to the dataset returned by wrapped function"""
+
+    @wraps(func)
+    def dep_fun(*args, **kwargs):
+        if 'load' not in inspect.signature(func).parameters:
+            add_load = kwargs.pop('load', False)
+        else:
+            add_load = kwargs.get('load', False)
+        res = func(*args, **kwargs)
+        if add_load:
+            return res.load()
+        return res
+
+    return dep_fun
 
 
 def deprecated(func, message='is deprecated'):

@@ -2,11 +2,14 @@ import numpy as np
 from optim_esm_tools.utils import tqdm, timed
 import typing as ty
 from warnings import warn
+import numba
+from math import sin, cos, sqrt, atan2, radians
 
 
 @timed()
 def build_clusters(
     coordinates_deg: np.ndarray,
+    weights: ty.Optional[np.ndarray] = None,
     max_distance_km: ty.Union[float, int] = 750,
     only_core: bool = True,
     min_samples: int = 10,
@@ -36,8 +39,18 @@ def build_clusters(
 
     coordinates_rad = np.radians(coordinates_deg).T
 
+    # TODO use a more up to date version:
+    #  https://scikit-learn.org/stable/auto_examples/cluster/plot_hdbscan.html#sphx-glr-auto-examples-cluster-plot-hdbscan-py
+    #  https://scikit-learn.org/stable/modules/generated/sklearn.cluster.HDBSCAN.html#sklearn.cluster.HDBSCAN
     # Thanks https://stackoverflow.com/a/38731787/18280620!
-    db_fit = DBSCAN(eps=max_distance_km / 6371.0, **cluster_opts).fit(coordinates_rad)
+    try:
+        db_fit = DBSCAN(eps=max_distance_km / 6371.0, **cluster_opts).fit(
+            X=coordinates_rad, sample_weight=weights
+        )
+    except ValueError as e:
+        raise ValueError(
+            f'With {coordinates_rad.shape} and {weights.shape} {coordinates_rad}, {weights}'
+        ) from e
 
     labels = db_fit.labels_
 
@@ -88,19 +101,86 @@ def build_cluster_mask(
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
 
-    assert global_mask.shape == (len(x_coord), len(y_coord)), (
-        global_mask.shape,
-        (len(x_coord), len(y_coord)),
-    )
+    _check_input(global_mask, x_coord, y_coord)
     xm, ym = np.meshgrid(x_coord, y_coord)
     xy_data = np.array([xm[global_mask.T], ym[global_mask.T]])
+
     if len(xy_data.T) <= 2:
         warn(f'No data from this mask {xy_data}!')
         return [], []
+
     if max_distance_km == 'infer':
         max_distance_km = _infer_max_step_size(x_coord, y_coord)
+
+    masks, clusters = _build_cluster_with_kw(
+        x_coord,
+        y_coord,
+        coordinates_deg=xy_data,
+        show_tqdm=show_tqdm,
+        max_distance_km=max_distance_km,
+        **kw,
+    )
+
+    return masks, clusters
+
+
+@timed()
+def build_weighted_cluster(
+    weights: np.ndarray,
+    x_coord: np.array,
+    y_coord: np.array,
+    show_tqdm: bool = False,
+    threshold=0.99,
+    max_distance_km: ty.Union[str, float, int] = 'infer',
+    **kw,
+) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
+    """Build set of clusters and masks based on the weights (which should be a grid)'
+
+    Args:
+        weights (np.ndarray): normalized score data (values in [0,1])
+        x_coord (np.array): all x values
+        y_coord (np.array): all y values
+        max_distance_km (ty.Union[str, float, int]): find an appropriate distance
+            threshold for build_clusters' max_distance_km argument. If nothing is
+            provided, make a guess based on the distance between grid cells.
+            Defaults to 'infer'.
+        show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
+
+    Returns:
+        ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
+    """
+
+    _check_input(weights, x_coord, y_coord)
+    xm, ym = np.meshgrid(x_coord, y_coord)
+    xy_data = np.array([xm.flatten(), ym.flatten()])
+
+    if max_distance_km == 'infer':
+        max_distance_km = _infer_max_step_size(x_coord, y_coord)
+
+    flat_weights = weights.T.flatten()
+    mask = flat_weights > threshold
+    masks, clusters = _build_cluster_with_kw(
+        x_coord,
+        y_coord,
+        coordinates_deg=xy_data[:, mask],
+        weights=flat_weights[mask],
+        show_tqdm=show_tqdm,
+        max_distance_km=max_distance_km,
+        **kw,
+    )
+
+    return masks, clusters
+
+
+def _check_input(data, x_coord, y_coord):
+    if data.shape != (len(x_coord), len(y_coord)):
+        message = f'Wrong input {data.shape} != {len(x_coord), len(y_coord)}'
+        raise ValueError(message)
+
+
+def _build_cluster_with_kw(x_coord, y_coord, show_tqdm=False, **cluster_kw):
     masks = []
-    clusters = [np.rad2deg(cluster) for cluster in build_clusters(xy_data, **kw)]
+    clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
 
     for cluster in clusters:
         mask = np.zeros((len(y_coord), len(x_coord)), np.bool_)
@@ -110,7 +190,6 @@ def build_cluster_mask(
             y_i = np.argwhere(np.isclose(y_coord, s_y))[0]
             mask[y_i, x_i] = 1
         masks.append(mask)
-
     return masks, clusters
 
 
@@ -123,27 +202,33 @@ def _infer_max_step_size(xs, ys):
     return 2 * max(_distance(c) for c in coords)
 
 
-def _distance(coords):
+def _distance(coords, force_math=False):
     """Wrapper for if geopy is not installed"""
-    try:
-        import geopy.distance
+    if not force_math:
+        try:
+            import geopy.distance
 
-        return geopy.distance.geodesic(*coords).km
-    except (ImportError, ModuleNotFoundError):
-        return _distance_bf(coords)
+            return geopy.distance.geodesic(*coords).km
+        except (ImportError, ModuleNotFoundError):
+            pass
+    return _distance_bf_coord(*coords)
 
 
-def _distance_bf(coords):
+@numba.njit
+def _distance_bf_coord(lat1, lon1, lat2, lon2):
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+    return _distance_bf(lat1, lon1, lat2, lon2)
+
+
+@numba.njit
+def _distance_bf(lat1, lon1, lat2, lon2):
     # https://stackoverflow.com/a/19412565/18280620
-    from math import sin, cos, sqrt, atan2, radians
 
     # Approximate radius of earth in km
     R = 6373.0
-
-    lat1 = radians(coords[0][0])
-    lon1 = radians(coords[0][1])
-    lat2 = radians(coords[1][0])
-    lon2 = radians(coords[1][1])
 
     dlon = lon2 - lon1
     dlat = lat2 - lat1
