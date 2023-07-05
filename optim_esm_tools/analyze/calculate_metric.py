@@ -8,10 +8,10 @@ import xarray as xr
 import typing as ty
 
 
-def add_grid_area_field(dataset: xr.Dataset, **kw) -> None:
+def add_grid_area_field(data_set: xr.Dataset, **kw) -> None:
     """Add cell_area field to dataset"""
-    dataset['cell_area'] = xr.DataArray(
-        calucluate_grid(dataset, **kw).T,
+    data_set['cell_area'] = xr.DataArray(
+        calucluate_grid(data_set, **kw).T,
         dims=('y', 'x'),
         name='Cell area km$^2$',
         attrs=dict(units='km$^2$'),
@@ -19,7 +19,7 @@ def add_grid_area_field(dataset: xr.Dataset, **kw) -> None:
 
 
 def calucluate_grid(
-    dataset: ty.Union[xr.Dataset, xr.DataArray],
+    data_set: ty.Union[xr.Dataset, xr.DataArray],
     _do_numba: bool = True,
     x_label: str = 'x',
     y_label: str = 'y',
@@ -28,7 +28,7 @@ def calucluate_grid(
     """Calculate the area of each x,y coordinate in the dataset
 
     Args:
-        dataset (ty.Union[xr.Dataset, xr.DataArray]): dataset to calculate grid metric of
+        data_set (ty.Union[xr.Dataset, xr.DataArray]): dataset to calculate grid metric of
         _do_numba (bool, optional): use fast numba calculation. Defaults to True.
         x_label (str, optional): label of x coord. Defaults to 'x'.
         y_label (str, optional): label of y coord. Defaults to 'y'.
@@ -39,7 +39,7 @@ def calucluate_grid(
     Returns:
         np.ndarray: _description_
     """
-    lon, lat = np.meshgrid(dataset[y_label], dataset[x_label])
+    lon, lat = np.meshgrid(data_set[y_label], data_set[x_label])
     area = np.zeros_like(lon)
     if _do_numba:
         _n_calulate_mesh(lon, lat, area)

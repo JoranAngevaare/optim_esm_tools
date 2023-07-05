@@ -2,9 +2,12 @@ import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
 from optim_esm_tools.analyze.cmip_handler import transform_ds, read_ds
-from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.analyze.clustering import (
+    build_cluster_mask,
+    build_weighted_cluster,
+)
 from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.tipping_criteria import var_to_perc
+from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
 
 
 import os
@@ -19,6 +22,8 @@ import typing as ty
 from functools import wraps
 import inspect
 import matplotlib.pyplot as plt
+import immutabledict
+
 
 # >>> import scipy
 # >>> scipy.stats.norm.cdf(3)
@@ -29,17 +34,22 @@ _two_sigma_percent = 97.72498680518208
 
 
 # TODO this has too many hardcoded defaults
-def mask_xr_ds(ds_masked, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
+def mask_xr_ds(data_set, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
+    ds_start = data_set.copy()
     no_drop = set(masked_dims) | set(keep_dims)
-    for spurious_dim in set(ds_masked.dims) - no_drop:
-        oet.config.get_logger().warn(
+    for spurious_dim in set(data_set.dims) - no_drop:
+        message = (
             f'Spurious coordinate {spurious_dim} dropping for safety. Keep {no_drop}'
         )
-        ds_masked = ds_masked.mean(spurious_dim)
-    for k, data_array in ds_masked.data_vars.items():
+        oet.config.get_logger().warn(message)
+        data_set = data_set.mean(spurious_dim)
+    for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
-            ds_masked[k] = ds_masked[k].where(da_mask, drop=False)
-    return ds_masked
+            da = data_set[k].where(da_mask, drop=False)
+            da = da.assign_attrs(ds_start[k].attrs)
+            data_set[k] = da
+    data_set = data_set.assign_attrs(ds_start.attrs)
+    return data_set
 
 
 def plt_show(*a):
@@ -93,7 +103,7 @@ class RegionExtractor:
         self,
         variable='tas',
         path=None,
-        dataset=None,
+        data_set=None,
         transform=True,
         save_kw=None,
         extra_opt=None,
@@ -105,11 +115,11 @@ class RegionExtractor:
                 self.log.warning(
                     f'Best is to start {self.__class__.__name__} from a synda path'
                 )
-                self.dataset = transform_ds(dataset)
+                self.data_set = transform_ds(data_set)
             else:
-                self.dataset = dataset
+                self.data_set = data_set
         else:
-            self.dataset = read_ds(path, **read_ds_kw)
+            self.data_set = read_ds(path, **read_ds_kw)
         if save_kw is None:
             save_kw = dict(
                 save_in='./',
@@ -137,9 +147,11 @@ class RegionExtractor:
     def workflow(self, show_basic=True):
         if show_basic:
             self.plot_basic_map()
-        masks = self.get_masks()
-        self.plot_masks(masks)
-        self.plot_mask_time_series(masks)
+        masks_and_clusters = self.get_masks()
+        masks_and_clusters = self.filter_masks_and_clusters(masks_and_clusters)
+
+        self.plot_masks(masks_and_clusters)
+        self.plot_mask_time_series(masks_and_clusters)
 
     @plt_show
     def plot_basic_map(self):
@@ -155,11 +167,39 @@ class RegionExtractor:
 
     @property
     def title(self):
-        return MapMaker(self.dataset).title
+        return MapMaker(self.data_set).title
 
     @property
     def title_label(self):
         return self.title.replace(' ', '_') + f'_{self.__class__.__name__}'
+
+    def mask_area(self, mask):
+        try:
+            if mask is None or not np.sum(mask):
+                return 0
+        except Exception as e:
+            print(mask)
+            raise ValueError(
+                mask,
+            ) from e
+        return self.data_set['cell_area'].values[mask].sum()
+
+    @apply_options
+    def mask_is_large_enough(self, mask, min_area_km_sq=0):
+        return self.mask_area(mask) >= min_area_km_sq
+
+    def filter_masks_and_clusters(self, masks_and_clusters):
+        if not len(masks_and_clusters[0]):
+            return [], []
+        ret_m = []
+        ret_c = []
+        for m, c in zip(*masks_and_clusters):
+            if self.mask_is_large_enough(m):
+                ret_m.append(m)
+                ret_c.append(c)
+
+        self.log.warn(f'Keeping {len(ret_m)}/{len(masks_and_clusters[0])} of masks')
+        return ret_m, ret_c
 
 
 class MaxRegion(RegionExtractor):
@@ -168,16 +208,25 @@ class MaxRegion(RegionExtractor):
         labels = [crit.short_description for crit in self.criteria]
 
         def _val(label):
-            return self.dataset[label].values
+            return self.data_set[label].values
 
         def _max(label):
             return _val(label)[~np.isnan(_val(label))].max()
 
         masks = {label: _val(label) == _max(label) for label in labels}
-        return masks
+        return masks, [None for _ in range(len(masks))]
+
+    @apply_options
+    def filter_masks_and_clusters(self, masks_and_clusters, min_area_km_sq=0):
+        """Wrap filter to work on dicts"""
+        if min_area_km_sq:
+            message = f'Calling {self.__class__.__name__}.filter_masks_and_clusters is nonsensical as masks are single grid cells'
+            oet.config.get_logger().warning(message)
+        return masks_and_clusters
 
     @plt_show
     def plot_masks(self, masks, ax=None, legend=True):
+        masks = masks[0]
         self._plot_masks(masks=masks, ax=ax, legend=legend)
         self.save(f'{self.title_label}_map_maxes_{"-".join(self.labels)}')
 
@@ -199,16 +248,16 @@ class MaxRegion(RegionExtractor):
 
     def _mask_to_coord(self, mask_2d):
         arg_mask = np.argwhere(mask_2d)[0]
-        x = self.dataset.x[arg_mask[1]]
-        y = self.dataset.y[arg_mask[0]]
+        x = self.data_set.x[arg_mask[1]]
+        y = self.data_set.y[arg_mask[0]]
         return x, y
 
     def _plot_basic_map(self):
-        mm = MapMaker(self.dataset)
+        mm = MapMaker(self.data_set)
         axes = mm.plot_selected(items=self.labels)
         masks = self.get_masks()
         for ax in axes:
-            self._plot_masks(masks, ax=ax, legend=False)
+            self._plot_masks(masks[0], ax=ax, legend=False)
         plt.suptitle(self.title, y=0.95)
 
     @plt_show
@@ -221,8 +270,9 @@ class MaxRegion(RegionExtractor):
 
     @apply_options
     def _plot_mask_time_series(
-        self, masks, time_series_joined=True, only_rm=False, axes=None
+        self, masks_and_clusters, time_series_joined=True, only_rm=False, axes=None
     ):
+        masks = masks_and_clusters[0]
         legend_kw = oet.utils.legend_kw(
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
         )
@@ -235,7 +285,7 @@ class MaxRegion(RegionExtractor):
                 f'{self.variable}_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
             }
             argwhere = np.argwhere(mask_2d)[0]
-            ds_sel = self.dataset.isel(x=argwhere[1], y=argwhere[0])
+            ds_sel = self.data_set.isel(x=argwhere[1], y=argwhere[0])
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
                 variable=self.variable,
@@ -259,17 +309,51 @@ class MaxRegion(RegionExtractor):
 
 
 class Percentiles(RegionExtractor):
+    @oet.utils.check_accepts(
+        accepts=immutabledict.immutabledict(cluster_method=('weighted', 'masked'))
+    )
     @apply_options
-    def get_masks(self, percentiles=_two_sigma_percent) -> dict:
+    def get_masks(self, cluster_method='masked') -> dict:
         """Get mask for max of ii and iii and a box arround that"""
+        if cluster_method == 'weighted':
+            return self._get_masks_weighted()
+        return self._get_masks_masked()
+
+    @apply_options
+    def _get_masks_weighted(self, min_weight=0.95):
+        labels = [crit.short_description for crit in self.criteria]
+
+        sums = []
+        for lab in labels:
+            vals = self.data_set[lab].values.T
+            vals = rank2d(vals)
+            vals[np.isnan(vals)] = 0
+            sums.append(vals)
+
+        tot_sum = np.zeros_like(sums[0])
+        for s in sums:
+            tot_sum += s
+        tot_sum /= len(sums)
+
+        masks, clusters = build_weighted_cluster(
+            weights=tot_sum,
+            x_coord=self.data_set['x'].values,
+            y_coord=self.data_set['y'].values,
+            threshold=min_weight,
+        )
+        return masks, clusters
+
+    @apply_options
+    def _get_masks_masked(
+        self,
+        percentiles=_two_sigma_percent,
+    ):
         labels = [crit.short_description for crit in self.criteria]
         masks = []
-        vmin_vmax = []
 
         for lab in labels:
-            arr = self.dataset[lab].values.T
+            arr = self.data_set[lab].values.T
             arr_no_nan = arr[~np.isnan(arr)]
-            vmin_vmax.append([np.min(arr_no_nan), np.max(arr_no_nan)])
             thr = np.percentile(arr_no_nan, percentiles)
             masks.append(arr >= thr)
 
@@ -278,7 +362,7 @@ class Percentiles(RegionExtractor):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values
+            all_mask, self.data_set['x'].values, self.data_set['y'].values
         )
         return masks, clusters
 
@@ -305,14 +389,14 @@ class Percentiles(RegionExtractor):
         cluster_kw=None,
     ):
         masks, clusters = masks_and_clusters
-        # if masks == [] or masks == [[]]:
-        #     return
         all_masks = np.zeros(masks[0].shape, np.float64)
-
-        ds_dummy = self.dataset.copy()
+        all_masks[:] = np.nan
+        ds_dummy = self.data_set.copy()
         area = ds_dummy['cell_area'].values
         for m, c in zip(masks, clusters):
-            all_masks[m] = area[m].sum()
+            a = area[m].sum()
+            all_masks[m] = a
+
         if ax is None:
             setup_map()
             ax = plt.gca()
@@ -320,8 +404,6 @@ class Percentiles(RegionExtractor):
             mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
 
-        all_masks = all_masks.astype(np.float16)
-        all_masks[all_masks == 0] = np.nan
         ds_dummy['area_square'] = (('y', 'x'), all_masks)
 
         ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
@@ -339,7 +421,7 @@ class Percentiles(RegionExtractor):
         return ax
 
     def _plot_basic_map(self):
-        mm = MapMaker(self.dataset)
+        mm = MapMaker(self.data_set)
         axes = mm.plot_selected(items=self.labels)
         plt.suptitle(self.title, y=0.95)
         return axes
@@ -351,7 +433,7 @@ class Percentiles(RegionExtractor):
     #         all_masks = masks[0]
     #         for m in masks[1:]:
     #             all_masks &= m
-    #         ds_masked = mask_xr_ds(self.dataset.copy(), all_masks)
+    #         ds_masked = mask_xr_ds(self.data_set.copy(), all_masks)
     #         mm_sel = MapMaker(ds_masked)
     #         for label, ax in zip(mm.labels, axes):
     #             plt.sca(ax)
@@ -392,7 +474,7 @@ class Percentiles(RegionExtractor):
                 f'{self.variable}_detrend_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
                 f'{self.variable}_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
             }
-            ds_sel = mask_xr_ds(self.dataset.copy(), mask)
+            ds_sel = mask_xr_ds(self.data_set.copy(), mask)
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
                 variable=self.variable,
@@ -431,7 +513,7 @@ class PercentilesHistory(Percentiles):
         masks = []
 
         for lab in labels:
-            arr = self.dataset[lab].values.T
+            arr = self.data_set[lab].values.T
             arr_historical = historical_ds[lab].values.T
             thr = np.percentile(
                 arr_historical[~np.isnan(arr_historical)], percentiles_historical
@@ -443,7 +525,7 @@ class PercentilesHistory(Percentiles):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values
+            all_mask, self.data_set['x'].values, self.data_set['y'].values
         )
         return masks, clusters
 
@@ -459,12 +541,12 @@ class PercentilesHistory(Percentiles):
 
         base = os.path.join(
             os.sep,
-            *self.dataset.attrs['path'].split(os.sep)[
+            *self.data_set.attrs['path'].split(os.sep)[
                 : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
             ],
         )
 
-        search = oet.cmip_files.find_matches.folder_to_dict(self.dataset.attrs['path'])
+        search = oet.cmip_files.find_matches.folder_to_dict(self.data_set.attrs['path'])
         search['activity_id'] = 'CMIP'
         if search['experiment_id'] == match_to:
             raise NotImplementedError()
@@ -502,23 +584,54 @@ class PercentilesHistory(Percentiles):
 
 
 class ProductPercentiles(Percentiles):
+    labels = ('ii', 'iii', 'v')
+
+    @oet.utils.check_accepts(
+        accepts=immutabledict.immutabledict(cluster_method=('weighted', 'masked'))
+    )
     @apply_options
-    def get_masks(self, product_percentiles=_two_sigma_percent) -> dict:
+    def get_masks(self, cluster_method='masked') -> dict:
+        """Get mask for max of ii and iii and a box arround that"""
+        if cluster_method == 'weighted':
+            return self._get_masks_weighted()
+        return self._get_masks_masked()
+
+    @apply_options
+    def _get_masks_weighted(self, min_weight=0.95):
+        labels = [crit.short_description for crit in self.criteria]
+        masks = []
+
+        ds = self.data_set.copy()
+        combined_score = np.ones_like(ds[labels[0]].values)
+        for label in labels:
+            combined_score *= rank2d(ds[label].values)
+
+        combined_score = combined_score.T
+
+        masks, clusters = build_weighted_cluster(
+            weights=combined_score,
+            x_coord=self.data_set['x'].values,
+            y_coord=self.data_set['y'].values,
+            threshold=min_weight,
+        )
+        return masks, clusters
+
+    @apply_options
+    def get_masks_masked(self, product_percentiles=_two_sigma_percent) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
-        ds = self.dataset.copy()
+        ds = self.data_set.copy()
         combined_score = np.ones_like(ds[labels[0]].values)
         for label in labels:
-            _name = f'percentile {label}'
-            combined_score *= var_to_perc(ds, _name, label)[_name].values
+            combined_score *= rank2d(ds[label].values)
 
         # Combined score is fraction, not percent!
         all_mask = (combined_score > (product_percentiles / 100)).T
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values
+            all_mask, self.data_set['x'].values, self.data_set['y'].values
         )
         return masks, clusters
 
@@ -536,7 +649,7 @@ class LocalHistory(PercentilesHistory):
         masks = []
 
         for lab in labels:
-            arr = self.dataset[lab].values.T
+            arr = self.data_set[lab].values.T
             arr_historical = historical_ds[lab].values.T
             mask_divide = arr / arr_historical > n_times_historical
             # If arr_historical is 0, the devision is going to get a nan assigned,
@@ -550,7 +663,7 @@ class LocalHistory(PercentilesHistory):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.dataset['x'].values, self.dataset['y'].values
+            all_mask, self.data_set['x'].values, self.data_set['y'].values
         )
         return masks, clusters
 
@@ -563,7 +676,7 @@ class LocalHistory(PercentilesHistory):
         ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
 
         mm = HistoricalMapMaker(
-            self.dataset, ds_historical=ds_historical, normalizations=normalizations
+            self.data_set, ds_historical=ds_historical, normalizations=normalizations
         )
         mm.plot_selected()
         plt.suptitle(self.title, y=0.95)

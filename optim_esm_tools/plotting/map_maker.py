@@ -15,12 +15,7 @@ from .plot import default_variable_labels
 # import xrft
 
 from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
-from optim_esm_tools.analyze.tipping_criteria import (
-    StartEndDifference,
-    StdDetrended,
-    MaxJump,
-    MaxDerivitive,
-)
+from optim_esm_tools.analyze import tipping_criteria
 
 
 class MapMaker(object):
@@ -60,7 +55,13 @@ class MapMaker(object):
     def set_conditions(self, **condition_kwargs):
         conditions = [
             cls(**condition_kwargs)
-            for cls in [StartEndDifference, StdDetrended, MaxJump, MaxDerivitive]
+            for cls in [
+                tipping_criteria.StartEndDifference,
+                tipping_criteria.StdDetrended,
+                tipping_criteria.MaxJump,
+                tipping_criteria.MaxDerivitive,
+                tipping_criteria.MaxJumpAndStd,
+            ]
         ]
 
         self.conditions = {
@@ -377,7 +378,14 @@ class MapMaker(object):
 
     @property
     def ds(self):
-        warn('MapMaker.ds is depricated, use MapMaker.data_set')
+        warn(
+            f'Calling {self.__class__.__name__}.ds is depricated, use {self.__class__.__name__}.ds'
+        )
+        return self.data_set
+
+    @property
+    def dataset(self):
+        warn(f'Calling {self.__class__.__name__}.data_set not .dataset')
         return self.data_set
 
     @property
@@ -391,11 +399,12 @@ class MapMaker(object):
         )
 
     def unit(self, variable):
-        return (
-            self.data_set[variable]
-            .attrs.get('units', f'?{variable}?')
-            .replace('%', '\%')
-        )
+        if 'units' not in self.data_set[variable].attrs:
+            oet.config.get_logger().warning(
+                f'No units for {variable} in {self.data_set}'
+            )
+            # raise ValueError( self.data_set.attrs, self.data_set[variable].attrs, variable)
+        return self.data_set[variable].attrs.get('units', f'?').replace('%', '\%')
 
 
 class HistoricalMapMaker(MapMaker):
