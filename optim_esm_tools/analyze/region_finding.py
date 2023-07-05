@@ -617,7 +617,7 @@ class ProductPercentiles(Percentiles):
         return masks, clusters
 
     @apply_options
-    def get_masks_masked(self, product_percentiles=_two_sigma_percent) -> dict:
+    def _get_masks_masked(self, product_percentiles=_two_sigma_percent) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []

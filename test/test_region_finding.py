@@ -59,6 +59,9 @@ class Work(unittest.TestCase):
     def test_percentiles(self):
         self.test_max_region('Percentiles', new_opt=dict(time_series_joined=False))
 
+    def test_percentiles_weighted(self):
+        self.test_max_region('Percentiles', new_opt=dict(cluster_method='weighted'))
+
     def test_percentiles_history(self):
         region_finder = self.test_max_region('PercentilesHistory')
         with self.assertRaises(RuntimeError):
@@ -67,9 +70,6 @@ class Work(unittest.TestCase):
 
     def test_percentiles_product(self):
         self.test_max_region('ProductPercentiles', skip_save=False)
-
-    def test_percentiles_weighted(self):
-        self.test_max_region('Percentiles', new_opt=dict(cluster_method='weighted'))
 
     def test_local_history(self):
         self.test_max_region('LocalHistory')
