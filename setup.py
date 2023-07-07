@@ -28,8 +28,7 @@ setuptools.setup(
         'optim_esm_tools': 'optim_esm_tools',
     },
     package_data={
-        'optim_esm_tools': ['data/*'],
-        'optim_esm_tools': 'optim_esm_tools',
+        'optim_esm_tools': ['data/*',  'optim_esm_tools/*'],
     },
     setup_requires=['pytest-runner'],
     install_requires=requirements,
