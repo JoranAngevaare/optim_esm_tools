@@ -45,7 +45,7 @@ jobs:
         run:
           |
           pip install -r requirements.txt
-          pip install -u ../optim_esm_tools
+          pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
       - uses: conda-incubator/setup-miniconda@v2
         if: matrix.test != 'minimal'
