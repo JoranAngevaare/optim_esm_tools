@@ -1,5 +1,6 @@
 import numpy as np
 from optim_esm_tools.utils import tqdm, timed
+from optim_esm_tools.config import get_logger
 import typing as ty
 from warnings import warn
 import numba
@@ -171,7 +172,7 @@ def build_weighted_cluster(
 
 def _check_input(data, lon_coord, lat_coord):
     if len(lon_coord.shape) <= 1:
-        raise ValueError
+        get_logger.warning('Expected lon and lat values, but got x, y values')
         # seperate x, y values, bad practice?
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
