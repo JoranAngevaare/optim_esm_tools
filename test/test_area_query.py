@@ -33,6 +33,7 @@ class Area(unittest.TestCase):
         if os.path.exists(cls.dummy_path):
             print(f'rm {cls.dummy_path}')
             os.remove(cls.dummy_path)
+        del cls.ds
 
     def write_dummy_area(self, dummy_path):
         ds = self.ds
