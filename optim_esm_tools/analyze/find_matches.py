@@ -30,11 +30,13 @@ def find_matches(
     variant_label='*',
     domain='Ayear',
     variable_id='tas',
-    grid='*',
+    grid_label='*',
     version='*',
     max_versions: int = 1,
     max_members: int = 1,
     required_file='merged.nc',
+    # Depricated arg
+    grid=None,
 ) -> list:
     """Follow synda folder format to find matches
 
@@ -47,7 +49,7 @@ def find_matches(
         variant_label (str, optional): As synda convention. Defaults to '*'.
         domain (str, optional): As synda convention. Defaults to 'Ayear'.
         variable_id (str, optional): As synda convention. Defaults to 'tas'.
-        grid (str, optional): As synda convention. Defaults to '*'.
+        grid_label (str, optional): As synda convention. Defaults to '*'.
         version (str, optional): As synda convention. Defaults to '*'.
         max_versions (int, optional): Max mumber of different versions that match. Defaults to 1.
         max_members (int, optional): Max mumber of different members that match. Defaults to 1.
@@ -56,6 +58,11 @@ def find_matches(
     Returns:
         list: of matches corresponding to the query
     """
+    if grid is not None:
+        get_logger().warning(
+            f'grid argument for find_matches is depricated, use grid_label'
+        )
+        grid_label = grid
     if max_versions is None:
         max_versions = int(9e9)
     if max_members is None:
@@ -71,7 +78,7 @@ def find_matches(
                 variant_label,
                 domain,
                 variable_id,
-                grid,
+                grid_label,
                 version,
             )
         ),
@@ -166,3 +173,13 @@ def folder_to_dict(path):
         }
         # great
     raise NotImplementedError(f'folder {path} does not end with a version')
+
+
+def base_from_path(path, look_back_extra=0):
+    path = _get_head(path)
+    return os.path.join(
+        os.sep,
+        *path.split(os.sep)[
+            : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
+        ],
+    )

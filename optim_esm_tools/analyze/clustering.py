@@ -206,11 +206,13 @@ def _distance(coords, force_math=False):
     """Wrapper for if geopy is not installed"""
     if not force_math:
         try:
-            import geopy.distance
+            from geopy.distance import geodesic
 
-            return geopy.distance.geodesic(*coords).km
+            return geodesic(*coords).km
         except (ImportError, ModuleNotFoundError):
             pass
+    if len(coords) != 4:
+        coords = [c for cc in coords for c in cc]
     return _distance_bf_coord(*coords)
 
 

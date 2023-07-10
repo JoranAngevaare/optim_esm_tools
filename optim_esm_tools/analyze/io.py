@@ -45,9 +45,9 @@ def recast(data_set):
         correct_units,
         parse_lon_lat_bounds,
         sort_vertex_order,
-        maybe_convert_bounds_to_vertex,
-        maybe_convert_vertex_to_bounds,
-        fix_metadata,
+        # maybe_convert_bounds_to_vertex,
+        # maybe_convert_vertex_to_bounds,
+        # fix_metadata,
     )
 
     ds = data_set.copy()
@@ -72,15 +72,20 @@ def recast(data_set):
     # sort verticies in a consistent manner
     ds = sort_vertex_order(ds)
     # convert vertex into bounds and vice versa, so both are available
-    ds = maybe_convert_bounds_to_vertex(ds)
-    ds = maybe_convert_vertex_to_bounds(ds)
+    # ds = maybe_convert_bounds_to_vertex(ds)
+    # ds = maybe_convert_vertex_to_bounds(ds)
 
     # Not really sure if we need this, it raises key errors since we aren't xmip
     # ds = fix_metadata(ds)
     ds = ds.drop_vars(_drop_coords, errors='ignore')
 
-    # Add grid field (associate km2 to each x,y value)
-    add_grid_area_field(ds)
+    # import xmip.preprocessing
+    # xmip.preprocessing._interp_nominal_lon = _interp_nominal_lon_new
+    # # remove unphyisical cell area
+    # mask = ds['cell_area'] == 0
+    # ds['lat'][mask] = 0
+    # ds['lon'][mask] = 0
+    # ds = replace_x_y_nominal_lat_lon(ds)
     return ds
 
 

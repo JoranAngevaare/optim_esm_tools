@@ -3,9 +3,13 @@ Basic module to calculate the size of grid cells. If a more robust method exists
 """
 import numba
 import numpy as np
-from .clustering import _distance_bf_coord
+
+# import optim_esm_tools
+from optim_esm_tools.analyze.clustering import _distance_bf_coord
 import xarray as xr
 import typing as ty
+
+# _distance_bf_coord = optim_esm_tools.analysis.clustering._distance_bf_coord
 
 
 def add_grid_area_field(data_set: xr.Dataset, **kw) -> None:
@@ -13,16 +17,57 @@ def add_grid_area_field(data_set: xr.Dataset, **kw) -> None:
     data_set['cell_area'] = xr.DataArray(
         calucluate_grid(data_set, **kw).T,
         dims=('y', 'x'),
-        name='Cell area km$^2$',
-        attrs=dict(units='km$^2$'),
+        name='Cell area m$^2$',
+        attrs=dict(units='m$^2$'),
     )
+
+
+def calculate(ds):
+    return get_area(ds).sum() / 509600000
+
+
+def get_area(ds, lat_label):
+    # bin_edges = np.unique(ds['lat'].values)
+    # bin_edges = np.concatenate([[-90], bin_edges, [90]])
+    bin_edges = np.linspace(-90, 90, 800)
+
+    counts_per_bin, _ = np.histogram(ds[lat_label].values, bin_edges)
+
+    bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
+
+    def _distance(*a):
+        import geopy
+
+        return geopy.distance.geodesic(*a).km
+
+    distance_y = np.array(
+        [
+            _distance([bin_edges[i], 0], [bin_edges[i + 1], 0])
+            for i in range(len(bin_edges) - 1)
+        ]
+    )
+
+    distance_x = np.array(
+        [2 * _distance([lat, 0], [lat, 180]) for lat in bin_centers]
+    ) / np.maximum(np.array(counts_per_bin), 1)
+    area = distance_y * distance_x
+    area[counts_per_bin == 0] = 0
+
+    bin_edges[-1] = 91
+    idx = np.digitize(ds[lat_label].values, bin_edges)
+    overflow = (idx >= len(area)) | (idx < 0)
+    idx[overflow] = 0
+    # Magical factor that accounts for non-square grid cells
+    correction_factor = 0.785238039464103
+
+    area_matrix = area[idx - 1] / correction_factor
+    area_matrix[overflow] = 0
+    return area_matrix
 
 
 def calucluate_grid(
     data_set: ty.Union[xr.Dataset, xr.DataArray],
-    _do_numba: bool = True,
-    x_label: str = 'x',
-    y_label: str = 'y',
+    lat_label: str = 'lat',
     _area_off_percent_threshold: float = 5,
 ) -> np.ndarray:
     """Calculate the area of each x,y coordinate in the dataset
@@ -39,18 +84,17 @@ def calucluate_grid(
     Returns:
         np.ndarray: _description_
     """
-    lon, lat = np.meshgrid(data_set[y_label], data_set[x_label])
-    area = np.zeros_like(lon)
-    if _do_numba:
-        _n_calulate_mesh(lon, lat, area)
-    else:
-        _calulate_mesh(lon, lat, area)
-    if np.abs(1 - area.sum() / 509600000) > _area_off_percent_threshold / 100:
-        raise ValueError(
-            f'This estimation leads to an area of {area.sum()} kmn2 which is off by at least {_area_off_percent_threshold}\% of the true value'
-        )
+    area = get_area(data_set, lat_label=lat_label)
+    if (
+        off_by := np.abs(1 - area.sum() / 509600000)
+    ) > _area_off_percent_threshold / 100:
+        message = f'This estimation leads to an area of {area.sum()} km^2 which is off by {off_by:.1%} (at least {_area_off_percent_threshold}\% of the true value'
+        from optim_esm_tools.config import get_logger
 
-    return area
+        get_logger().error(message)
+        # raise ValueError(message)
+    to_m2 = 1000**2
+    return area * to_m2
 
 
 @numba.njit

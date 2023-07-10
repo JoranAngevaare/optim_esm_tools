@@ -8,6 +8,7 @@ from optim_esm_tools.analyze.clustering import (
 )
 from optim_esm_tools.plotting.plot import setup_map, _show
 from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
+from optim_esm_tools.analyze.find_matches import base_from_path
 
 
 import os
@@ -533,17 +534,14 @@ class PercentilesHistory(Percentiles):
     def find_historical(
         self,
         match_to='piControl',
-        look_back_extra=1,
+        look_back_extra=0,
         query_updates=None,
         search_kw=None,
     ):
         from optim_esm_tools.config import config
 
-        base = os.path.join(
-            os.sep,
-            *self.data_set.attrs['path'].split(os.sep)[
-                : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
-            ],
+        base = base_from_path(
+            self.data_set.attrs['path'], look_back_extra=look_back_extra
         )
 
         search = oet.cmip_files.find_matches.folder_to_dict(self.data_set.attrs['path'])

@@ -18,6 +18,7 @@ class Work(unittest.TestCase):
             data_name, refresh=refresh
         )
         year_path = optim_esm_tools._test_utils.year_means(path, refresh=refresh)
+        print(year_path)
         assert year_path
         assert os.path.exists(year_path)
         return year_path
