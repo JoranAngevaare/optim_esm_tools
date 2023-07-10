@@ -84,6 +84,7 @@ jobs:
         if: matrix.test != 'minimal'
         env:
           NUMBA_DISABLE_JIT: 1
+          _CACHE_TRUE: 1
         run:
           |
           coverage run --source=optim_esm_tools -m pytest -v --durations 0
