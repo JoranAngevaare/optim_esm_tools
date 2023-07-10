@@ -14,6 +14,7 @@ import typing as ty
 
 def add_grid_area_field(data_set: xr.Dataset, **kw) -> None:
     """Add cell_area field to dataset"""
+    assert False
     data_set['cell_area'] = xr.DataArray(
         calucluate_grid(data_set, **kw).T,
         dims=('y', 'x'),

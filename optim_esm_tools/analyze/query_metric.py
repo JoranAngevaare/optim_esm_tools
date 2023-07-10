@@ -28,7 +28,7 @@ def add_area_to_ds(
             except NoMatchFoundError:
                 pass
         raise NoMatchFoundError('No matches')
-    variable_id = ds.attrs.get('external_variables') or _external_variable
+    variable_id = _external_variable or ds.attrs.get('external_variables')
     method = oet.utils.to_str_tuple(method)
 
     for met in method:
@@ -49,11 +49,18 @@ def add_area_to_ds(
     else:
         raise NoMatchFoundError('No mathces for this dataset - no area can be inferred')
 
-    if ds.lon.shape != area.shape:
+    if ds[compare_field].shape != area.shape:
         raise ValueError(
-            f'area_from_path returned wrong shape {ds["compare_field"].shape}, {area.shape}, {path}'
+            f'area_from_path returned wrong shape {ds[compare_field].shape}, {area.shape}, {path}'
         )
-    ds[area_field] = (ds.lon.dims, area, attrs)
+    target_dims = ds[compare_field].dims
+    if target_dims == ('x', 'y'):
+        target_dims = ('y', 'x')
+        area = area.T
+    elif len(target_dims) != 2:
+        raise ValueError(target_dims)
+    ds[area_field] = (target_dims, area, attrs)
+    assert ds[area_field].dims == ('y', 'x')
     return ds
 
 
@@ -83,6 +90,7 @@ def _get_area(path, method, **kw):
 
 
 def area_brute_force(path, ds, **kw):
+    raise ValueError
     # ds = oet.analyze.io.load_glob(path)
     # ds = oet.analyze.io.recast(ds)
     kw.pop('target_shape')

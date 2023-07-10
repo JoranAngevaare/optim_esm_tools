@@ -45,7 +45,7 @@ class Work(unittest.TestCase):
             )
             region_finder = cls(
                 path=head,
-                read_ds_kw=dict(_file_name=tail),
+                read_ds_kw=dict(_file_name=tail, _cache=False),
                 transform=True,
                 save_kw=save_kw,
                 extra_opt=extra_opt,

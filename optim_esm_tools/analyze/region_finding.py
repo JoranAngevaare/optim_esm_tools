@@ -121,6 +121,7 @@ class RegionExtractor:
                 self.data_set = data_set
         else:
             self.data_set = read_ds(path, **read_ds_kw)
+
         if save_kw is None:
             save_kw = dict(
                 save_in='./',
