@@ -88,7 +88,6 @@ def recast(data_set):
     return ds
 
 
-# Keeping this arround for sake of the old times
 # def _interp_nominal_lon_new(lon_1d):
 #     from optim_esm_tools.config import get_logger
 #     get_logger().debug('Using altered version _interp_nominal_lon_new')
@@ -97,25 +96,3 @@ def recast(data_set):
 #     # TODO assume that longitudes are cyclic see https://github.com/jbusecke/xMIP/issues/299
 #     ret = np.interp(x, x[~idx], lon_1d[~idx], period=len(lon_1d))
 #     return ret
-
-# def recast(data_set):
-#     from xmip.preprocessing import (
-#         promote_empty_dims,
-#         replace_x_y_nominal_lat_lon,
-#         rename_cmip6,
-#         broadcast_lonlat,
-#     )
-
-#     ds = data_set.copy()
-#     # See https://github.com/jbusecke/xMIP/issues/299
-#     for k, v in {'longitude': 'lon', 'latitude': 'lat'}.items():
-#         if k in ds and v not in ds:
-#             ds = ds.rename({k: v})
-#     ds = rename_cmip6(ds)
-#     ds = promote_empty_dims(ds)
-#     ds = broadcast_lonlat(ds)
-#     import xmip.preprocessing
-
-#     xmip.preprocessing._interp_nominal_lon = _interp_nominal_lon_new
-#     ds = replace_x_y_nominal_lat_lon(ds)
-#     return ds
