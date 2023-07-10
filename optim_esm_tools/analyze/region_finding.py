@@ -340,9 +340,9 @@ class Percentiles(RegionExtractor):
         tot_sum /= len(sums)
 
         masks, clusters = build_weighted_cluster(
-            weights=tot_sum.T,
-            lon_coord=self.data_set[lon_lat_dim[0]].values,
-            lat_coord=self.data_set[lon_lat_dim[1]].values,
+            weights=tot_sum,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
             threshold=min_weight,
         )
         return masks, clusters
@@ -367,9 +367,9 @@ class Percentiles(RegionExtractor):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask.T,
-            self.data_set[lon_lat_dim[0]].values,
-            self.data_set[lon_lat_dim[1]].values,
+            all_mask,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
         )
         return masks, clusters
 
@@ -535,9 +535,9 @@ class PercentilesHistory(Percentiles):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask.T,
-            self.data_set[lon_lat_dim[0]].values,
-            self.data_set[lon_lat_dim[1]].values,
+            all_mask,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
         )
         return masks, clusters
 
@@ -619,9 +619,9 @@ class ProductPercentiles(Percentiles):
             combined_score *= rank2d(ds[label].values)
 
         masks, clusters = build_weighted_cluster(
-            weights=combined_score.T,
-            lon_coord=self.data_set[lon_lat_dim[0]].values,
-            lat_coord=self.data_set[lon_lat_dim[1]].values,
+            weights=combined_score,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
             threshold=min_weight,
         )
         return masks, clusters
@@ -643,9 +643,9 @@ class ProductPercentiles(Percentiles):
         all_mask = combined_score > (product_percentiles / 100)
 
         masks, clusters = build_cluster_mask(
-            all_mask.T,
-            self.data_set[lon_lat_dim[0]].values,
-            self.data_set[lon_lat_dim[1]].values,
+            all_mask,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
         )
         return masks, clusters
 
@@ -679,9 +679,9 @@ class LocalHistory(PercentilesHistory):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask.T,
-            self.data_set[lon_lat_dim[0]].values,
-            self.data_set[lon_lat_dim[1]].values,
+            all_mask,
+            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
+            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
         )
         return masks, clusters
 
