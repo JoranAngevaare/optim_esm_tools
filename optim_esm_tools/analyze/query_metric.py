@@ -10,6 +10,7 @@ def add_area_to_ds(
     area_field='cell_area',
     compare_field='lat',
     _external_variable=None,
+    **kw,
 ):
     path = path or ds.attrs.get('path')
 
@@ -24,6 +25,7 @@ def add_area_to_ds(
                     area_field,
                     compare_field,
                     _external_variable=_ext_v,
+                    **kw,
                 )
             except NoMatchFoundError:
                 pass
@@ -39,6 +41,7 @@ def add_area_to_ds(
                 ds=ds,
                 variable_id=variable_id,
                 compare_field=compare_field,
+                **kw,
             )
         except NoMatchFoundError:
             continue
@@ -90,12 +93,13 @@ def _get_area(path, method, **kw):
 
 
 def area_brute_force(path, ds, **kw):
-    raise ValueError
+    # raise ValueError
     # ds = oet.analyze.io.load_glob(path)
     # ds = oet.analyze.io.recast(ds)
-    kw.pop('target_shape')
+    # kw.pop('target_shape')
     kw.pop('variable_id')
     kw.pop('compare_field')
+
     return oet.analyze.calculate_metric.calucluate_grid(ds, **kw), dict(
         name='Cell area m$^2$', units='m$^2$'
     )

@@ -3,28 +3,9 @@ Basic module to calculate the size of grid cells. If a more robust method exists
 """
 import numba
 import numpy as np
-
-# import optim_esm_tools
 from optim_esm_tools.analyze.clustering import _distance_bf_coord
 import xarray as xr
 import typing as ty
-
-# _distance_bf_coord = optim_esm_tools.analysis.clustering._distance_bf_coord
-
-
-def add_grid_area_field(data_set: xr.Dataset, **kw) -> None:
-    """Add cell_area field to dataset"""
-    assert False
-    data_set['cell_area'] = xr.DataArray(
-        calucluate_grid(data_set, **kw).T,
-        dims=('y', 'x'),
-        name='Cell area m$^2$',
-        attrs=dict(units='m$^2$'),
-    )
-
-
-def calculate(ds):
-    return get_area(ds).sum() / 509600000
 
 
 def get_area(ds, lat_label):
@@ -37,7 +18,7 @@ def get_area(ds, lat_label):
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
 
     def _distance(*a):
-        import geopy
+        import geopy.distance
 
         return geopy.distance.geodesic(*a).km
 
