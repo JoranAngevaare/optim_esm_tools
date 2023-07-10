@@ -557,7 +557,7 @@ class PercentilesHistory(Percentiles):
                 dict(variant_label='*'),
                 dict(version='*'),
                 # can lead to funny behavior as grid differences may cause breaking compares
-                dict(grid='*'),
+                dict(grid_label='*'),
             ]
 
         for try_n, update_query in enumerate(query_updates):
