@@ -320,12 +320,16 @@ class Percentiles(RegionExtractor):
         return self._get_masks_masked()
 
     @apply_options
-    def _get_masks_weighted(self, min_weight=0.95):
+    def _get_masks_weighted(
+        self,
+        min_weight=0.95,
+        lon_lat_dim=('lon', 'lat'),
+    ):
         labels = [crit.short_description for crit in self.criteria]
 
         sums = []
         for lab in labels:
-            vals = self.data_set[lab].values.T
+            vals = self.data_set[lab].values
             vals = rank2d(vals)
             vals[np.isnan(vals)] = 0
             sums.append(vals)
@@ -336,9 +340,9 @@ class Percentiles(RegionExtractor):
         tot_sum /= len(sums)
 
         masks, clusters = build_weighted_cluster(
-            weights=tot_sum,
-            x_coord=self.data_set['x'].values,
-            y_coord=self.data_set['y'].values,
+            weights=tot_sum.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
@@ -347,12 +351,13 @@ class Percentiles(RegionExtractor):
     def _get_masks_masked(
         self,
         percentiles=_two_sigma_percent,
+        lon_lat_dim=('lon', 'lat'),
     ):
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
         for lab in labels:
-            arr = self.data_set[lab].values.T
+            arr = self.data_set[lab].values
             arr_no_nan = arr[~np.isnan(arr)]
             thr = np.percentile(arr_no_nan, percentiles)
             masks.append(arr >= thr)
@@ -362,7 +367,9 @@ class Percentiles(RegionExtractor):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.data_set['x'].values, self.data_set['y'].values
+            all_mask.T,
+            self.data_set[lon_lat_dim[0]].values,
+            self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -501,7 +508,10 @@ class Percentiles(RegionExtractor):
 class PercentilesHistory(Percentiles):
     @apply_options
     def get_masks(
-        self, percentiles_historical=_two_sigma_percent, read_ds_kw=None
+        self,
+        percentiles_historical=_two_sigma_percent,
+        read_ds_kw=None,
+        lon_lat_dim=('lon', 'lat'),
     ) -> dict:
         if read_ds_kw is None:
             read_ds_kw = dict()
@@ -513,8 +523,8 @@ class PercentilesHistory(Percentiles):
         masks = []
 
         for lab in labels:
-            arr = self.data_set[lab].values.T
-            arr_historical = historical_ds[lab].values.T
+            arr = self.data_set[lab].values
+            arr_historical = historical_ds[lab].values
             thr = np.percentile(
                 arr_historical[~np.isnan(arr_historical)], percentiles_historical
             )
@@ -525,7 +535,9 @@ class PercentilesHistory(Percentiles):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.data_set['x'].values, self.data_set['y'].values
+            all_mask.T,
+            self.data_set[lon_lat_dim[0]].values,
+            self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -597,7 +609,7 @@ class ProductPercentiles(Percentiles):
         return self._get_masks_masked()
 
     @apply_options
-    def _get_masks_weighted(self, min_weight=0.95):
+    def _get_masks_weighted(self, min_weight=0.95, lon_lat_dim=('lon', 'lat')):
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
@@ -606,18 +618,18 @@ class ProductPercentiles(Percentiles):
         for label in labels:
             combined_score *= rank2d(ds[label].values)
 
-        combined_score = combined_score.T
-
         masks, clusters = build_weighted_cluster(
-            weights=combined_score,
-            x_coord=self.data_set['x'].values,
-            y_coord=self.data_set['y'].values,
+            weights=combined_score.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
 
     @apply_options
-    def _get_masks_masked(self, product_percentiles=_two_sigma_percent) -> dict:
+    def _get_masks_masked(
+        self, product_percentiles=_two_sigma_percent, lon_lat_dim=('lon', 'lat')
+    ) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []
@@ -628,17 +640,21 @@ class ProductPercentiles(Percentiles):
             combined_score *= rank2d(ds[label].values)
 
         # Combined score is fraction, not percent!
-        all_mask = (combined_score > (product_percentiles / 100)).T
+        all_mask = combined_score > (product_percentiles / 100)
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.data_set['x'].values, self.data_set['y'].values
+            all_mask.T,
+            self.data_set[lon_lat_dim[0]].values,
+            self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
 
 class LocalHistory(PercentilesHistory):
     @apply_options
-    def get_masks(self, n_times_historical=4, read_ds_kw=None) -> dict:
+    def get_masks(
+        self, n_times_historical=4, read_ds_kw=None, lon_lat_dim=('lon', 'lat')
+    ) -> dict:
         if read_ds_kw is None:
             read_ds_kw = dict()
         for k, v in dict(min_time=None, max_time=None).items():
@@ -649,8 +665,8 @@ class LocalHistory(PercentilesHistory):
         masks = []
 
         for lab in labels:
-            arr = self.data_set[lab].values.T
-            arr_historical = historical_ds[lab].values.T
+            arr = self.data_set[lab].values
+            arr_historical = historical_ds[lab].values
             mask_divide = arr / arr_historical > n_times_historical
             # If arr_historical is 0, the devision is going to get a nan assigned,
             # despite this being the most interesting region (no historical
@@ -663,7 +679,9 @@ class LocalHistory(PercentilesHistory):
             all_mask &= m
 
         masks, clusters = build_cluster_mask(
-            all_mask, self.data_set['x'].values, self.data_set['y'].values
+            all_mask.T,
+            self.data_set[lon_lat_dim[0]].values,
+            self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
