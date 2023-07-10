@@ -62,6 +62,7 @@ def year_means(path, refresh=True):
     data['time'] = [cftime.DatetimeNoLeap(y, 1, 1) for y in data['time']]
 
     os.makedirs(new_dir, exist_ok=True)
+    assert os.path.exists(new_dir)
     data.to_netcdf(new_dest)
     return new_dest
 
