@@ -9,8 +9,8 @@ def test_clustering_empty():
     ds['var'] = (ds['var'].dims, np.zeros_like(ds['var']))
     ds = ds.isel(time=0)
     assert np.all(np.shape(ds['var']) > np.array([2, 2]))
-
-    clusters, masks = clustering.build_cluster_mask(ds['var'] > 0, ds['x'], ds['y'])
+    lat, lon = np.meshgrid(ds['y'], ds['x'])
+    clusters, masks = clustering.build_cluster_mask(ds['var'] > 0, lon, lat)
     assert len(clusters) == len(masks) == 0
 
 
@@ -32,11 +32,11 @@ def test_clustering_double_blob(npoints=100, res_x=3, res_y=3):
     assert np.sum(arr) == 2 * npoints
     ds['var'] = (ds['var'].dims, arr)
     assert np.all(np.shape(ds['var']) > np.array([2, 2]))
-
+    lat, lon = np.meshgrid(ds['y'], ds['x'])
     clusters, masks = clustering.build_cluster_mask(
         ds['var'] > 1,
-        ds['x'],
-        ds['y'],
+        lon,
+        lat,
         max_distance_km=1000,
         min_samples=2,
     )

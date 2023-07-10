@@ -1,5 +1,6 @@
 import numpy as np
 from optim_esm_tools.utils import tqdm, timed
+from optim_esm_tools.config import get_logger
 import typing as ty
 from warnings import warn
 import numba
@@ -79,8 +80,8 @@ def build_clusters(
 @timed()
 def build_cluster_mask(
     global_mask: np.ndarray,
-    x_coord: np.array,
-    y_coord: np.array,
+    lon_coord: np.array,
+    lat_coord: np.array,
     show_tqdm: bool = False,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
@@ -100,21 +101,19 @@ def build_cluster_mask(
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
-
-    _check_input(global_mask, x_coord, y_coord)
-    xm, ym = np.meshgrid(x_coord, y_coord)
-    xy_data = np.array([xm[global_mask.T], ym[global_mask.T]])
+    lon, lat = _check_input(global_mask, lon_coord, lat_coord)
+    xy_data = np.array([lon[global_mask], lat[global_mask]])
 
     if len(xy_data.T) <= 2:
         warn(f'No data from this mask {xy_data}!')
         return [], []
 
     if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(x_coord, y_coord)
+        max_distance_km = _infer_max_step_size(lon_coord.flatten(), lat_coord.flatten())
 
     masks, clusters = _build_cluster_with_kw(
-        x_coord,
-        y_coord,
+        lon_coord,
+        lat_coord,
         coordinates_deg=xy_data,
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
@@ -127,8 +126,8 @@ def build_cluster_mask(
 @timed()
 def build_weighted_cluster(
     weights: np.ndarray,
-    x_coord: np.array,
-    y_coord: np.array,
+    lon_coord: np.array,
+    lat_coord: np.array,
     show_tqdm: bool = False,
     threshold=0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
@@ -138,8 +137,8 @@ def build_weighted_cluster(
 
     Args:
         weights (np.ndarray): normalized score data (values in [0,1])
-        x_coord (np.array): all x values
-        y_coord (np.array): all y values
+        lon_coord (np.array): all lon values
+        lat_coord (np.array): all lat values
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
@@ -150,18 +149,17 @@ def build_weighted_cluster(
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
 
-    _check_input(weights, x_coord, y_coord)
-    xm, ym = np.meshgrid(x_coord, y_coord)
-    xy_data = np.array([xm.flatten(), ym.flatten()])
+    lon, lat = _check_input(weights, lon_coord, lat_coord)
+    xy_data = np.array([lon.flatten(), lat.flatten()])
 
     if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(x_coord, y_coord)
+        max_distance_km = _infer_max_step_size(lon.flatten(), lat.flatten())
 
     flat_weights = weights.T.flatten()
     mask = flat_weights > threshold
     masks, clusters = _build_cluster_with_kw(
-        x_coord,
-        y_coord,
+        lon,
+        lat,
         coordinates_deg=xy_data[:, mask],
         weights=flat_weights[mask],
         show_tqdm=show_tqdm,
@@ -172,23 +170,32 @@ def build_weighted_cluster(
     return masks, clusters
 
 
-def _check_input(data, x_coord, y_coord):
-    if data.shape != (len(x_coord), len(y_coord)):
-        message = f'Wrong input {data.shape} != {len(x_coord), len(y_coord)}'
+def _check_input(data, lon_coord, lat_coord):
+    if len(lon_coord.shape) <= 1:
+        get_logger.warning('Expected lon and lat values, but got x, y values')
+        # seperate x, y values, bad practice?
+        lon, lat = np.meshgrid(lon_coord, lat_coord)
+    else:
+        lon, lat = lon_coord, lat_coord
+
+    if data.shape != lon.shape or data.shape != lat.shape:
+        message = f'Wrong input {data.shape} != {lon.shape, lat.shape}'
         raise ValueError(message)
+    return lon, lat
 
 
-def _build_cluster_with_kw(x_coord, y_coord, show_tqdm=False, **cluster_kw):
+def _build_cluster_with_kw(lon, lat, show_tqdm=False, **cluster_kw):
     masks = []
     clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
-
+    if lat.shape != lon.shape:
+        raise ValueError(f'Got inconsistent input {lat.shape} != {lon.shape}')
     for cluster in clusters:
-        mask = np.zeros((len(y_coord), len(x_coord)), np.bool_)
+        mask = np.zeros(lat.shape, np.bool_)
         for s_x, s_y in tqdm(cluster, desc='fill_mask', disable=not show_tqdm):
             # This is a bit blunt, but it's fast enough to regain the indexes such that we can build a 2d masked array.
-            x_i = np.argwhere(np.isclose(x_coord, s_x))[0]
-            y_i = np.argwhere(np.isclose(y_coord, s_y))[0]
-            mask[y_i, x_i] = 1
+            mask_x = np.isclose(lon, s_x)
+            mask_y = np.isclose(lat, s_y)
+            mask |= mask_x & mask_y
         masks.append(mask)
     return masks, clusters
 
