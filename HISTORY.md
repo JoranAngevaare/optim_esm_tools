@@ -1,3 +1,10 @@
+0.4.0 / 2023-07-07
+------------------
+*  Technical release related to the setup of the package relating to the config
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.3.0...v0.4.0
+
+
 0.3.0 / 2023-07-05
 ------------------
 * Remove old setup by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/77

@@ -17,7 +17,7 @@ requirements = open_requirements('requirements.txt')
 
 setuptools.setup(
     name='optim_esm_tools',
-    version='0.3.0',
+    version='0.4.0',
     description='Tools for OptimESM',
     long_description=readme + '\n\n' + history,
     long_description_content_type='text/markdown',
@@ -28,7 +28,7 @@ setuptools.setup(
         'optim_esm_tools': 'optim_esm_tools',
     },
     package_data={
-        'optim_esm_tools': ['data/*'],
+        'optim_esm_tools': ['data/*', 'optim_esm_tools/*', '*.ini*'],
     },
     setup_requires=['pytest-runner'],
     install_requires=requirements,
