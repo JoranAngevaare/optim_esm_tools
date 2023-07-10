@@ -3,7 +3,6 @@ import xarray as xr
 import numpy as np
 import os
 from optim_esm_tools.utils import add_load_kw
-from optim_esm_tools.analyze.calculate_metric import add_grid_area_field
 
 
 @add_load_kw
