@@ -37,8 +37,10 @@ class Area(unittest.TestCase):
 
     def write_dummy_area(self, dummy_path):
         ds = self.ds
-        dummy = xr.DataArray(
-            np.ones(ds['lon'].values.shape), dims=ds['lon'].dims, name=self.ext_var
+        dummy = xr.Dataset(
+            data_vars={self.ext_var: (ds['lon'].dims, np.ones(ds['lon'].values.shape))},
+            coords={k: (ds[k].dims, ds[k].values) for k in ds['lon'].dims},
+            attrs=dict(data='fake'),
         )
         os.makedirs(os.path.split(dummy_path)[0], exist_ok=True)
         dummy.to_netcdf(dummy_path)
@@ -67,3 +69,53 @@ class Area(unittest.TestCase):
     def test_brute_force(self):
         kw = dict()
         self._test('brute_force', **kw)
+
+    def test_exact_match(self):
+        ds = self.ds
+        head, tail = os.path.split(self.dummy_path)
+        ds_dummy = oet.analyze.cmip_handler.read_ds(
+            head, _file_name=tail, add_area=False, apply_transform=False
+        )
+        kw = dict(
+            ds=ds, variable_id=self.ext_var, compare_field='lat', ds_other=ds_dummy
+        )
+        results = []
+        results.append(
+            oet.analyze.query_metric.return_area_and_attr_if_match(
+                **kw, _match_exact=True
+            )
+        )
+        results.append(
+            oet.analyze.query_metric.return_area_and_attr_if_match(
+                **kw, _match_exact=False
+            )
+        )
+
+        ds_doudble_dum = ds_dummy.copy()
+        ds_doudble_dum[self.ext_var] = (
+            ds_doudble_dum[self.ext_var].dims[::-1],
+            ds_doudble_dum[self.ext_var].values.T,
+        )
+        kw.update(dict(ds_other=ds_doudble_dum))
+        correct_order = ds['lat'].dims
+        correct_shape = ds['lat'].shape
+
+        results.append(
+            oet.analyze.query_metric.return_area_and_attr_if_match(
+                **kw, _match_exact=True
+            )
+        )
+        results.append(
+            oet.analyze.query_metric.return_area_and_attr_if_match(
+                **kw, _match_exact=False
+            )
+        )
+
+        message = ''
+        for i, (area, dim, _) in enumerate(results):
+            if dim != correct_order:
+                message += f'{i} order is {dim} != {correct_order}\n'
+            if area.shape != correct_shape:
+                message += f'{i} shape {area.shape} != {correct_shape}\n'
+        if message:
+            raise ValueError(message)

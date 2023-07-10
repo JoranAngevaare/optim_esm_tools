@@ -46,6 +46,11 @@ def mask_xr_ds(data_set, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
         data_set = data_set.mean(spurious_dim)
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
+            # First dim is time?
+            if 'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape:
+                da_mask = da_mask.T
+            elif data_array.shape == da_mask.T.shape:
+                da_mask = da_mask.T
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da
@@ -184,11 +189,15 @@ class RegionExtractor:
             raise ValueError(
                 mask,
             ) from e
-        return self.data_set['cell_area'].values[mask].sum()
+        if self.data_set['cell_area'].shape == mask.shape:
+            return self.data_set['cell_area'].values[mask]
+        if self.data_set['cell_area'].shape == mask.T.shape:
+            return self.data_set['cell_area'].values[mask.T]
+        raise ValueError
 
     @apply_options
     def mask_is_large_enough(self, mask, min_area_km_sq=0):
-        return self.mask_area(mask) >= min_area_km_sq
+        return self.mask_area(mask).sum() >= min_area_km_sq
 
     def filter_masks_and_clusters(self, masks_and_clusters):
         if not len(masks_and_clusters[0]):
@@ -397,14 +406,14 @@ class Percentiles(RegionExtractor):
         mask_cbar_kw=None,
         cluster_kw=None,
     ):
-        masks, clusters = masks_and_clusters
-        all_masks = np.zeros(masks[0].shape, np.float64)
-        all_masks[:] = np.nan
         ds_dummy = self.data_set.copy()
-        area = ds_dummy['cell_area'].values
-        for m, c in zip(masks, clusters):
-            a = area[m].sum()
-            all_masks[m] = a
+        masks, clusters = masks_and_clusters
+        all_masks = np.zeros(ds_dummy['cell_area'].shape, np.float64)
+        all_masks[:] = np.nan
+        for m, _ in zip(masks, clusters):
+            if all_masks.shape == m.T.shape:
+                m = m.T
+            all_masks[m] = self.mask_area(m).sum()
 
         if ax is None:
             setup_map()
@@ -413,7 +422,7 @@ class Percentiles(RegionExtractor):
             mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
 
-        ds_dummy['area_square'] = (('y', 'x'), all_masks)
+        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks)
 
         ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
         plt.title('')
@@ -614,6 +623,7 @@ class ProductPercentiles(Percentiles):
 
         ds = self.data_set.copy()
         combined_score = np.ones_like(ds[labels[0]].values)
+
         for label in labels:
             combined_score *= rank2d(ds[label].values)
 
