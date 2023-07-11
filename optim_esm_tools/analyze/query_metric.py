@@ -55,19 +55,20 @@ def add_area_to_ds(
     else:
         raise NoMatchFoundError('No mathces for this dataset - no area can be inferred')
 
-    if ds[compare_field].shape != area.shape:
-        raise ValueError(
-            f'area_from_path returned wrong shape {ds[compare_field].shape}, {area.shape}, {path}'
-        )
-    target_dims = ds[compare_field].dims
-    if target_dims == ('y', 'x'):
-        target_dims = ('x', 'y')
-        area = area.T
-        oet.config.get_logger().warning('Had to transpose result ')
-    elif len(target_dims) != 2:
-        raise ValueError(target_dims)
+    # if ds[compare_field].shape != area.shape:
+    #     raise ValueError(
+    #         f'area_from_path returned wrong shape {ds[compare_field].shape}, {area.shape}, {path}'
+    #     )
+    # target_dims = ds[compare_field].dims
+    # # if target_dims == ('y', 'x'):
+    # #     target_dims = ('x', 'y')
+    # #     area = area.T
+    # #     oet.config.get_logger().warning('Had to transpose result ')
+    # if len(target_dims) != 2:
+    #     raise ValueError(target_dims)
+    ds = ds.copy()
     ds[area_field] = (dims, area, attrs)
-    assert ds[area_field].dims == ('x', 'y')
+    # assert ds[area_field].dims == ('x', 'y')
     return ds
 
 
@@ -207,11 +208,12 @@ def return_area_and_attr_if_match(
     area = ds_other[variable_id].values.squeeze()
     log = oet.config.get_logger()
 
-    area, dims = exact_match(
+    result = exact_match(
         ds_other, ds, compare_field=compare_field, variable_id=variable_id
     )
 
-    if area is not None:
+    if result is not None:
+        area, dims = result
         log.info('Exact match found!')
         if _match_exact:
             return area, dims, ds_other[variable_id].attrs
@@ -228,13 +230,9 @@ def return_area_and_attr_if_match(
 
     # Also log later, such that we increase verbosity if exact match also fails
     search_message = f'No match! {area.shape} != {target_shape}'
-    debug(search_message)
+    log.debug(search_message)
     log.warning(search_message)
     log.warning('Exact match also did not yield results')
-
-
-def debug(a):
-    oet.config.get_logger().error(a)
 
 
 def exact_match(
@@ -242,7 +240,7 @@ def exact_match(
 ):
     log = oet.config.get_logger()
     need_dims = ds[compare_field].dims
-    debug(f'Look for {need_dims}')
+    log.debug(f'Look for {need_dims}')
     if len(need_dims) != 2:
         raise ValueError(
             f'Got {need_dims} for {compare_field}, this needs to be 2 dims!'
@@ -268,25 +266,25 @@ def exact_match(
         return
 
     orig_area = ds_other[variable_id].values
-    debug(f'Start with {orig_area.shape}. Now squeeze')
+    log.debug(f'Start with {orig_area.shape}. Now squeeze')
     reshaped_area = orig_area.squeeze()
     # return_dims = need_dims
     if ds_other[variable_id].dims == need_dims[::-1]:
-        debug('Also, the dimentions are out of order, transpose!')
+        log.debug('Also, the dimentions are out of order, transpose!')
         reshaped_area = reshaped_area.T
         # return_dims = return_dims[::-1]
-    debug(
+    log.debug(
         f'Squeezed to {reshaped_area.shape}, now mask {need_dims[0]} ({len(mask_0)}) and transpose'
     )
     if len(mask_0) != len(reshaped_area):
         # Uhm I really don't get this one..
         reshaped_area = reshaped_area.T
     reshaped_area = reshaped_area[mask_0].T
-    debug(
+    log.debug(
         f'Masked to {reshaped_area.shape}, now mask {need_dims[1]} ({len(mask_1)}) and transpose'
     )
     reshaped_area = reshaped_area[mask_1].T
-    debug(f'Masked to {reshaped_area.shape}')
+    log.debug(f'Masked to {reshaped_area.shape}')
 
     if reshaped_area.shape != ds[compare_field].shape:
         message = f'Inconsistent shapes {reshaped_area.shape, ds[compare_field].shape}'

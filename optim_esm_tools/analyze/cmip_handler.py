@@ -193,6 +193,15 @@ def _add_area(
     **kw,
 ):
     import logging
+    import numpy as np
+
+    data_set = data_set.copy()
+    shape = data_set['lon'].shape
+    data_set['cell_area'] = (
+        data_set['lon'].dims,
+        np.ones(shape) * 180 * 360 / np.product(shape),
+    )
+    return data_set
 
     if _change_logging:
         # Intake-esm is so verbose...

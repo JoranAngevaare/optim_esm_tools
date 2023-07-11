@@ -166,7 +166,7 @@ class RegionExtractor:
         self.save(f'{self.title_label}_global_map')
 
     def _plot_basic_map(self):
-        raise NotImplementedError(f'{self.__class__.__class__} has no _plot_basic_map')
+        raise NotImplementedError(f'{self.__class__.__name__} has no _plot_basic_map')
 
     def save(self, name):
         assert self.__class__.__name__ in name
@@ -197,7 +197,7 @@ class RegionExtractor:
 
     @apply_options
     def mask_is_large_enough(self, mask, min_area_km_sq=0):
-        return self.mask_area(mask).sum() >= min_area_km_sq
+        return self.mask_area(mask).sum() / 1e6 >= min_area_km_sq
 
     def filter_masks_and_clusters(self, masks_and_clusters):
         if not len(masks_and_clusters[0]):
@@ -350,10 +350,12 @@ class Percentiles(RegionExtractor):
             tot_sum += s
         tot_sum /= len(sums)
 
+        if tot_sum.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            tot_sum = tot_sum.T
         masks, clusters = build_weighted_cluster(
             weights=tot_sum,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
@@ -376,11 +378,12 @@ class Percentiles(RegionExtractor):
         all_mask = np.ones_like(masks[0])
         for m in masks:
             all_mask &= m
-
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -545,10 +548,16 @@ class PercentilesHistory(Percentiles):
         for m in masks:
             all_mask &= m
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
+        assert all_mask.shape == self.data_set[lon_lat_dim[0]].shape, (
+            all_mask.shape,
+            self.data_set[lon_lat_dim[0]].shape,
+        )
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -627,10 +636,12 @@ class ProductPercentiles(Percentiles):
         for label in labels:
             combined_score *= rank2d(ds[label].values)
 
+        if combined_score.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            combined_score = combined_score.T
         masks, clusters = build_weighted_cluster(
             weights=combined_score,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
@@ -651,10 +662,13 @@ class ProductPercentiles(Percentiles):
         # Combined score is fraction, not percent!
         all_mask = combined_score > (product_percentiles / 100)
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
+
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -687,10 +701,12 @@ class LocalHistory(PercentilesHistory):
         for m in masks:
             all_mask &= m
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
