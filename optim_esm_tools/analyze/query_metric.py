@@ -182,7 +182,7 @@ def yield_search(search, variable_id, **kw):
     kwargs = {
         'xarray_open_kwargs': {'consolidated': True, 'use_cftime': True},
         'aggregate': False,
-        'preprocess': combined_preprocessing,
+        'preprocess': oet.analyze.io.recast,
     }
     for member in np.unique(d.df['member_id'].values):
         sub_d = d.search(**search, member_id=member, variable_id=variable_id)
