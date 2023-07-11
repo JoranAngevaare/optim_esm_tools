@@ -196,9 +196,10 @@ def _add_area(
     import numpy as np
 
     data_set = data_set.copy()
-    shape = data_set['lon'].shape
+    shape = len(data_set['y']), len(data_set['x'])
+
     data_set['cell_area'] = (
-        data_set['lon'].dims,
+        ('y', 'x'),
         np.ones(shape) * 180 * 360 / np.product(shape),
     )
     return data_set

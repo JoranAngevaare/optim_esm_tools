@@ -196,8 +196,8 @@ class RegionExtractor:
         raise ValueError
 
     @apply_options
-    def mask_is_large_enough(self, mask, min_area_km_sq=0):
-        return self.mask_area(mask).sum() / 1e6 >= min_area_km_sq
+    def mask_is_large_enough(self, mask, min_area_sq=0):
+        return self.mask_area(mask).sum() >= min_area_sq
 
     def filter_masks_and_clusters(self, masks_and_clusters):
         if not len(masks_and_clusters[0]):
@@ -325,10 +325,13 @@ class Percentiles(RegionExtractor):
     )
     @apply_options
     def get_masks(self, cluster_method='masked') -> dict:
-        """Get mask for max of ii and iii and a box arround that"""
         if cluster_method == 'weighted':
-            return self._get_masks_weighted()
-        return self._get_masks_masked()
+            masks, clusters = self._get_masks_weighted()
+        else:
+            masks, clusters = self._get_masks_masked()
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
+        return masks, clusters
 
     @apply_options
     def _get_masks_weighted(
@@ -559,6 +562,8 @@ class PercentilesHistory(Percentiles):
             lon_coord=self.data_set[lon_lat_dim[0]].values,
             lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
         return masks, clusters
 
     @apply_options
@@ -622,8 +627,12 @@ class ProductPercentiles(Percentiles):
     def get_masks(self, cluster_method='masked') -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         if cluster_method == 'weighted':
-            return self._get_masks_weighted()
-        return self._get_masks_masked()
+            masks, clusters = self._get_masks_weighted()
+        else:
+            masks, clusters = self._get_masks_masked()
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
+        return masks, clusters
 
     @apply_options
     def _get_masks_weighted(self, min_weight=0.95, lon_lat_dim=('lon', 'lat')):
