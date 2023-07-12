@@ -35,22 +35,13 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, keep_dims=('time',)):
         masked_dims = oet.config.config['analyze']['lon_lat_dim'].split(',')
 
     ds_start = data_set.copy()
-    no_drop = set(masked_dims) | set(keep_dims)
-    for spurious_dim in set(data_set.dims) - no_drop:
-        message = (
-            f'Spurious coordinate {spurious_dim} dropping for safety. Keep {no_drop}'
-        )
-        oet.config.get_logger().warn(message)
-        data_set = data_set.mean(spurious_dim)
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             # First dim is time?
-            if 'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape:
+            if (
+                'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape
+            ) or data_array.shape == da_mask.T.shape:
                 raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
-                da_mask = da_mask.T
-            elif data_array.shape == da_mask.T.shape:
-                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
-                da_mask = da_mask.T
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da
@@ -110,35 +101,28 @@ class RegionExtractor:
         variable='tas',
         path=None,
         data_set=None,
-        transform=True,
         save_kw=None,
         extra_opt=None,
         read_ds_kw=None,
     ) -> None:
-        read_ds_kw = dict() if read_ds_kw is None else read_ds_kw
-        if path is None:
-            if transform:
-                self.log.warning(
-                    f'Best is to start {self.__class__.__name__} from a synda path'
-                )
-                self.data_set = add_conditions_to_ds(data_set)
-            else:
-                self.data_set = data_set
-        else:
+        read_ds_kw = read_ds_kw or dict()
+        if path is None and data_set:
+            self.data_set = data_set
+        elif path:
             self.data_set = read_ds(path, **read_ds_kw)
+        else:
+            raise ValueError('Both path and data_set are None?!')
 
-        if save_kw is None:
-            save_kw = dict(
-                save_in='./',
-                file_types=(
-                    'png',
-                    'pdf',
-                ),
-                skip=False,
-                sub_dir=None,
-            )
-        if extra_opt is None:
-            extra_opt = dict(show_basic=True)
+        save_kw = save_kw or dict(
+            save_in='./',
+            file_types=(
+                'png',
+                'pdf',
+            ),
+            skip=False,
+            sub_dir=None,
+        )
+        extra_opt = extra_opt or dict(show_basic=True)
         extra_opt.update(dict(read_ds_kw=read_ds_kw))
         self.extra_opt = extra_opt
         self.save_kw = save_kw
@@ -552,8 +536,7 @@ class PercentilesHistory(Percentiles):
         read_ds_kw=None,
         lon_lat_dim=('lon', 'lat'),
     ) -> dict:
-        if read_ds_kw is None:
-            read_ds_kw = dict()
+        read_ds_kw = read_ds_kw or dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
 
@@ -624,8 +607,7 @@ class PercentilesHistory(Percentiles):
 
     @apply_options
     def get_historical_ds(self, read_ds_kw=None, **kw):
-        if read_ds_kw is None:
-            read_ds_kw = dict()
+        read_ds_kw = read_ds_kw or dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
         historical_path = self.find_historical(**kw)[0]
@@ -699,8 +681,7 @@ class LocalHistory(PercentilesHistory):
     def get_masks(
         self, n_times_historical=4, read_ds_kw=None, lon_lat_dim=('lon', 'lat')
     ) -> dict:
-        if read_ds_kw is None:
-            read_ds_kw = dict()
+        read_ds_kw = read_ds_kw or dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
 
@@ -733,8 +714,7 @@ class LocalHistory(PercentilesHistory):
 
     @apply_options
     def _plot_basic_map(self, normalizations=None, read_ds_kw=None):
-        if read_ds_kw is None:
-            read_ds_kw = dict()
+        read_ds_kw = read_ds_kw or dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
         ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
