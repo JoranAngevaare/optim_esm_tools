@@ -62,7 +62,7 @@ jobs:
         if: matrix.test == 'partial'
         run: |
           conda activate synda
-          bash .github/scripts/install_env.sh "--no_cdo --no_synda"
+          bash .github/scripts/install_env.sh "--no_synda"
 
       # ALL
       - name: run full install
