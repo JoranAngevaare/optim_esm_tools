@@ -9,18 +9,18 @@ from optim_esm_tools._test_utils import synda_test_available, get_example_data_l
 
 @unittest.skipIf(not synda_test_available(), 'synda data not available')
 class TestMapMaker(unittest.TestCase):
-    # example_data_set = oet._test_utils.EXAMPLE_DATA_SET
+    name_merged = 'test_merged.nc'
 
     def from_amon_to_ayear(self):
         if os.path.exists(self.ayear_file):
             return
 
         os.makedirs(os.path.split(self.ayear_file)[0], exist_ok=1)
-        # Doesn't work?
-        # cdo.Cdo().yearmonmean(self.amon_file, self.ayear_file)
+        import cdo
+
         cmd = f'cdo yearmonmean {self.amon_file} {self.ayear_file}'
         print(cmd)
-        subprocess.call(cmd, shell=True)
+        cdo.Cdo().yearmonmean(input=self.amon_file, output=self.ayear_file)
         assert os.path.exists(self.ayear_file), self.ayear_file
 
     @classmethod
@@ -28,23 +28,32 @@ class TestMapMaker(unittest.TestCase):
         cls.base = os.path.join(os.environ['ST_HOME'], 'data')
         cls.amon_file = get_example_data_loc()
         cls.ayear_file = os.path.join(
-            os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], 'merged.nc'
+            os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], cls.name_merged
         )
+
+    def tearDown(self) -> None:
+        assert os.path.exists(self.ayear_file)
+        return super().tearDown()
 
     def setUp(self):
         self.from_amon_to_ayear()
+        assert os.path.exists(self.ayear_file)
         super().setUp()
 
     def test_read_data(self):
-        dataset = oet.cmip_files.io.load_glob(self.ayear_file)
+        dataset = oet.analyze.io.load_glob(self.ayear_file)
 
     def test_make_map(self):
-        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        data_set = oet.analyze.cmip_handler.read_ds(
+            os.path.split(self.ayear_file)[0], _file_name=self.name_merged
+        )
         oet.plotting.map_maker.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
     def test_map_maker_time_series(self):
-        data_set = oet.analyze.cmip_handler.read_ds(os.path.split(self.ayear_file)[0])
+        data_set = oet.analyze.cmip_handler.read_ds(
+            os.path.split(self.ayear_file)[0], _file_name=self.name_merged
+        )
         oet.plotting.map_maker.MapMaker(data_set=data_set).time_series()
         plt.clf()
 

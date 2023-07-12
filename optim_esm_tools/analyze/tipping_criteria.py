@@ -49,7 +49,6 @@ class StartEndDifference(_Condition):
             time_var=self.time_var,
             naming='{variable}_run_mean_{running_mean}',
             running_mean=self.running_mean,
-            # TODO
             # Pass kw arguments on? I think not
             _t_0_date=None,
             _t_1_date=None,

@@ -1,31 +1,21 @@
 # -*- coding: utf-8 -*-
-import optim_esm_tools as oet
-
 import os
 import xarray as xr
 
 import typing as ty
 from warnings import warn
 
-from optim_esm_tools.utils import deprecated
-
-from .globals import _CMIP_HANDLER_VERSION, _FOLDER_FMT
-from .xarray_tools import _native_date_fmt, _remove_any_none_times, detrend
-from optim_esm_tools.plotting.map_maker import MapMaker, make_title
+from .globals import _FOLDER_FMT
+import optim_esm_tools as oet
 from optim_esm_tools.analyze import tipping_criteria
 
 
-def transform_ds(
+def add_conditions_to_ds(
     ds: xr.Dataset,
     calculate_conditions: ty.Tuple[tipping_criteria._Condition] = None,
     condition_kwargs: ty.Mapping = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
-    min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
-    strict: bool = True,
-    _time_var='time',
-    _detrend_type='linear',
-    _ma_window: int = 10,
+    _ma_window: int = None,
 ) -> xr.Dataset:
     """Transform the dataset to get it ready for handling in optim_esm_tools
 
@@ -34,11 +24,6 @@ def transform_ds(
         calculate_conditions (ty.Tuple[tipping_criteria._Condition], optional): Calculate the results of these tipping conditions. Defaults to None.
         condition_kwargs (ty.Mapping, optional): kwargs for the tipping conditions. Defaults to None.
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
-        strict (bool, optional): raise errors on loading, if any. Defaults to True.
-        _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
-        _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
 
     Raises:
@@ -47,6 +32,7 @@ def transform_ds(
     Returns:
         xr.Dataset: The fully initiallized dataset
     """
+    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     if calculate_conditions is None:
         calculate_conditions = (
             tipping_criteria.StartEndDifference,
@@ -62,16 +48,6 @@ def transform_ds(
     if condition_kwargs is None:
         condition_kwargs = dict()
 
-    ds = _calculate_variables(
-        ds,
-        min_time,
-        max_time,
-        variable_of_interest,
-        strict,
-        _ma_window,
-        _detrend_type,
-        _time_var,
-    )
     for variable in oet.utils.to_str_tuple(variable_of_interest):
         for cls in calculate_conditions:
             condition = cls(**condition_kwargs, variable=variable)
@@ -91,17 +67,16 @@ def transform_ds(
 @oet.utils.timed()
 def read_ds(
     base: str,
-    variable_of_interest: ty.Tuple[str] = ('tas',),
+    variable_of_interest: ty.Tuple[str] = 'tas',
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
-    add_area: bool = True,
-    area_query_kwargs: ty.Optional[ty.Mapping] = None,
+    pre_process: bool = True,
     strict: bool = True,
     load: bool = False,
-    _ma_window: int = 10,
+    _ma_window: ty.Optional[int] = None,
     _cache: bool = True,
-    _file_name: str = 'merged.nc',
+    _file_name: str = None,
     **kwargs,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
@@ -112,12 +87,13 @@ def read_ds(
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         apply_transform: (bool, optional): Apply analysis specific postprocessing algoritms. Defaults to True.
-        add_area (bool, optional): Search for cell area information. Defaults to True.
+        pre_process (bool, optional): Should be true, this pre-processing of the data is required later on. Defaults to True.
         area_query_kwargs (ty.Mapping, optional): additionall keyword arguments for searching.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
+        _file_name (str, optional): name to match. Defaults to configs settings.
 
     kwargs:
         any kwargs are passed onto transfor_ds.
@@ -125,25 +101,29 @@ def read_ds(
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
     """
+    log = oet.config.get_logger()
+    _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
+    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    if not isinstance(variable_of_interest, str):
+        raise ValueError('Only single vars supported')
     if kwargs:
-        oet.config.get_logger().error(f'Not really advised yet to call with {kwargs}')
+        log.error(f'Not really advised yet to call with {kwargs}')
         _cache = False
     if not apply_transform:
         # Don't cache the partial ds
         _cache = False
 
-    oet.config.get_logger().debug(f'read_ds {variable_of_interest}')
-    post_processed_file = _name_cache_file(
+    log.debug(f'read_ds {variable_of_interest}')
+    res_file = _name_cache_file(
         base,
         variable_of_interest,
         min_time,
         max_time,
         _ma_window,
-        _CMIP_HANDLER_VERSION,
     )
 
-    if os.path.exists(post_processed_file) and _cache:
-        return oet.analyze.io.load_glob(post_processed_file)
+    if os.path.exists(res_file) and _cache:
+        return oet.analyze.io.load_glob(res_file)
 
     data_path = os.path.join(base, _file_name)
     if not os.path.exists(data_path):
@@ -153,20 +133,32 @@ def read_ds(
         warn(message)
         return None
 
-    data_set = oet.analyze.io.load_glob(data_path, load=load)
-    data_set = oet.analyze.io.recast(data_set)
-    if add_area:
-        area_query_kwargs = area_query_kwargs or dict()
-        data_set = _add_area(data_set, strict, path=data_path, **area_query_kwargs)
-
-    if apply_transform:
-        data_set = transform_ds(
-            data_set,
-            variable_of_interest=variable_of_interest,
+    temp_file = os.path.join(base, 'temp_final.nc')
+    if pre_process:
+        data_path = oet.analyze.pre_process.pre_process(
+            source=data_path,
             max_time=max_time,
             min_time=min_time,
+            save_as=temp_file,
             _ma_window=_ma_window,
-            strict=strict,
+            variable_id=variable_of_interest,
+        )
+    else:
+        log.warning(
+            f'Not preprocessing file is dangerous, dimentions may differ wildly!'
+        )
+    data_set = oet.analyze.io.load_glob(data_path, load=load)
+
+    # if os.path.exists(temp_file):
+    #     # Maybe we can make this optional, but, for now, let's prevent double caching of
+    #     # res_file and temp_file
+    #     os.remove(temp_file)
+
+    if apply_transform:
+        data_set = add_conditions_to_ds(
+            data_set,
+            variable_of_interest=variable_of_interest,
+            _ma_window=_ma_window,
             **kwargs,
         )
 
@@ -174,49 +166,14 @@ def read_ds(
 
     # start with -1 (for i==0)
     metadata = {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
-    metadata.update(
-        dict(path=base, file=post_processed_file, running_mean_period=_ma_window)
-    )
+    metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))
 
     data_set.attrs.update(metadata)
 
     if _cache:
-        oet.config.get_logger().info(f'Write {post_processed_file}')
-        data_set.to_netcdf(post_processed_file)
-    return data_set
+        log.info(f'Write {res_file}')
+        data_set.to_netcdf(res_file)
 
-
-def _add_area(
-    data_set,
-    strict,
-    _change_logging=True,
-    **kw,
-):
-    import logging
-    import numpy as np
-
-    data_set = data_set.copy()
-    shape = len(data_set['y']), len(data_set['x'])
-
-    data_set['cell_area'] = (
-        ('y', 'x'),
-        np.ones(shape) * 180 * 360 / np.product(shape),
-    )
-    return data_set
-
-    if _change_logging:
-        # Intake-esm is so verbose...
-        logging.getLogger().setLevel(logging.ERROR)
-    try:
-        data_set = oet.analyze.query_metric.add_area_to_ds(data_set, **kw)
-    except oet.analyze.query_metric.NoMatchFoundError:
-        if strict:
-            # If you are really desperate pass method='brute_force'
-            raise
-    finally:
-        from optim_esm_tools.config import config
-
-        logging.getLogger().setLevel(config['log']['logging_level'].upper())
     return data_set
 
 
@@ -226,8 +183,11 @@ def _name_cache_file(
     min_time,
     max_time,
     _ma_window,
-    version,
+    version=None,
 ):
+    """Get a file name that identifies the settings"""
+    version = version or oet.config.config['versions']['cmip_handler']
+    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     path = os.path.join(
         base,
         f'{variable_of_interest}'
@@ -247,50 +207,3 @@ def _name_cache_file(
     )
     oet.config.get_logger().debug(f'got {normalized_path}')
     return normalized_path
-
-
-@oet.utils.timed()
-def _calculate_variables(
-    data_set,
-    min_time,
-    max_time,
-    variable_of_interest,
-    strict,
-    _ma_window,
-    _detrend_type,
-    _time_var,
-):
-    if min_time or max_time:
-        time_slice = [
-            _native_date_fmt(data_set[_time_var], d) if d is not None else None
-            for d in [min_time, max_time]
-        ]
-        data_set = data_set.sel(**{_time_var: slice(*time_slice)})
-
-    # Detrend and run_mean on the fly
-    for variable in variable_of_interest:
-        if (ds_len := len(data_set[variable])) < _ma_window:
-            message = f'This data set is shorter {ds_len} than the moving average window ({_ma_window})'
-            if strict:
-                raise ValueError(message)
-            oet.config.get_logger().warning(message)
-
-        # NB these are DataArrays not Datasets!
-        run_mean = data_set[variable].rolling(time=_ma_window, center=True).mean()
-        kw = dict(dimension=_time_var, detrend_type=_detrend_type)
-        detrended = detrend(data_set[variable], **kw)
-        detrended_run_mean = detrend(_remove_any_none_times(run_mean, _time_var), **kw)
-
-        for det in detrended, detrended_run_mean:
-            det.attrs.update(data_set[variable].attrs.copy())
-
-        data_set[f'{variable}_run_mean_{_ma_window}'] = run_mean
-        data_set[f'{variable}_detrend'] = detrended
-        data_set[f'{variable}_detrend_run_mean_{_ma_window}'] = detrended_run_mean
-    return data_set
-
-
-# class MapMaker(MapMaker):
-#     @depricated
-#     def __init__(self, *a, **kw):
-#         return super().__init__(*a, **kw)

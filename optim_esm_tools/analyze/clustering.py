@@ -20,17 +20,17 @@ def build_clusters(
 
     Args:
         coordinates_deg (np.ndarray): set of xy coordinates in degrees
+        weights (ty.Optional[np.ndarray], optional): weights (in the range [0,1]) corresponding to each coordinate
         max_distance_km (ty.Union[float, int], optional): max distance to other points to consider part of
             cluster (see DBSCAN(eps=<..>)). Defaults to 750.
         only_core (bool, optional): Use only core samples. Defaults to True.
-        min_sample (int): Minimum number of samples in cluster. Defaults to 20.
+        min_samples (int): Minimum number of samples in cluster. Defaults to 20.
         cluster_opts (ty.Optional[dict], optional): Additional options passed to sklearn.cluster.DBSCAN. Defaults to None.
 
     Returns:
         ty.List[np.ndarray]: list of clustered points (in radians)
     """
-    if cluster_opts is None:
-        cluster_opts = dict()
+    cluster_opts = cluster_opts or dict()
     for class_label, v in dict(algorithm='ball_tree', metric='haversine').items():
         cluster_opts.setdefault(class_label, v)
     cluster_opts['min_samples'] = min_samples
@@ -90,13 +90,13 @@ def build_cluster_mask(
 
     Args:
         global_mask (np.ndarray): full 2d mask of the data
-        x_coord (np.array): all x values
-        y_coord (np.array): all y values
+        lon_coord (np.array): all longitude values
+        lat_coord (np.array): all latitude values
+        show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
             Defaults to 'infer'.
-        show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
 
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
@@ -112,8 +112,8 @@ def build_cluster_mask(
         max_distance_km = _infer_max_step_size(lon_coord.flatten(), lat_coord.flatten())
 
     masks, clusters = _build_cluster_with_kw(
-        lon_coord,
-        lat_coord,
+        lon,
+        lat,
         coordinates_deg=xy_data,
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
@@ -129,7 +129,7 @@ def build_weighted_cluster(
     lon_coord: np.array,
     lat_coord: np.array,
     show_tqdm: bool = False,
-    threshold=0.99,
+    threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
@@ -137,13 +137,14 @@ def build_weighted_cluster(
 
     Args:
         weights (np.ndarray): normalized score data (values in [0,1])
-        lon_coord (np.array): all lon values
-        lat_coord (np.array): all lat values
+        lon_coord (np.array): all longitude values
+        lat_coord (np.array): all latitude values
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
             Defaults to 'infer'.
         show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
+        threshold: float, min value of the passed weights. Defaults to 0.99.
 
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
@@ -171,8 +172,9 @@ def build_weighted_cluster(
 
 
 def _check_input(data, lon_coord, lat_coord):
+    """Check for consistancy and if we need to convert the lon/lat coordinates to a meshgrid"""
     if len(lon_coord.shape) <= 1:
-        get_logger.warning('Expected lon and lat values, but got x, y values')
+        get_logger().warning('Expected lon and lat values, but got x, y values')
         # seperate x, y values, bad practice?
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
@@ -185,6 +187,7 @@ def _check_input(data, lon_coord, lat_coord):
 
 
 def _build_cluster_with_kw(lon, lat, show_tqdm=False, **cluster_kw):
+    """Overlapping logic between functions to get the masks and clusters"""
     masks = []
     clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
     if lat.shape != lon.shape:

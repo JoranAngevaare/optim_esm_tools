@@ -2,6 +2,7 @@
 import unittest
 import optim_esm_tools._test_utils
 from optim_esm_tools.analyze import region_finding
+from optim_esm_tools.analyze.cmip_handler import read_ds
 import tempfile
 import os
 
@@ -52,7 +53,6 @@ class Work(unittest.TestCase):
                 read_ds_kw=dict(
                     _file_name=tail, _cache=os.environ.get('_CACHE_TRUE', 0)
                 ),
-                transform=True,
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )
@@ -86,3 +86,15 @@ class Work(unittest.TestCase):
         self.test_max_region(
             'ProductPercentiles', new_opt=dict(cluster_method='weighted')
         )
+
+    def test_error_message(self, make='MaxRegion'):
+        cls = getattr(region_finding, make)
+        file_path = self.get_path('ssp585', refresh=False)
+        head, tail = os.path.split(file_path)
+        ds = read_ds(
+            head,
+            _file_name=tail,
+        )
+        region = cls(data_set=ds)
+        with self.assertRaises(ValueError):
+            region.check_shape(ds['cell_area'].T)

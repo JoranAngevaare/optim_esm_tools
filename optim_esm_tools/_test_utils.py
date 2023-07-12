@@ -55,7 +55,7 @@ def year_means(path, refresh=True):
     import cftime
     import optim_esm_tools as oet
 
-    data = oet.cmip_files.io.load_glob(path)
+    data = oet.analyze.io.load_glob(path)
 
     data = data.groupby('time.year').mean('time')
     data = data.rename(year='time')
@@ -104,14 +104,14 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     ds_dummy = xr.Dataset(
         data_vars=dict(
             var=(
-                ('time', 'x', 'y'),
+                ('time', 'lat', 'lon'),
                 data,
             )
         ),
         coords=dict(
             time=time,
-            lon=lon,
             lat=lat,
+            lon=lon,
         ),
         attrs=dict(source_id='bla'),
     )

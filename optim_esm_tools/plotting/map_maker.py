@@ -216,12 +216,15 @@ class MapMaker(object):
         ds=None,
         time='time',
         other_dim=(),
-        running_mean=10,
+        running_mean=None,
         fill_kw=None,
         labels=dict(),
         only_rm=False,
         **plot_kw,
     ):
+        running_mean = (
+            running_mean or oet.config.config['analyze']['moving_average_years']
+        )
         if ds is None:
             ds = self.data_set
         if not only_rm:
@@ -249,12 +252,15 @@ class MapMaker(object):
         ds=None,
         time='time',
         other_dim=(),
-        running_mean=10,
+        running_mean=None,
         fill_kw=None,
         labels=dict(),
         only_rm=False,
         **plot_kw,
     ):
+        running_mean = (
+            running_mean or oet.config.config['analyze']['moving_average_years']
+        )
         if ds is None:
             ds = self.data_set
         if not only_rm:
@@ -282,12 +288,15 @@ class MapMaker(object):
         ds=None,
         time='time',
         other_dim=(),
-        running_mean=10,
+        running_mean=None,
         fill_kw=None,
         labels=dict(),
         only_rm=False,
         **plot_kw,
     ):
+        running_mean = (
+            running_mean or oet.config.config['analyze']['moving_average_years']
+        )
         if ds is None:
             ds = self.data_set
         variable_rm = f'{variable}_run_mean_{running_mean}'
@@ -336,15 +345,24 @@ class MapMaker(object):
     @oet.utils.timed()
     def time_series(
         self,
-        variable='tas',
+        variable=None,
         time='time',
-        other_dim=('x', 'y'),
-        running_mean=10,
+        other_dim=None,
+        running_mean=None,
         interval=True,
         axes=None,
         **kw,
     ):
         ds = self.data_set
+        variable = variable or self.variable
+        other_dim = (
+            other_dim
+            if other_dim is not None
+            else oet.config.config['analyze']['lon_lat_dim'].split(',')
+        )
+        running_mean = (
+            running_mean or oet.config.config['analyze']['moving_average_years']
+        )
         if interval is False:
             ds = ds.copy().mean(other_dim)
             other_dim = None
@@ -377,13 +395,6 @@ class MapMaker(object):
         return axes
 
     @property
-    def ds(self):
-        warn(
-            f'Calling {self.__class__.__name__}.ds is depricated, use {self.__class__.__name__}.ds'
-        )
-        return self.data_set
-
-    @property
     def dataset(self):
         warn(f'Calling {self.__class__.__name__}.data_set not .dataset')
         return self.data_set
@@ -391,6 +402,10 @@ class MapMaker(object):
     @property
     def title(self):
         return make_title(self.data_set)
+
+    @property
+    def variable(self):
+        return self.data_set.attrs['variable_id']
 
     def variable_name(self, variable):
         return default_variable_labels().get(
@@ -425,6 +440,7 @@ class HistoricalMapMaker(MapMaker):
             )
         max_val = np.nanmax(ret_array)
         mask_divide_by_zero = (da_historical == 0) & (da > 0)
+        # Anything clearly larger than the max val
         ret_array[mask_divide_by_zero.values] = 10 * max_val
         result.data = ret_array
         return result, max_val

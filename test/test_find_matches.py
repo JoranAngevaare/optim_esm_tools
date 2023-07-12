@@ -2,25 +2,29 @@
 import unittest
 import optim_esm_tools as oet
 import os
-import matplotlib.pyplot as plt
-import subprocess
-from optim_esm_tools._test_utils import (
-    synda_test_available,
-    get_example_data_loc,
-    get_synda_loc,
-)
+from optim_esm_tools._test_utils import get_example_data_loc
 
 
-@unittest.skipIf(not synda_test_available(), 'synda data not available')
 class TestMatches(unittest.TestCase):
     def test_find_matches(self):
-        head = os.path.join(get_synda_loc(), 'CMIP6')
         path = get_example_data_loc()
-        kw = oet.cmip_files.find_matches.folder_to_dict(path)
-        assert len(
-            oet.cmip_files.find_matches.find_matches(
-                base=head,
-                required_file=os.path.split(path)[1],
-                **kw,
-            )
+        if not os.path.exists(path):
+            to_dir = os.path.split(path)[0]
+            os.makedirs(to_dir, exist_ok=True)
+            dummy_file = 'hello.nc'
+            path = os.path.join(to_dir, dummy_file)
+            with open(path, 'a') as f:
+                f.write('hello world')
+        base = path.split('ScenarioMIP')[0]
+        head, tail = os.path.split(path)
+        kw = oet.analyze.find_matches.folder_to_dict(head)
+        matches = oet.analyze.find_matches.find_matches(
+            base=base,
+            required_file=tail,
+            **kw,
+        )
+        assert len(matches), dict(
+            base=base,
+            required_file=tail,
+            **kw,
         )

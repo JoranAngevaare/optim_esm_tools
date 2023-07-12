@@ -13,7 +13,7 @@ else:
 config = configparser.ConfigParser()
 config.sections()
 config.read(config_path)
-
+# oet.config.config.read_dict({'boo':{'bar':'bla'}})
 _logger = {}
 
 
