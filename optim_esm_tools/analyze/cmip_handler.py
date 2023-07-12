@@ -24,10 +24,6 @@ def add_conditions_to_ds(
         calculate_conditions (ty.Tuple[tipping_criteria._Condition], optional): Calculate the results of these tipping conditions. Defaults to None.
         condition_kwargs (ty.Mapping, optional): kwargs for the tipping conditions. Defaults to None.
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
-        strict (bool, optional): raise errors on loading, if any. Defaults to True.
-        _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
 
     Raises:
@@ -91,12 +87,13 @@ def read_ds(
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
         apply_transform: (bool, optional): Apply analysis specific postprocessing algoritms. Defaults to True.
-        add_area (bool, optional): Search for cell area information. Defaults to True.
+        pre_process (bool, optional): Should be true, this pre-processing of the data is required later on. Defaults to True.
         area_query_kwargs (ty.Mapping, optional): additionall keyword arguments for searching.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
+        _file_name (str, optional): name to match. Defaults to configs settings.
 
     kwargs:
         any kwargs are passed onto transfor_ds.
@@ -188,6 +185,7 @@ def _name_cache_file(
     _ma_window,
     version=None,
 ):
+    """Get a file name that identifies the settings"""
     version = version or oet.config.config['versions']['cmip_handler']
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     path = os.path.join(

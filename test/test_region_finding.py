@@ -53,7 +53,6 @@ class Work(unittest.TestCase):
                 read_ds_kw=dict(
                     _file_name=tail, _cache=os.environ.get('_CACHE_TRUE', 0)
                 ),
-                transform=True,
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )

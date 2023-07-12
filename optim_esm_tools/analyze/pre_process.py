@@ -6,15 +6,38 @@ import typing as ty
 
 @timed
 def pre_process(
-    source,
-    target_grid=None,
+    source: str,
+    target_grid: str = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
-    save_as=None,
-    clean_up=True,
-    _ma_window=None,
-    variable_id=None,
-):
+    save_as: str = None,
+    clean_up: bool = True,
+    _ma_window: int = None,
+    variable_id: str = None,
+) -> str:
+    """Apply several preprocessing steps to the file located at <source>:
+      - Slice the data to desired time range
+      - regrid to simple grid
+      - calculate corresponding area
+      - calculate running mean, detrended and not-detrended
+      - merge all files into one
+
+    Args:
+        source (str): path of file to parse
+        target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and is taken from config.
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        save_as (str, optional): path where to store the pre-processed folder. Defaults to None.
+        clean_up (bool, optional): delete intermediate files. Defaults to True.
+        _ma_window (int, optional): moving average window (assumed 10 years). Defaults to None.
+        variable_id (str, optional): Name of the variable of interest. Defaults to None.
+
+    Raises:
+        ValueError: If source and dest are the same, we'll run into problems
+
+    Returns:
+        str: path of the dest file (same provided, if any)
+    """
     import cdo
 
     variable_id = variable_id or _read_variable_id(source)
