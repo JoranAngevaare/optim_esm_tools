@@ -8,12 +8,12 @@ from optim_esm_tools._test_utils import get_example_data_loc
 class TestMatches(unittest.TestCase):
     def test_find_matches(self):
         path = get_example_data_loc()
-        head = path.split('ScenarioMIP')[0]
-        kw = oet.analyze.find_matches.folder_to_dict(path)
-        assert len(
-            oet.analyze.find_matches.find_matches(
-                base=head,
-                required_file=os.path.split(path)[1],
-                **kw,
-            )
+        base = path.split('ScenarioMIP')[0]
+        head, tail = os.path.split(path)
+        kw = oet.analyze.find_matches.folder_to_dict(head)
+        matches = oet.analyze.find_matches.find_matches(
+            base=base,
+            required_file=tail,
+            **kw,
         )
+        assert len(matches)
