@@ -26,11 +26,13 @@ def transform_ds(
     _time_var='time',
     _detrend_type='linear',
     _ma_window: int = 10,
-):
+) -> xr.Dataset:
     """Transform the dataset to get it ready for handling in optim_esm_tools
 
     Args:
         ds (xr.Dataset): input dataset
+        calculate_conditions (ty.Tuple[tipping_criteria._Condition], optional): Calculate the results of these tipping conditions. Defaults to None.
+        condition_kwargs (ty.Mapping, optional): kwargs for the tipping conditions. Defaults to None.
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
@@ -38,6 +40,12 @@ def transform_ds(
         _time_var (str, optional): Name of the time dimention. Defaults to 'time'.
         _detrend_type (str, optional): Type of detrending applied. Defaults to 'linear'.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
+
+    Raises:
+        ValueError: If there are multiple tipping conditions with the same short_description
+
+    Returns:
+        xr.Dataset: The fully initiallized dataset
     """
     if calculate_conditions is None:
         calculate_conditions = (
@@ -87,8 +95,10 @@ def read_ds(
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
+    add_area: bool = True,
+    area_query_kwargs: ty.Optional[ty.Mapping] = None,
     strict: bool = True,
-    load: bool = True,
+    load: bool = False,
     _ma_window: int = 10,
     _cache: bool = True,
     _file_name: str = 'merged.nc',
@@ -101,7 +111,9 @@ def read_ds(
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
-        transform_ds: (boolm optional): Apply analysis specific postprocessing algoritms. Defaults to True.
+        apply_transform: (bool, optional): Apply analysis specific postprocessing algoritms. Defaults to True.
+        add_area (bool, optional): Search for cell area information. Defaults to True.
+        area_query_kwargs (ty.Mapping, optional): additionall keyword arguments for searching.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
@@ -143,6 +155,9 @@ def read_ds(
 
     data_set = oet.analyze.io.load_glob(data_path, load=load)
     data_set = oet.analyze.io.recast(data_set)
+    if add_area:
+        area_query_kwargs = area_query_kwargs or dict()
+        data_set = _add_area(data_set, strict, path=data_path, **area_query_kwargs)
 
     if apply_transform:
         data_set = transform_ds(
@@ -168,6 +183,40 @@ def read_ds(
     if _cache:
         oet.config.get_logger().info(f'Write {post_processed_file}')
         data_set.to_netcdf(post_processed_file)
+    return data_set
+
+
+def _add_area(
+    data_set,
+    strict,
+    _change_logging=True,
+    **kw,
+):
+    import logging
+    import numpy as np
+
+    data_set = data_set.copy()
+    shape = len(data_set['y']), len(data_set['x'])
+
+    data_set['cell_area'] = (
+        ('y', 'x'),
+        np.ones(shape) * 180 * 360 / np.product(shape),
+    )
+    return data_set
+
+    if _change_logging:
+        # Intake-esm is so verbose...
+        logging.getLogger().setLevel(logging.ERROR)
+    try:
+        data_set = oet.analyze.query_metric.add_area_to_ds(data_set, **kw)
+    except oet.analyze.query_metric.NoMatchFoundError:
+        if strict:
+            # If you are really desperate pass method='brute_force'
+            raise
+    finally:
+        from optim_esm_tools.config import config
+
+        logging.getLogger().setLevel(config['log']['logging_level'].upper())
     return data_set
 
 

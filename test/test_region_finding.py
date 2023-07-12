@@ -7,6 +7,10 @@ import os
 
 
 class Work(unittest.TestCase):
+    """
+    Note of caution! cache=True can lead to funky behavoir!
+    """
+
     @classmethod
     def setUpClass(cls):
         for data_name in ['ssp585', 'piControl']:
@@ -42,14 +46,18 @@ class Work(unittest.TestCase):
                 dpi=25,
                 skip=skip_save,
             )
+            ## REMEMBER THE CACHE = TRUE!
             region_finder = cls(
                 path=head,
-                read_ds_kw=dict(_file_name=tail),
+                read_ds_kw=dict(
+                    _file_name=tail, _cache=os.environ.get('_CACHE_TRUE', 0)
+                ),
                 transform=True,
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )
             region_finder.show = False
+            ## REMEMBER THE CACHE = TRUE!
             region_finder.workflow()
             return region_finder
 

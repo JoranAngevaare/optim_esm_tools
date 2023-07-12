@@ -139,9 +139,7 @@ class MaxJumpAndStd(MaxJump, StdDetrended):
         ):
             _name = f'percentile {label}'
             combined_score *= var_to_perc(da, _name, None)
-        return xr.DataArray(
-            combined_score, dims=('y', 'x'), name=self.short_description
-        )
+        return xr.DataArray(combined_score, dims=da_1.dims, name=self.short_description)
 
 
 @timed

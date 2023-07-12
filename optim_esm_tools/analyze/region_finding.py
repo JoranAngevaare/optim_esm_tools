@@ -8,6 +8,7 @@ from optim_esm_tools.analyze.clustering import (
 )
 from optim_esm_tools.plotting.plot import setup_map, _show
 from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
+from optim_esm_tools.analyze.find_matches import base_from_path
 
 
 import os
@@ -45,6 +46,11 @@ def mask_xr_ds(data_set, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
         data_set = data_set.mean(spurious_dim)
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
+            # First dim is time?
+            if 'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape:
+                da_mask = da_mask.T
+            elif data_array.shape == da_mask.T.shape:
+                da_mask = da_mask.T
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da
@@ -120,6 +126,7 @@ class RegionExtractor:
                 self.data_set = data_set
         else:
             self.data_set = read_ds(path, **read_ds_kw)
+
         if save_kw is None:
             save_kw = dict(
                 save_in='./',
@@ -159,7 +166,7 @@ class RegionExtractor:
         self.save(f'{self.title_label}_global_map')
 
     def _plot_basic_map(self):
-        raise NotImplementedError(f'{self.__class__.__class__} has no _plot_basic_map')
+        raise NotImplementedError(f'{self.__class__.__name__} has no _plot_basic_map')
 
     def save(self, name):
         assert self.__class__.__name__ in name
@@ -182,11 +189,15 @@ class RegionExtractor:
             raise ValueError(
                 mask,
             ) from e
-        return self.data_set['cell_area'].values[mask].sum()
+        if self.data_set['cell_area'].shape == mask.shape:
+            return self.data_set['cell_area'].values[mask]
+        if self.data_set['cell_area'].shape == mask.T.shape:
+            return self.data_set['cell_area'].values[mask.T]
+        raise ValueError
 
     @apply_options
-    def mask_is_large_enough(self, mask, min_area_km_sq=0):
-        return self.mask_area(mask) >= min_area_km_sq
+    def mask_is_large_enough(self, mask, min_area_sq=0):
+        return self.mask_area(mask).sum() >= min_area_sq
 
     def filter_masks_and_clusters(self, masks_and_clusters):
         if not len(masks_and_clusters[0]):
@@ -314,10 +325,13 @@ class Percentiles(RegionExtractor):
     )
     @apply_options
     def get_masks(self, cluster_method='masked') -> dict:
-        """Get mask for max of ii and iii and a box arround that"""
         if cluster_method == 'weighted':
-            return self._get_masks_weighted()
-        return self._get_masks_masked()
+            masks, clusters = self._get_masks_weighted()
+        else:
+            masks, clusters = self._get_masks_masked()
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
+        return masks, clusters
 
     @apply_options
     def _get_masks_weighted(
@@ -339,10 +353,12 @@ class Percentiles(RegionExtractor):
             tot_sum += s
         tot_sum /= len(sums)
 
+        if tot_sum.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            tot_sum = tot_sum.T
         masks, clusters = build_weighted_cluster(
             weights=tot_sum,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
@@ -365,11 +381,12 @@ class Percentiles(RegionExtractor):
         all_mask = np.ones_like(masks[0])
         for m in masks:
             all_mask &= m
-
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -395,14 +412,14 @@ class Percentiles(RegionExtractor):
         mask_cbar_kw=None,
         cluster_kw=None,
     ):
-        masks, clusters = masks_and_clusters
-        all_masks = np.zeros(masks[0].shape, np.float64)
-        all_masks[:] = np.nan
         ds_dummy = self.data_set.copy()
-        area = ds_dummy['cell_area'].values
-        for m, c in zip(masks, clusters):
-            a = area[m].sum()
-            all_masks[m] = a
+        masks, clusters = masks_and_clusters
+        all_masks = np.zeros(ds_dummy['cell_area'].shape, np.float64)
+        all_masks[:] = np.nan
+        for m, _ in zip(masks, clusters):
+            if all_masks.shape == m.T.shape:
+                m = m.T
+            all_masks[m] = self.mask_area(m).sum()
 
         if ax is None:
             setup_map()
@@ -411,7 +428,7 @@ class Percentiles(RegionExtractor):
             mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
 
-        ds_dummy['area_square'] = (('y', 'x'), all_masks)
+        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks)
 
         ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
         plt.title('')
@@ -534,28 +551,33 @@ class PercentilesHistory(Percentiles):
         for m in masks:
             all_mask &= m
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
+        assert all_mask.shape == self.data_set[lon_lat_dim[0]].shape, (
+            all_mask.shape,
+            self.data_set[lon_lat_dim[0]].shape,
+        )
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
         return masks, clusters
 
     @apply_options
     def find_historical(
         self,
         match_to='piControl',
-        look_back_extra=1,
+        look_back_extra=0,
         query_updates=None,
         search_kw=None,
     ):
         from optim_esm_tools.config import config
 
-        base = os.path.join(
-            os.sep,
-            *self.data_set.attrs['path'].split(os.sep)[
-                : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
-            ],
+        base = base_from_path(
+            self.data_set.attrs['path'], look_back_extra=look_back_extra
         )
 
         search = oet.cmip_files.find_matches.folder_to_dict(self.data_set.attrs['path'])
@@ -571,7 +593,7 @@ class PercentilesHistory(Percentiles):
                 dict(variant_label='*'),
                 dict(version='*'),
                 # can lead to funny behavior as grid differences may cause breaking compares
-                dict(grid='*'),
+                dict(grid_label='*'),
             ]
 
         for try_n, update_query in enumerate(query_updates):
@@ -605,8 +627,12 @@ class ProductPercentiles(Percentiles):
     def get_masks(self, cluster_method='masked') -> dict:
         """Get mask for max of ii and iii and a box arround that"""
         if cluster_method == 'weighted':
-            return self._get_masks_weighted()
-        return self._get_masks_masked()
+            masks, clusters = self._get_masks_weighted()
+        else:
+            masks, clusters = self._get_masks_masked()
+        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
+            masks = [m.T for m in masks]
+        return masks, clusters
 
     @apply_options
     def _get_masks_weighted(self, min_weight=0.95, lon_lat_dim=('lon', 'lat')):
@@ -615,13 +641,16 @@ class ProductPercentiles(Percentiles):
 
         ds = self.data_set.copy()
         combined_score = np.ones_like(ds[labels[0]].values)
+
         for label in labels:
             combined_score *= rank2d(ds[label].values)
 
+        if combined_score.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            combined_score = combined_score.T
         masks, clusters = build_weighted_cluster(
             weights=combined_score,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
             threshold=min_weight,
         )
         return masks, clusters
@@ -642,10 +671,13 @@ class ProductPercentiles(Percentiles):
         # Combined score is fraction, not percent!
         all_mask = combined_score > (product_percentiles / 100)
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
+
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
@@ -678,10 +710,12 @@ class LocalHistory(PercentilesHistory):
         for m in masks:
             all_mask &= m
 
+        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
+            all_mask = all_mask.T
         masks, clusters = build_cluster_mask(
             all_mask,
-            lon_coord=self.data_set[lon_lat_dim[0]].values.T,
-            lat_coord=self.data_set[lon_lat_dim[1]].values.T,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
 
