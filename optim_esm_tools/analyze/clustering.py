@@ -112,8 +112,8 @@ def build_cluster_mask(
         max_distance_km = _infer_max_step_size(lon_coord.flatten(), lat_coord.flatten())
 
     masks, clusters = _build_cluster_with_kw(
-        lon_coord,
-        lat_coord,
+        lon,
+        lat,
         coordinates_deg=xy_data,
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
@@ -172,7 +172,7 @@ def build_weighted_cluster(
 
 def _check_input(data, lon_coord, lat_coord):
     if len(lon_coord.shape) <= 1:
-        get_logger.warning('Expected lon and lat values, but got x, y values')
+        get_logger().warning('Expected lon and lat values, but got x, y values')
         # seperate x, y values, bad practice?
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:

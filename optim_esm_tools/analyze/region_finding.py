@@ -1,7 +1,7 @@
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.analyze.cmip_handler import transform_ds, read_ds
+from optim_esm_tools.analyze.cmip_handler import add_conditions_to_ds, read_ds
 from optim_esm_tools.analyze.clustering import (
     build_cluster_mask,
     build_weighted_cluster,
@@ -10,14 +10,10 @@ from optim_esm_tools.plotting.plot import setup_map, _show
 from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
 from optim_esm_tools.analyze.find_matches import base_from_path
 
-
-import os
-
 import numpy as np
-import xarray as xr
-
 import matplotlib.pyplot as plt
 import logging
+import xarray as xr
 
 import typing as ty
 from functools import wraps
@@ -35,7 +31,12 @@ _two_sigma_percent = 97.72498680518208
 
 
 # TODO this has too many hardcoded defaults
-def mask_xr_ds(data_set, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
+def mask_xr_ds(data_set, da_mask, masked_dims=None, keep_dims=('time',)):
+    masked_dims = (
+        masked_dims
+        if masked_dims is not None
+        else oet.config.config['analyze']['lon_lat_dim'].split(',')
+    )
     ds_start = data_set.copy()
     no_drop = set(masked_dims) | set(keep_dims)
     for spurious_dim in set(data_set.dims) - no_drop:
@@ -48,8 +49,10 @@ def mask_xr_ds(data_set, da_mask, masked_dims=('x', 'y'), keep_dims=('time',)):
         if all(dim in list(data_array.dims) for dim in masked_dims):
             # First dim is time?
             if 'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape:
+                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
                 da_mask = da_mask.T
             elif data_array.shape == da_mask.T.shape:
+                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
                 da_mask = da_mask.T
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
@@ -121,7 +124,7 @@ class RegionExtractor:
                 self.log.warning(
                     f'Best is to start {self.__class__.__name__} from a synda path'
                 )
-                self.data_set = transform_ds(data_set)
+                self.data_set = add_conditions_to_ds(data_set)
             else:
                 self.data_set = data_set
         else:
@@ -189,11 +192,22 @@ class RegionExtractor:
             raise ValueError(
                 mask,
             ) from e
-        if self.data_set['cell_area'].shape == mask.shape:
-            return self.data_set['cell_area'].values[mask]
-        if self.data_set['cell_area'].shape == mask.T.shape:
-            return self.data_set['cell_area'].values[mask.T]
-        raise ValueError
+        self.check_shape(mask)
+        return self.data_set['cell_area'].values[mask]
+
+    def check_shape(
+        self, data: ty.Union[np.ndarray, xr.DataArray], compare_with='cell_area'
+    ):
+        shape_should_be = self.data_set[compare_with].shape
+        if data.shape == shape_should_be:
+            return
+        error_message = f'Got {data.shape}, expected {shape_should_be}'
+        if name := getattr(data, 'name', False):
+            error_message = f'For {name}: ' + error_message
+        if dims := getattr(data, 'dims', False):
+            error_message = f'{error_message}. Dims are {dims}, expected'
+        error_message += f'for {self.data_set[compare_with].dims}'
+        raise ValueError(error_message)
 
     @apply_options
     def mask_is_large_enough(self, mask, min_area_sq=0):
@@ -232,7 +246,7 @@ class MaxRegion(RegionExtractor):
         """Wrap filter to work on dicts"""
         if min_area_km_sq:
             message = f'Calling {self.__class__.__name__}.filter_masks_and_clusters is nonsensical as masks are single grid cells'
-            oet.config.get_logger().warning(message)
+            self.log.warning(message)
         return masks_and_clusters
 
     @plt_show
@@ -259,8 +273,8 @@ class MaxRegion(RegionExtractor):
 
     def _mask_to_coord(self, mask_2d):
         arg_mask = np.argwhere(mask_2d)[0]
-        x = self.data_set.x[arg_mask[1]]
-        y = self.data_set.y[arg_mask[0]]
+        x = self.data_set.lon[arg_mask[1]]
+        y = self.data_set.lat[arg_mask[0]]
         return x, y
 
     def _plot_basic_map(self):
@@ -281,8 +295,14 @@ class MaxRegion(RegionExtractor):
 
     @apply_options
     def _plot_mask_time_series(
-        self, masks_and_clusters, time_series_joined=True, only_rm=False, axes=None
+        self,
+        masks_and_clusters,
+        time_series_joined=True,
+        only_rm=False,
+        axes=None,
+        _ma_window=None,
     ):
+        _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
         masks = masks_and_clusters[0]
         legend_kw = oet.utils.legend_kw(
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
@@ -292,11 +312,11 @@ class MaxRegion(RegionExtractor):
             plot_labels = {
                 f'{self.variable}': f'{label} at {x:.1f}:{y:.1f}',
                 f'{self.variable}_detrend': f'{label} at {x:.1f}:{y:.1f}',
-                f'{self.variable}_detrend_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
-                f'{self.variable}_run_mean_10': f'$RM_{{10}}$ {label} at {x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend_run_mean_{_ma_window}': f'$RM_{{{_ma_window}}}$ {label} at {x:.1f}:{y:.1f}',
+                f'{self.variable}_run_mean_{_ma_window}': f'$RM_{{{_ma_window}}}$ {label} at {x:.1f}:{y:.1f}',
             }
             argwhere = np.argwhere(mask_2d)[0]
-            ds_sel = self.data_set.isel(x=argwhere[1], y=argwhere[0])
+            ds_sel = self.data_set.isel(lat=argwhere[0], lon=argwhere[1])
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
                 variable=self.variable,
@@ -329,8 +349,8 @@ class Percentiles(RegionExtractor):
             masks, clusters = self._get_masks_weighted()
         else:
             masks, clusters = self._get_masks_masked()
-        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
-            masks = [m.T for m in masks]
+        if len(masks):
+            self.check_shape(masks[0])
         return masks, clusters
 
     @apply_options
@@ -353,8 +373,8 @@ class Percentiles(RegionExtractor):
             tot_sum += s
         tot_sum /= len(sums)
 
-        if tot_sum.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            tot_sum = tot_sum.T
+        self.check_shape(tot_sum)
+
         masks, clusters = build_weighted_cluster(
             weights=tot_sum,
             lon_coord=self.data_set[lon_lat_dim[0]].values,
@@ -381,8 +401,9 @@ class Percentiles(RegionExtractor):
         all_mask = np.ones_like(masks[0])
         for m in masks:
             all_mask &= m
-        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            all_mask = all_mask.T
+
+        self.check_shape(all_mask)
+
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,
@@ -417,8 +438,7 @@ class Percentiles(RegionExtractor):
         all_masks = np.zeros(ds_dummy['cell_area'].shape, np.float64)
         all_masks[:] = np.nan
         for m, _ in zip(masks, clusters):
-            if all_masks.shape == m.T.shape:
-                m = m.T
+            self.check_shape(m)
             all_masks[m] = self.mask_area(m).sum()
 
         if ax is None:
@@ -478,7 +498,12 @@ class Percentiles(RegionExtractor):
 
     @apply_options
     def _plot_mask_time_series(
-        self, masks_and_clusters, time_series_joined=True, only_rm=None, axes=None
+        self,
+        masks_and_clusters,
+        time_series_joined=True,
+        only_rm=None,
+        axes=None,
+        _ma_window=None,
     ):
         if only_rm is None:
             only_rm = (
@@ -486,6 +511,7 @@ class Percentiles(RegionExtractor):
                 if (len(masks_and_clusters[0]) > 1 and time_series_joined)
                 else False
             )
+        _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
         masks, clusters = masks_and_clusters
         legend_kw = oet.utils.legend_kw(
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
@@ -495,14 +521,13 @@ class Percentiles(RegionExtractor):
             plot_labels = {
                 f'{self.variable}': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
                 f'{self.variable}_detrend': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
-                f'{self.variable}_detrend_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
-                f'{self.variable}_run_mean_10': f'Cluster {m_i} $RM_{{10}}$ near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}_detrend_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{x:.1f}:{y:.1f}',
             }
             ds_sel = mask_xr_ds(self.data_set.copy(), mask)
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
                 variable=self.variable,
-                other_dim=('x', 'y'),
                 interval=True,
                 labels=plot_labels,
                 axes=axes,
@@ -551,19 +576,12 @@ class PercentilesHistory(Percentiles):
         for m in masks:
             all_mask &= m
 
-        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            all_mask = all_mask.T
-        assert all_mask.shape == self.data_set[lon_lat_dim[0]].shape, (
-            all_mask.shape,
-            self.data_set[lon_lat_dim[0]].shape,
-        )
+        self.check_shape(all_mask)
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,
             lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
-        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
-            masks = [m.T for m in masks]
         return masks, clusters
 
     @apply_options
@@ -580,7 +598,7 @@ class PercentilesHistory(Percentiles):
             self.data_set.attrs['path'], look_back_extra=look_back_extra
         )
 
-        search = oet.cmip_files.find_matches.folder_to_dict(self.data_set.attrs['path'])
+        search = oet.analyze.find_matches.folder_to_dict(self.data_set.attrs['path'])
         search['activity_id'] = 'CMIP'
         if search['experiment_id'] == match_to:
             raise NotImplementedError()
@@ -602,7 +620,7 @@ class PercentilesHistory(Percentiles):
                     f'No results after {try_n} try, retying with {update_query}'
                 )
             search.update(update_query)
-            this_try = oet.cmip_files.find_matches.find_matches(base, **search)
+            this_try = oet.analyze.find_matches.find_matches(base, **search)
             if this_try:
                 return this_try
         raise RuntimeError(f'Looked for {search}, in {base} found nothing')
@@ -630,8 +648,8 @@ class ProductPercentiles(Percentiles):
             masks, clusters = self._get_masks_weighted()
         else:
             masks, clusters = self._get_masks_masked()
-        if len(masks) and masks[0].shape == self.data_set['cell_area'].values.T.shape:
-            masks = [m.T for m in masks]
+        if len(masks):
+            self.check_shape(masks[0])
         return masks, clusters
 
     @apply_options
@@ -644,9 +662,7 @@ class ProductPercentiles(Percentiles):
 
         for label in labels:
             combined_score *= rank2d(ds[label].values)
-
-        if combined_score.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            combined_score = combined_score.T
+        self.check_shape(combined_score)
         masks, clusters = build_weighted_cluster(
             weights=combined_score,
             lon_coord=self.data_set[lon_lat_dim[0]].values,
@@ -671,8 +687,7 @@ class ProductPercentiles(Percentiles):
         # Combined score is fraction, not percent!
         all_mask = combined_score > (product_percentiles / 100)
 
-        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            all_mask = all_mask.T
+        self.check_shape(all_mask)
 
         masks, clusters = build_cluster_mask(
             all_mask,
@@ -710,8 +725,8 @@ class LocalHistory(PercentilesHistory):
         for m in masks:
             all_mask &= m
 
-        if all_mask.T.shape == self.data_set[lon_lat_dim[0]].shape:
-            all_mask = all_mask.T
+        self.check_shape(all_mask)
+
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,
