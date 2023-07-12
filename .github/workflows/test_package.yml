@@ -87,6 +87,7 @@ jobs:
           _CACHE_TRUE: 1
         run:
           |
+          conda install -c conda-forge python-cdo==1.6.0
           coverage run --source=optim_esm_tools -m pytest -v --durations 0
           # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
           coverage report

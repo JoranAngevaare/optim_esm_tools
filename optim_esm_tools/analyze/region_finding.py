@@ -30,13 +30,11 @@ import immutabledict
 _two_sigma_percent = 97.72498680518208
 
 
-# TODO this has too many hardcoded defaults
+
 def mask_xr_ds(data_set, da_mask, masked_dims=None, keep_dims=('time',)):
-    masked_dims = (
-        masked_dims
-        if masked_dims is not None
-        else oet.config.config['analyze']['lon_lat_dim'].split(',')
-    )
+    if masked_dims is None:
+        masked_dims=oet.config.config['analyze']['lon_lat_dim'].split(',')
+
     ds_start = data_set.copy()
     no_drop = set(masked_dims) | set(keep_dims)
     for spurious_dim in set(data_set.dims) - no_drop:
