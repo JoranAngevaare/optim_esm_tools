@@ -3,7 +3,6 @@ import numpy as np
 import typing as ty
 import xarray as xr
 from functools import wraps
-import numba
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -66,6 +65,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
         raise ValueError(
             f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
         )
+
     if np.any(time_null):
         try:
             # For some reason only alt_calc seems to work even if it should be equivalent to the data_var
