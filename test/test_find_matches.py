@@ -17,4 +17,8 @@ class TestMatches(unittest.TestCase):
             required_file=tail,
             **kw,
         )
-        assert len(matches), dict(base=base, required_file=tail, **kw,)
+        assert len(matches), dict(
+            base=base,
+            required_file=tail,
+            **kw,
+        )
