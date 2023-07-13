@@ -425,11 +425,13 @@ class Percentiles(RegionExtractor):
         if ax is None:
             setup_map()
             ax = plt.gca()
+
+        # Remember, cell_area is in m^2, hence the 1e6 below. Should we get this from the attrs?
         if mask_cbar_kw is None:
             mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
 
-        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks)
+        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks / 1e6)
 
         ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
         plt.title('')
