@@ -201,31 +201,31 @@ class MapMaker(object):
         **kw,
     ):
         variable = variable or self.variable
-        running_mean = (
-            running_mean or oet.config.config['analyze']['moving_average_years']
-        )
-        vars = [variable, f'{variable}_run_mean_{running_mean}']
+        rm = running_mean or oet.config.config['analyze']['moving_average_years']
+        _vars = [variable, f'{variable}_run_mean_{rm}']
         assert no_rm + only_rm < 2, 'Cannot show nothing?!'
 
         if isinstance(labels, ty.Mapping):
-            labels = [labels.get(k, k) for k in vars]
+            labels = [labels.get(k, k) for k in _vars]
 
         if only_rm or no_rm:
             keep_idx = slice(0, 1) if no_rm else slice(-1, None)
-            vars = vars[keep_idx]
+            _vars = _vars[keep_idx]
             if labels is not None:
                 labels = labels[keep_idx]
 
-        self._ts_for_vars(vars, labels=labels, **kw)
+        self._ts_for_vars(_vars, labels=labels, **kw)
 
-    def _ts_for_vars(self, vars, labels=None, **plot_kw):
-        vars = oet.utils.to_str_tuple(vars)
-        labels = labels or [None] * len(vars)
-        if not len(vars) == len(labels):
-            raise ValueError(f'Inconsistent number of vars and labels {vars, labels}')
+    def _ts_for_vars(self, variables, labels=None, **plot_kw):
+        variables = oet.utils.to_str_tuple(variables)
+        labels = labels or [None] * len(variables)
+        if not len(variables) == len(labels):
+            raise ValueError(
+                f'Inconsistent number of vars and labels {variables, labels}'
+            )
         plot_kw.setdefault('ds', self.data_set)
         assert 'ds' in plot_kw
-        for v, l in zip(vars, labels):
+        for v, l in zip(variables, labels):
             l = l or default_variable_labels().get(v, v)
             plot_simple(var=v, label=l, **plot_kw)
 
@@ -272,9 +272,8 @@ class MapMaker(object):
         )
 
         plt.ylim(ds[f'dt_{var_rm}'].min() / 1.05, ds[f'dt_{var_rm}'].max() * 1.05)
-        plt.ylabel(
-            f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
-        )
+        ylab = f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        plt.ylabel(ylab)
         plt.legend()
         plt.title('')
 
