@@ -98,7 +98,7 @@ class RegionExtractor:
 
     def __init__(
         self,
-        variable='tas',
+        variable=None,
         path=None,
         data_set=None,
         save_kw=None,
@@ -126,7 +126,7 @@ class RegionExtractor:
         extra_opt.update(dict(read_ds_kw=read_ds_kw))
         self.extra_opt = extra_opt
         self.save_kw = save_kw
-        self.variable = variable
+        self.variable = variable or data_set.get('variable_id', 'NO_VAR_ID!')
 
     @property
     def log(self):

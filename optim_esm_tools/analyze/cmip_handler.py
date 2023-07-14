@@ -67,7 +67,7 @@ def add_conditions_to_ds(
 @oet.utils.timed()
 def read_ds(
     base: str,
-    variable_of_interest: ty.Tuple[str] = 'tas',
+    variable_of_interest: ty.Tuple[str] = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
@@ -104,6 +104,9 @@ def read_ds(
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    data_path = os.path.join(base, _file_name)
+    variable_of_interest = variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
+
     if not isinstance(variable_of_interest, str):
         raise ValueError('Only single vars supported')
     if kwargs:
@@ -125,7 +128,7 @@ def read_ds(
     if os.path.exists(res_file) and _cache:
         return oet.analyze.io.load_glob(res_file)
 
-    data_path = os.path.join(base, _file_name)
+    
     if not os.path.exists(data_path):
         message = f'No dataset at {data_path}'
         if strict:
