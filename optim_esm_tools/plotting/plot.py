@@ -24,8 +24,8 @@ def default_variable_labels():
     ma = config['analyze']['moving_average_years']
     for k, v in list(labels.items()):
         labels[f'{k}_detrend'] = f'Detrend {v}'
-        labels[f'{k}_run_mean_{ma}'] = f'$RM_{ma}$ {v}'
-        labels[f'{k}_detrend_run_mean_{ma}'] = f'Detrend $RM_{ma}$ {v}'
+        labels[f'{k}_run_mean_{ma}'] = f'$RM_{{{ma}}}$ {v}'
+        labels[f'{k}_detrend_run_mean_{ma}'] = f'Detrend $RM_{{{ma}}}$ {v}'
     return labels
 
 
