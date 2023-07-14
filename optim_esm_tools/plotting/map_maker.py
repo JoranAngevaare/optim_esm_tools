@@ -10,7 +10,7 @@ from warnings import warn
 import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
-from .plot import default_variable_labels
+from .plot import *
 from matplotlib.colors import LogNorm
 
 # import xrft
@@ -38,19 +38,13 @@ class MapMaker(object):
             self.set_normalizations(normalizations)
 
     def set_kw(self):
-        import cartopy.crs as ccrs
-
         self.kw = immutabledict(
             fig=dict(dpi=200, figsize=(14, 10)),
             title=dict(fontsize=12),
             gridspec=dict(hspace=0.3),
             cbar=dict(orientation='horizontal', extend='both'),
-            plot=dict(transform=ccrs.PlateCarree()),
-            subplot=dict(
-                projection=ccrs.PlateCarree(
-                    central_longitude=0.0,
-                ),
-            ),
+            plot=dict(transform=get_cartopy_projection()),
+            subplot=dict(projection=get_cartopy_projection()),
         )
 
     def set_conditions(self, **condition_kwargs):
@@ -366,12 +360,7 @@ class MapMaker(object):
         )
 
     def unit(self, variable):
-        if 'units' not in self.data_set[variable].attrs:
-            oet.config.get_logger().warning(
-                f'No units for {variable} in {self.data_set}'
-            )
-            # raise ValueError( self.data_set.attrs, self.data_set[variable].attrs, variable)
-        return self.data_set[variable].attrs.get('units', f'?').replace('%', '\%')
+        return get_unit(self.data_set, variable)
 
 
 class HistoricalMapMaker(MapMaker):
@@ -435,28 +424,6 @@ class HistoricalMapMaker(MapMaker):
         return self.__getattribute__(item)
 
 
-def get_range(var):
-    r = (
-        dict(oet.config.config['variable_ranges'].items())
-        .get(var, 'None,None')
-        .split(',')
-    )
-    return [(float(l) if l != 'None' else None) for l in r]
-
-
-def set_range(var):
-    d, u = get_range(var)
-    cd, cu = plt.ylim()
-    plt.ylim(
-        cd if d is None else min(cd, d),
-        cu if u is None else max(cu, u),
-    )
-
-
-def get_unit(ds, var):
-    return ds[var].attrs.get('units', '?').replace('%', '\%')
-
-
 def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
     if other_dim is None:
         other_dim = set(ds[var].dims) - {'time'}
@@ -471,29 +438,30 @@ def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
         (mean - std).plot(color=l[0]._color, **std_kw)
         (mean + std).plot(color=l[0]._color, **std_kw)
 
-    set_range(var)
+    set_y_lim_var(var)
     plt.ylabel(
         f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
     )
     plt.title('')
 
 
-def summarize_mask(data_set, one_mask, plot_kw=None, other_dim=None, plot='v'):
-    import cartopy.crs as ccrs
-
-    ds_sel = oet.analyze.region_finding.mask_xr_ds(data_set.copy(), one_mask)
-    plot_kw = plot_kw or dict()
-    mm_sel = MapMaker(ds_sel)
-
-    mosaic = 'a.\nb.'
-    fig, axes = plt.subplot_mosaic(
-        mosaic,
+@oet.utils.check_accepts(accepts=dict(plot=('i', 'ii', 'iii', 'iv', 'v', None)))
+def summarize_mask(
+    data_set, one_mask, plot_kw=None, other_dim=None, plot='v', fig_kw=None
+):
+    plot_kw = plot_kw or dict(show_std=True)
+    other_dim = other_dim or oet.config.config['analyze']['lon_lat_dim'].split(',')
+    fig_kw = fig_kw or dict(
+        mosaic='a.\nb.',
         figsize=(17, 6),
         gridspec_kw=dict(width_ratios=[1, 1], wspace=0.1, hspace=0.05),
     )
-    axes['b'].sharex(axes['a'])
 
-    other_dim = other_dim or oet.config.config['analyze']['lon_lat_dim'].split(',')
+    ds_sel = oet.analyze.region_finding.mask_xr_ds(data_set.copy(), one_mask)
+    mm_sel = MapMaker(ds_sel)
+    fig, axes = plt.subplot_mosaic(**fig_kw)
+
+    axes['b'].sharex(axes['a'])
 
     plt.sca(axes['a'])
     var = mm_sel.variable
@@ -507,7 +475,7 @@ def summarize_mask(data_set, one_mask, plot_kw=None, other_dim=None, plot='v'):
         ds_dummy = ds_sel.copy()
         ds_dummy['cell_area'] /= 1e6
 
-        ax = fig.add_subplot(1, 2, 2, projection=ccrs.PlateCarree())
+        ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
         tot_area = ds_dummy['cell_area'].sum()
 
         ds_dummy['cell_area'].values[ds_dummy['cell_area'] > 0] = tot_area
@@ -527,10 +495,11 @@ def summarize_mask(data_set, one_mask, plot_kw=None, other_dim=None, plot='v'):
         gl.top_labels = False
         gl.right_labels = False
     else:
-        ax = fig.add_subplot(1, 2, 2, projection=ccrs.PlateCarree())
+        ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
         mm_sel.plot_i(label=plot, ax=ax, coastlines=True)
     plt.suptitle(mm_sel.title, y=0.97)
     axes = list(axes.values()) + [ax]
+    # Remove labels of top left axis.
     plt.setp(axes[0].get_xticklabels(), visible=False)
     return axes
 

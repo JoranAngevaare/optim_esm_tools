@@ -1,13 +1,13 @@
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.analyze.cmip_handler import add_conditions_to_ds, read_ds
+from optim_esm_tools.analyze.cmip_handler import read_ds
 from optim_esm_tools.analyze.clustering import (
     build_cluster_mask,
     build_weighted_cluster,
 )
 from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
+from optim_esm_tools.analyze.tipping_criteria import rank2d
 from optim_esm_tools.analyze.find_matches import base_from_path
 
 import numpy as np
@@ -30,7 +30,7 @@ import immutabledict
 _two_sigma_percent = 97.72498680518208
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None, keep_dims=('time',)):
+def mask_xr_ds(data_set, da_mask, masked_dims=None):
     if masked_dims is None:
         masked_dims = oet.config.config['analyze']['lon_lat_dim'].split(',')
 
