@@ -8,8 +8,8 @@ def write_error(err_file, message):
         f.write(mm)
     import optim_esm_tools as oet
     oet.config.get_logger().error(message)
-    
-    
+
+
 def parse_args():
     parser = argparse.ArgumentParser( description='make plots')
     parser.add_argument('--path', type=str,)
@@ -33,15 +33,15 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
     constructors = [getattr(optim_esm_tools.analyze.region_finding, meth, 'not found') for meth in methods]
     if any(c=='not found' for c in constructors): raise ValueError(f'One or more non-existing methods {methods}')
 
-    from optim_esm_tools.analyze.cmip_handler import read_ds    
-        
+    from optim_esm_tools.analyze.cmip_handler import read_ds
+
     log.warning('Read path')
     read_ds_kw=read_ds_kw if read_ds_kw is not None else dict()
     ds = read_ds(path, **read_ds_kw)
     kw = dict(data_set=ds, variable=variable, path=None, read_ds_kw=read_ds_kw)
 
     # For cons in constructors
-    for cons in constructors:     
+    for cons in constructors:
         result = cons(**kw, save_kw=save_kw, extra_opt=extra_opt, )
         try:
             masks_and_clusters = result.filter_masks_and_clusters(result.get_masks())
@@ -61,7 +61,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
         result.workflow()
 
     log.warning('All done')
-    
+
 
 def get_log(args):
     from optim_esm_tools.analyze.find_matches import folder_to_dict
@@ -70,12 +70,12 @@ def get_log(args):
 
 def main(log, args):
     try:
-        make_plot(variable=args.variable, 
+        make_plot(variable=args.variable,
                   log=log,
                   path=args.path,
                   save_in=args.save_in,
-                  show=args.show, 
-                  read_ds_kw=args.read_ds_kw, 
+                  show=args.show,
+                  read_ds_kw=args.read_ds_kw,
                   extra_opt=args.extra_opt,
                   methods=args.methods,
                   )

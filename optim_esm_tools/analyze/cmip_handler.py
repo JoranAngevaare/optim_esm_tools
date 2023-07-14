@@ -105,7 +105,9 @@ def read_ds(
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     data_path = os.path.join(base, _file_name)
-    variable_of_interest = variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
+    variable_of_interest = (
+        variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
+    )
 
     if not isinstance(variable_of_interest, str):
         raise ValueError('Only single vars supported')
@@ -128,7 +130,6 @@ def read_ds(
     if os.path.exists(res_file) and _cache:
         return oet.analyze.io.load_glob(res_file)
 
-    
     if not os.path.exists(data_path):
         message = f'No dataset at {data_path}'
         if strict:
