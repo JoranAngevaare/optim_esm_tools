@@ -10,7 +10,8 @@ from warnings import warn
 import matplotlib.pyplot as plt
 
 from immutabledict import immutabledict
-from .plot import default_variable_labels
+from .plot import *
+from matplotlib.colors import LogNorm
 
 # import xrft
 
@@ -37,19 +38,13 @@ class MapMaker(object):
             self.set_normalizations(normalizations)
 
     def set_kw(self):
-        import cartopy.crs as ccrs
-
         self.kw = immutabledict(
             fig=dict(dpi=200, figsize=(14, 10)),
             title=dict(fontsize=12),
             gridspec=dict(hspace=0.3),
             cbar=dict(orientation='horizontal', extend='both'),
-            plot=dict(transform=ccrs.PlateCarree()),
-            subplot=dict(
-                projection=ccrs.PlateCarree(
-                    central_longitude=0.0,
-                ),
-            ),
+            plot=dict(transform=get_cartopy_projection()),
+            subplot=dict(projection=get_cartopy_projection()),
         )
 
     def set_conditions(self, **condition_kwargs):
@@ -196,160 +191,99 @@ class MapMaker(object):
             return self.data_set[condition.short_description]
         return self.__getattribute__(item)
 
-    @staticmethod
-    def _ts_single(time_val, mean, std, plot_kw, fill_kw):
-        if fill_kw is None:
-            fill_kw = dict(alpha=0.4, step='mid')
-        l = mean.plot(**plot_kw)
-
-        if std is not None:
-            # TODO, make this more elegant!
-            # import cftime
-            # plt.fill_between(   [cftime.real_datetime(dd.year, dd.month, dd.day) for dd in time_val], mean - std, mean+std, **fill_kw)
-
-            (mean - std).plot(color=l[0]._color, alpha=0.4)
-            (mean + std).plot(color=l[0]._color, alpha=0.4)
-
     def _ts(
         self,
         variable,
-        ds=None,
-        time='time',
-        other_dim=(),
         running_mean=None,
-        fill_kw=None,
-        labels=dict(),
+        no_rm=False,
         only_rm=False,
-        **plot_kw,
+        labels=None,
+        **kw,
     ):
-        running_mean = (
-            running_mean or oet.config.config['analyze']['moving_average_years']
-        )
-        if ds is None:
-            ds = self.data_set
-        if not only_rm:
-            mean, std = self._mean_and_std(ds, variable, other_dim)
-            # return mean, std
-            plot_kw['label'] = labels.get(variable, variable)
-            self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+        variable = variable or self.variable
+        rm = running_mean or oet.config.config['analyze']['moving_average_years']
+        _vars = [variable, f'{variable}_run_mean_{rm}']
+        assert no_rm + only_rm < 2, 'Cannot show nothing?!'
 
-        mean, std = self._mean_and_std(
-            ds, f'{variable}_run_mean_{running_mean}', other_dim
-        )
-        plot_kw['label'] = labels.get(
-            f'{variable}_run_mean_{running_mean}',
-            f'{variable} running mean {running_mean}',
-        )
-        self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
+        if isinstance(labels, ty.Mapping):
+            labels = [labels.get(k, k) for k in _vars]
 
-        plt.ylabel(f'{self.variable_name(variable)} [{self.unit(variable)}]')
-        plt.legend()
-        plt.title('')
+        if only_rm or no_rm:
+            keep_idx = slice(0, 1) if no_rm else slice(-1, None)
+            _vars = _vars[keep_idx]
+            if labels is not None:
+                labels = labels[keep_idx]
+
+        self._ts_for_vars(_vars, labels=labels, **kw)
+
+    def _ts_for_vars(self, variables, labels=None, **plot_kw):
+        variables = oet.utils.to_str_tuple(variables)
+        labels = labels or [None] * len(variables)
+        if not len(variables) == len(labels):
+            raise ValueError(
+                f'Inconsistent number of vars and labels {variables, labels}'
+            )
+        plot_kw.setdefault('ds', self.data_set)
+        assert 'ds' in plot_kw
+        for v, l in zip(variables, labels):
+            l = l or default_variable_labels().get(v, v)
+            plot_simple(var=v, label=l, **plot_kw)
 
     def _det_ts(
         self,
         variable,
-        ds=None,
-        time='time',
-        other_dim=(),
-        running_mean=None,
-        fill_kw=None,
-        labels=dict(),
-        only_rm=False,
         **plot_kw,
     ):
-        running_mean = (
-            running_mean or oet.config.config['analyze']['moving_average_years']
+        self._ts(
+            f'{variable}_detrend',
+            **plot_kw,
         )
-        if ds is None:
-            ds = self.data_set
-        if not only_rm:
-            mean, std = self._mean_and_std(ds, f'{variable}_detrend', other_dim)
-            plot_kw['label'] = labels.get(
-                f'{variable}_detrend', f'detrended {variable}'
-            )
-            self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-
-        mean, std = self._mean_and_std(
-            ds, f'{variable}_detrend_run_mean_{running_mean}', other_dim
-        )
-        plot_kw['label'] = labels.get(
-            f'{variable}_detrend_run_mean_{running_mean}',
-            f'detrended {variable} running mean {running_mean}',
-        )
-        self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-        plt.ylabel(f'Detrend {self.variable_name(variable)} [{self.unit(variable)}]')
-        plt.legend()
-        plt.title('')
 
     def _ddt_ts(
         self,
         variable,
         ds=None,
         time='time',
-        other_dim=(),
         running_mean=None,
-        fill_kw=None,
-        labels=dict(),
-        only_rm=False,
         **plot_kw,
     ):
-        running_mean = (
-            running_mean or oet.config.config['analyze']['moving_average_years']
-        )
-        if ds is None:
-            ds = self.data_set
-        variable_rm = f'{variable}_run_mean_{running_mean}'
+        ds = (ds or self.data_set).copy()
 
-        da = ds[variable]
-        da_rm = ds[variable_rm]
+        rm = running_mean or oet.config.config['analyze']['moving_average_years']
+        var_rm = f'{variable}_run_mean_{rm}'
 
-        if other_dim:
-            da = da.mean(other_dim)
-            da_rm = da_rm.mean(other_dim)
-        if not only_rm:
+        for var in variable, var_rm:
             # Dropna should take care of any nones in the data-array
-            dy_dt = da.dropna(time).differentiate(time)
+            da = ds[var]
+            # non_time_dim = set(da.dims) - {'time'}
+            # if non_time_dim:
+            #     da = da.mean(non_time_dim)
+            dy_dt = da.differentiate(time)
             dy_dt *= _SECONDS_TO_YEAR
-            # mean, std = self._mean_and_std(dy_dt, variable=None, other_dim=other_dim)
-            # plot_kw['label'] = variable
-            # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-            label = labels.get(variable, variable)
-            dy_dt.plot(label=label, **plot_kw)
+            ds[f'dt_{var}'] = dy_dt
 
-        dy_dt_rm = da_rm.dropna(time).differentiate(time)
-        dy_dt_rm *= _SECONDS_TO_YEAR
-        label = f"{labels.get(variable_rm, f'{variable} running mean {running_mean}')}"
-        dy_dt_rm.plot(label=label, **plot_kw)
-        # mean, std = self._mean_and_std(dy_dt_rm, variable=None, other_dim=other_dim)
-        # plot_kw['label'] = variable
-        # self._ts_single(ds[time].values, mean, std, plot_kw, fill_kw)
-
-        plt.ylim(dy_dt_rm.min() / 1.05, dy_dt_rm.max() * 1.05)
-        plt.ylabel(
-            f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        plot_kw['ds'] = ds
+        # need to extract labels as derivatives have no defaults
+        labels = plot_kw.pop('labels', None) or default_variable_labels()
+        self._ts(
+            f'dt_{variable}',
+            labels=[labels.get(var, var) for var in (variable, var_rm)],
+            **plot_kw,
         )
+
+        plt.ylim(ds[f'dt_{var_rm}'].min() / 1.05, ds[f'dt_{var_rm}'].max() * 1.05)
+        ylab = f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        plt.ylabel(ylab)
         plt.legend()
         plt.title('')
-
-    @staticmethod
-    def _mean_and_std(ds, variable, other_dim):
-        if variable is None:
-            da = ds
-        else:
-            da = ds[variable]
-        if other_dim is None:
-            return da, None
-        return da.mean(other_dim), da.std(other_dim)
 
     @oet.utils.timed()
     def time_series(
         self,
         variable=None,
-        time='time',
         other_dim=None,
         running_mean=None,
-        interval=True,
+        interval=None,
         axes=None,
         **kw,
     ):
@@ -360,35 +294,23 @@ class MapMaker(object):
             if other_dim is not None
             else oet.config.config['analyze']['lon_lat_dim'].split(',')
         )
-        running_mean = (
-            running_mean or oet.config.config['analyze']['moving_average_years']
-        )
-        if interval is False:
-            ds = ds.copy().mean(other_dim)
-            other_dim = None
+        rm = running_mean or oet.config.config['analyze']['moving_average_years']
+        if interval is not None:
+            oet.config.get_logger().warning('Interval kwarg is replaced by show_std')
+            kw['show_std'] = interval
 
-        plot_kw = dict(**kw)
-
+        plot_kw = dict(variable=variable, ds=ds, running_mean=rm, **kw)
         if axes is None:
             _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
-        self._ts(
-            variable, ds=ds, running_mean=running_mean, other_dim=other_dim, **plot_kw
-        )
+        self._ts(**plot_kw)
 
         plt.sca(axes[1])
-        self._det_ts(
-            variable, ds=ds, running_mean=running_mean, other_dim=other_dim, **plot_kw
-        )
+        self._det_ts(**plot_kw)
 
         plt.sca(axes[2])
         self._ddt_ts(
-            variable,
-            ds=ds,
-            time=time,
-            running_mean=running_mean,
-            other_dim=other_dim,
             **plot_kw,
         )
 
@@ -414,12 +336,7 @@ class MapMaker(object):
         )
 
     def unit(self, variable):
-        if 'units' not in self.data_set[variable].attrs:
-            oet.config.get_logger().warning(
-                f'No units for {variable} in {self.data_set}'
-            )
-            # raise ValueError( self.data_set.attrs, self.data_set[variable].attrs, variable)
-        return self.data_set[variable].attrs.get('units', f'?').replace('%', '\%')
+        return get_unit(self.data_set, variable)
 
 
 class HistoricalMapMaker(MapMaker):
@@ -481,6 +398,88 @@ class HistoricalMapMaker(MapMaker):
         if item in self.conditions:
             return self.get_compare(item)
         return self.__getattribute__(item)
+
+
+def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
+    if other_dim is None:
+        other_dim = set(ds[var].dims) - {'time'}
+    mean = ds[var].mean(other_dim)
+    l = mean.plot(**kw)
+    if show_std:
+        std_kw = std_kw or dict()
+        for k, v in kw.items():
+            std_kw.setdefault(k, v)
+        std_kw.setdefault('alpha', 0.4)
+        std_kw.pop('label', None)
+        std = ds[var].std(other_dim)
+        (mean - std).plot(color=l[0]._color, **std_kw)
+        (mean + std).plot(color=l[0]._color, **std_kw)
+
+    set_y_lim_var(var)
+    plt.ylabel(
+        f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
+    )
+    plt.title('')
+
+
+@oet.utils.check_accepts(accepts=dict(plot=('i', 'ii', 'iii', 'iv', 'v', None)))
+def summarize_mask(
+    data_set, one_mask, plot_kw=None, other_dim=None, plot='v', fig_kw=None
+):
+    plot_kw = plot_kw or dict(show_std=True)
+    other_dim = other_dim or oet.config.config['analyze']['lon_lat_dim'].split(',')
+    fig_kw = fig_kw or dict(
+        mosaic='a.\nb.',
+        figsize=(17, 6),
+        gridspec_kw=dict(width_ratios=[1, 1], wspace=0.1, hspace=0.05),
+    )
+
+    ds_sel = oet.analyze.region_finding.mask_xr_ds(data_set.copy(), one_mask)
+    mm_sel = MapMaker(ds_sel)
+    fig, axes = plt.subplot_mosaic(**fig_kw)
+
+    axes['b'].sharex(axes['a'])
+
+    plt.sca(axes['a'])
+    var = mm_sel.variable
+    plot_simple(ds_sel, var, **plot_kw)
+
+    plt.sca(axes['b'])
+    var = f'{mm_sel.variable}_detrend'
+    plot_simple(ds_sel, var, **plot_kw)
+
+    if plot is None:
+        ds_dummy = ds_sel.copy()
+        ds_dummy['cell_area'] /= 1e6
+
+        ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
+        tot_area = float(ds_dummy['cell_area'].sum(skipna=True))
+
+        ds_dummy['cell_area'].values[ds_dummy['cell_area'] > 0] = tot_area
+        ds_dummy['cell_area'].plot(
+            vmin=1,
+            vmax=510100000,
+            norm=LogNorm(),
+            cbar_kwargs={
+                **mm_sel.kw.get('cbar', {}),
+                **dict(extend='neither', label='Sum of area [km$^2$]'),
+            },
+        )
+        ax.coastlines()
+        exponent = int(np.log10(tot_area))
+
+        plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{exponent}$ km$^2$')
+        gl = ax.gridlines(draw_labels=True)
+        gl.top_labels = False
+        gl.right_labels = False
+    else:
+        ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
+        mm_sel.plot_i(label=plot, ax=ax, coastlines=True)
+    plt.suptitle(mm_sel.title, y=0.97)
+    axes = list(axes.values()) + [ax]
+    # Remove labels of top left axis.
+    plt.setp(axes[0].get_xticklabels(), visible=False)
+    return axes
 
 
 def make_title(ds):

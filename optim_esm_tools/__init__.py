@@ -8,3 +8,7 @@ from . import analyze
 from . import synda_files
 from . import _test_utils
 from . import plotting
+
+# Forward some of the essential tools to this main
+from .analyze.cmip_handler import read_ds
+from .plotting.map_maker import MapMaker

@@ -50,12 +50,15 @@ class TestMapMaker(unittest.TestCase):
         oet.plotting.map_maker.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
-    def test_map_maker_time_series(self):
+    def test_map_maker_time_series(self, **kw):
         data_set = oet.analyze.cmip_handler.read_ds(
             os.path.split(self.ayear_file)[0], _file_name=self.name_merged
         )
-        oet.plotting.map_maker.MapMaker(data_set=data_set).time_series()
+        oet.plotting.map_maker.MapMaker(data_set=data_set).time_series(**kw)
         plt.clf()
+
+    def test_map_maker_time_series_only_running_mean(self):
+        self.test_map_maker_time_series(only_rm=True)
 
     @classmethod
     def tearDownClass(cls) -> None:

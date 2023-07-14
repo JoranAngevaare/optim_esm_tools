@@ -1,13 +1,13 @@
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.analyze.cmip_handler import add_conditions_to_ds, read_ds
+from optim_esm_tools.analyze.cmip_handler import read_ds
 from optim_esm_tools.analyze.clustering import (
     build_cluster_mask,
     build_weighted_cluster,
 )
 from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.tipping_criteria import var_to_perc, rank2d
+from optim_esm_tools.analyze.tipping_criteria import rank2d
 from optim_esm_tools.analyze.find_matches import base_from_path
 
 import numpy as np
@@ -30,7 +30,7 @@ import immutabledict
 _two_sigma_percent = 97.72498680518208
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None, keep_dims=('time',)):
+def mask_xr_ds(data_set, da_mask, masked_dims=None):
     if masked_dims is None:
         masked_dims = oet.config.config['analyze']['lon_lat_dim'].split(',')
 
@@ -207,11 +207,23 @@ class RegionExtractor:
         self.log.warn(f'Keeping {len(ret_m)}/{len(masks_and_clusters[0])} of masks')
         return ret_m, ret_c
 
+    def _summarize_mask(self, mask, plot=None):
+        axes = oet.plotting.map_maker.summarize_mask(self.data_set, mask, plot=plot)
+        plt.suptitle(self.title)
+        return axes
+
+    def store_masks(self, masks):
+        for m_i, mask in enumerate(masks):
+            if np.sum(mask) == 0:
+                continue
+            self._summarize_mask(mask)
+            plt.suptitle(self.title + f' cluster {m_i}')
+            self.save(f'{self.title_label}_cluster_{m_i}')
+
 
 class MaxRegion(RegionExtractor):
     def get_masks(self) -> dict:
         """Get mask for max of ii and iii and a box arround that"""
-        labels = [crit.short_description for crit in self.criteria]
 
         def _val(label):
             return self.data_set[label].values
@@ -219,7 +231,7 @@ class MaxRegion(RegionExtractor):
         def _max(label):
             return _val(label)[~np.isnan(_val(label))].max()
 
-        masks = {label: _val(label) == _max(label) for label in labels}
+        masks = [_val(label) == _max(label) for label in self._labels]
         return masks, [None for _ in range(len(masks))]
 
     @apply_options
@@ -236,10 +248,12 @@ class MaxRegion(RegionExtractor):
         self._plot_masks(masks=masks, ax=ax, legend=legend)
         self.save(f'{self.title_label}_map_maxes_{"-".join(self.labels)}')
 
+        self.store_masks(masks)
+
     @apply_options
     def _plot_masks(self, masks, ax=None, legend=True):
         points = {}
-        for key, mask_2d in masks.items():
+        for key, mask_2d in zip(self._labels, masks):
             points[key] = self._mask_to_coord(mask_2d)
         if ax is None:
             oet.plotting.plot.setup_map()
@@ -288,7 +302,7 @@ class MaxRegion(RegionExtractor):
         legend_kw = oet.utils.legend_kw(
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
         )
-        for label, mask_2d in zip(self.labels, masks.values()):
+        for label, mask_2d in zip(self._labels, masks):
             x, y = self._mask_to_coord(mask_2d)
             plot_labels = {
                 f'{self.variable}': f'{label} at {x:.1f}:{y:.1f}',
@@ -318,6 +332,10 @@ class MaxRegion(RegionExtractor):
         for ax in axes:
             ax.legend(**legend_kw)
         plt.suptitle(f'Max. {"-".join(self.labels)} {self.title}', y=0.95)
+
+    @property
+    def _labels(self):
+        return [crit.short_description for crit in self.criteria]
 
 
 class Percentiles(RegionExtractor):
@@ -404,6 +422,8 @@ class Percentiles(RegionExtractor):
         )
         self.save(f'{self.title_label}_map_clusters_{"-".join(self.labels)}')
 
+        self.store_masks(masks_and_clusters[0])
+
     @apply_options
     def _plot_masks(
         self,
@@ -425,11 +445,13 @@ class Percentiles(RegionExtractor):
         if ax is None:
             setup_map()
             ax = plt.gca()
+
+        # Remember, cell_area is in m^2, hence the 1e6 below. Should we get this from the attrs?
         if mask_cbar_kw is None:
             mask_cbar_kw = dict(extend='neither', label='Area per cluster [km$^2$]')
         mask_cbar_kw.setdefault('orientation', 'horizontal')
 
-        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks)
+        ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks / 1e6)
 
         ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
         plt.title('')

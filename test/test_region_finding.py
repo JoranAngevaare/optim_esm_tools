@@ -47,7 +47,7 @@ class Work(unittest.TestCase):
                 dpi=25,
                 skip=skip_save,
             )
-            ## REMEMBER THE CACHE = TRUE!
+
             region_finder = cls(
                 path=head,
                 read_ds_kw=dict(
@@ -57,7 +57,7 @@ class Work(unittest.TestCase):
                 extra_opt=extra_opt,
             )
             region_finder.show = False
-            ## REMEMBER THE CACHE = TRUE!
+
             region_finder.workflow()
             return region_finder
 

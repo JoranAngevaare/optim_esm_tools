@@ -149,10 +149,10 @@ def read_ds(
         )
     data_set = oet.analyze.io.load_glob(data_path, load=load)
 
-    # if os.path.exists(temp_file):
-    #     # Maybe we can make this optional, but, for now, let's prevent double caching of
-    #     # res_file and temp_file
-    #     os.remove(temp_file)
+    if os.path.exists(temp_file):
+        # Maybe we can make this optional, but, for now, let's prevent double caching of
+        # res_file and temp_file
+        os.remove(temp_file)
 
     if apply_transform:
         data_set = add_conditions_to_ds(

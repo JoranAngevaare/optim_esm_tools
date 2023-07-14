@@ -2,6 +2,7 @@ from optim_esm_tools.utils import timed
 from optim_esm_tools.config import config, get_logger
 import os
 import typing as ty
+import xarray as xr
 
 
 @timed
@@ -40,6 +41,7 @@ def pre_process(
     """
     import cdo
 
+    _remove_bad_vars(source)
     variable_id = variable_id or _read_variable_id(source)
     max_time = max_time or (9999, 1, 1)  # unreasonably far away
     min_time = min_time or (0, 1, 1)  # unreasonably long ago
@@ -104,6 +106,25 @@ def pre_process(
     return save_as
 
 
+def _remove_bad_vars(path):
+    log = get_logger()
+    to_delete = config['analyze']['remove_vars']
+    ds = xr.open_dataset(path)
+    drop_any = False
+    for var in to_delete:
+        if var in ds.data_vars:
+            log.warning(f'{var} in dataset from {path}')
+            drop_any = True
+            ds = ds.load()
+            ds = ds.drop_vars(var)
+    if drop_any:
+        log.error(f'Replacing {path} after dropping at least one of {to_delete}')
+        os.remove(path)
+        ds.to_netcdf(path)
+        if not os.path.exists(path):
+            raise RuntimeError(f'Data loss, somehow {path} got removed!')
+
+
 def _fmt_date(date: tuple) -> str:
     assert len(date) == 3
     y, m, d = date
@@ -111,8 +132,6 @@ def _fmt_date(date: tuple) -> str:
 
 
 def _read_variable_id(path):
-    import xarray as xr
-
     try:
         return xr.open_dataset(path).attrs['variable_id']
     except KeyError as e:
