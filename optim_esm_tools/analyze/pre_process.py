@@ -109,7 +109,7 @@ def pre_process(
 
 def _remove_bad_vars(path):
     log = get_logger()
-    to_delete = config['analyze']['remove_vars']
+    to_delete = config['analyze']['remove_vars'].split()
     ds = load_glob(path)
     drop_any = False
     for var in to_delete:
@@ -130,7 +130,9 @@ def _check_time_range(path, max_time, min_time, ma_window):
     ds = load_glob(path)
     times = ds['time'].values
     time_mask = times < _native_date_fmt(times, max_time)
-    time_mask &= times > _native_date_fmt(times, min_time)
+    if min_time !=  (0, 1, 1):
+        # CF time does not always support year 0
+        time_mask &= times > _native_date_fmt(times, min_time)
     if time_mask.sum() < float(ma_window):
         message = f'Data from {path} has {time_mask.sum()} time stamps in [{min_time}, {max_time}]'
         raise NoDataInTimeRangeError(message)

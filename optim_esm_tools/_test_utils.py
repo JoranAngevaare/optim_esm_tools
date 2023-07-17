@@ -40,7 +40,7 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
         raise ValueError(
             'Only tas for now as only areacella is hardcoded (see line below)'
         )
-    data.attrs.update(dict(external_variables='areacella'), variable_id='tas')
+    data.attrs.update(dict(external_variables='areacella', variable_id='tas'))
     os.makedirs(dest_folder, exist_ok=True)
     data.to_netcdf(write_to)
     return write_to
