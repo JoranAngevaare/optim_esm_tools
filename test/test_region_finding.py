@@ -30,6 +30,7 @@ class Work(unittest.TestCase):
     def test_max_region(self, make='MaxRegion', new_opt=None, skip_save=True):
         cls = getattr(region_finding, make)
         file_path = self.get_path('ssp585', refresh=False)
+
         head, tail = os.path.split(file_path)
         extra_opt = dict(
             time_series_joined=True,

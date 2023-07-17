@@ -30,11 +30,11 @@ setuptools.setup(
     package_data={
         'optim_esm_tools': ['data/*', 'optim_esm_tools/*', '*.ini*'],
     },
+    scripts=['bin/oet_plot'],
     setup_requires=['pytest-runner'],
     install_requires=requirements,
     python_requires='>=3.8',
     tests_require=requirements + open_requirements('requirements_tests.txt'),
-    scripts=[],
     keywords=[],
     classifiers=[
         'Intended Audience :: Science/Research',

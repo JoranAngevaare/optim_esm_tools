@@ -40,8 +40,9 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
         raise ValueError(
             'Only tas for now as only areacella is hardcoded (see line below)'
         )
-    data.attrs.update(dict(external_variables='areacella'))
+    data.attrs.update(dict(external_variables='areacella', variable_id='tas'))
     os.makedirs(dest_folder, exist_ok=True)
+    assert data.attrs.get('variable_id')
     data.to_netcdf(write_to)
     return write_to
 
@@ -60,9 +61,10 @@ def year_means(path, refresh=True):
     data = data.groupby('time.year').mean('time')
     data = data.rename(year='time')
     data['time'] = [cftime.DatetimeNoLeap(y, 1, 1) for y in data['time']]
-
+    data.attrs.update(dict(external_variables='areacella', variable_id='tas'))
     os.makedirs(new_dir, exist_ok=True)
     assert os.path.exists(new_dir)
+    assert data.attrs.get('variable_id')
     data.to_netcdf(new_dest)
     return new_dest
 
@@ -113,6 +115,6 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
             lat=lat,
             lon=lon,
         ),
-        attrs=dict(source_id='bla'),
+        attrs=dict(source_id='bla', variable_id='var'),
     )
     return ds_dummy
