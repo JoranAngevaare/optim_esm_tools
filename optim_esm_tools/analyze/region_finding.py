@@ -126,7 +126,7 @@ class RegionExtractor:
         extra_opt.update(dict(read_ds_kw=read_ds_kw))
         self.extra_opt = extra_opt
         self.save_kw = save_kw
-        self.variable = variable or self.data_set.get('variable_id', 'NO_VAR_ID!')
+        self.variable = variable or self.data_set.attrs.get('variable_id', 'NO_VAR_ID!')
 
     @property
     def log(self):

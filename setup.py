@@ -35,7 +35,6 @@ setuptools.setup(
     install_requires=requirements,
     python_requires='>=3.8',
     tests_require=requirements + open_requirements('requirements_tests.txt'),
-    scripts=[],
     keywords=[],
     classifiers=[
         'Intended Audience :: Science/Research',
