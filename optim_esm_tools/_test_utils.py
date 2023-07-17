@@ -60,7 +60,7 @@ def year_means(path, refresh=True):
     data = data.groupby('time.year').mean('time')
     data = data.rename(year='time')
     data['time'] = [cftime.DatetimeNoLeap(y, 1, 1) for y in data['time']]
-
+    data.attrs.update(dict(external_variables='areacella', variable_id='tas'))
     os.makedirs(new_dir, exist_ok=True)
     assert os.path.exists(new_dir)
     data.to_netcdf(new_dest)
