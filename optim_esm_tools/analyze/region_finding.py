@@ -207,18 +207,21 @@ class RegionExtractor:
         self.log.warn(f'Keeping {len(ret_m)}/{len(masks_and_clusters[0])} of masks')
         return ret_m, ret_c
 
+    @plt_show
+    def summarize_mask(self, mask, m_i):
+        self._summarize_mask(mask)
+        plt.suptitle(self.title + f' cluster {m_i}')
+        self.save(f'{self.title_label}_cluster_{m_i}')
+
     def _summarize_mask(self, mask, plot=None):
         axes = oet.plotting.map_maker.summarize_mask(self.data_set, mask, plot=plot)
-        plt.suptitle(self.title)
         return axes
 
-    def store_masks(self, masks):
+    def make_mask_figures(self, masks):
         for m_i, mask in enumerate(masks):
             if np.sum(mask) == 0:
                 continue
-            self._summarize_mask(mask)
-            plt.suptitle(self.title + f' cluster {m_i}')
-            self.save(f'{self.title_label}_cluster_{m_i}')
+            self.summarize_mask(mask, m_i)
 
 
 class MaxRegion(RegionExtractor):
@@ -248,7 +251,7 @@ class MaxRegion(RegionExtractor):
         self._plot_masks(masks=masks, ax=ax, legend=legend)
         self.save(f'{self.title_label}_map_maxes_{"-".join(self.labels)}')
 
-        self.store_masks(masks)
+        self.make_mask_figures(masks)
 
     @apply_options
     def _plot_masks(self, masks, ax=None, legend=True):
@@ -422,7 +425,7 @@ class Percentiles(RegionExtractor):
         )
         self.save(f'{self.title_label}_map_clusters_{"-".join(self.labels)}')
 
-        self.store_masks(masks_and_clusters[0])
+        self.make_mask_figures(masks_and_clusters[0])
 
     @apply_options
     def _plot_masks(
