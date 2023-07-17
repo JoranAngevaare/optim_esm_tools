@@ -130,7 +130,7 @@ def _check_time_range(path, max_time, min_time, ma_window):
     ds = load_glob(path)
     times = ds['time'].values
     time_mask = times < _native_date_fmt(times, max_time)
-    if min_time !=  (0, 1, 1):
+    if min_time != (0, 1, 1):
         # CF time does not always support year 0
         time_mask &= times > _native_date_fmt(times, min_time)
     if time_mask.sum() < float(ma_window):
