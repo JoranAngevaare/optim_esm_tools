@@ -606,7 +606,7 @@ class PercentilesHistory(Percentiles):
         search = oet.analyze.find_matches.folder_to_dict(self.data_set.attrs['path'])
         search['activity_id'] = 'CMIP'
         if search['experiment_id'] == match_to:
-            raise NotImplementedError()
+            raise NotImplementedError(f'Cannot match {match_to} to itself!')
         search['experiment_id'] = match_to
         if search_kw:
             search.update(search_kw)
