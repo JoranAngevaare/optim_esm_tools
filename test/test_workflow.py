@@ -60,6 +60,14 @@ class TestMapMaker(unittest.TestCase):
     def test_map_maker_time_series_only_running_mean(self):
         self.test_map_maker_time_series(only_rm=True)
 
+    def test_date_out_of_range(self):
+        with self.assertRaises(oet.analyze.pre_process.NoDataInTimeRangeError):
+            oet.read_ds(
+                os.path.split(self.ayear_file)[0],
+                _file_name=self.name_merged,
+                min_time=(3000, 1, 1),
+            )
+
     @classmethod
     def tearDownClass(cls) -> None:
         os.remove(cls.ayear_file)

@@ -1,8 +1,9 @@
 from optim_esm_tools.utils import timed
 from optim_esm_tools.config import config, get_logger
+from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
+from optim_esm_tools.analyze.io import load_glob
 import os
 import typing as ty
-import xarray as xr
 
 
 @timed
@@ -45,9 +46,9 @@ def pre_process(
     variable_id = variable_id or _read_variable_id(source)
     max_time = max_time or (9999, 1, 1)  # unreasonably far away
     min_time = min_time or (0, 1, 1)  # unreasonably long ago
-
     target_grid = target_grid or config['analyze']['regrid_to']
     _ma_window = _ma_window or config['analyze']['moving_average_years']
+    _check_time_range(source, max_time, min_time, _ma_window)
 
     cdo_int = cdo.Cdo()
     head, _ = os.path.split(source)
@@ -109,7 +110,7 @@ def pre_process(
 def _remove_bad_vars(path):
     log = get_logger()
     to_delete = config['analyze']['remove_vars']
-    ds = xr.open_dataset(path)
+    ds = load_glob(path)
     drop_any = False
     for var in to_delete:
         if var in ds.data_vars:
@@ -125,6 +126,20 @@ def _remove_bad_vars(path):
             raise RuntimeError(f'Data loss, somehow {path} got removed!')
 
 
+def _check_time_range(path, max_time, min_time, ma_window):
+    ds = load_glob(path)
+    times = ds['time'].values
+    time_mask = times < _native_date_fmt(times, max_time)
+    time_mask &= times > _native_date_fmt(times, min_time)
+    if time_mask.sum() < float(ma_window):
+        message = f'Data from {path} has {time_mask.sum()} time stamps in [{min_time}, {max_time}]'
+        raise NoDataInTimeRangeError(message)
+
+
+class NoDataInTimeRangeError(Exception):
+    pass
+
+
 def _fmt_date(date: tuple) -> str:
     assert len(date) == 3
     y, m, d = date
@@ -133,7 +148,7 @@ def _fmt_date(date: tuple) -> str:
 
 def _read_variable_id(path):
     try:
-        return xr.open_dataset(path).attrs['variable_id']
+        return load_glob(path).attrs['variable_id']
     except KeyError as e:
         raise KeyError(
             f'When reading the variable_id from {path}, it appears no such information is available'
