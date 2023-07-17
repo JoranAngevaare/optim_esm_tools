@@ -30,6 +30,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
                                                                    ), skip= False, )
     from optim_esm_tools.utils import setup_plt
     import optim_esm_tools.analyze.region_finding
+    from optim_esm_tools.analyze.pre_process import NoDataInTimeRangeError
     setup_plt()
     constructors = [getattr(optim_esm_tools.analyze.region_finding, meth, 'not found') for meth in methods]
     if any(c=='not found' for c in constructors): raise ValueError(f'One or more non-existing methods {methods}')
@@ -49,7 +50,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
             if masks_and_clusters[0] == []:
                 log.warning(f'No results for {result.__class__.__name__} - masks are empty')
                 continue
-        except RuntimeError:
+        except NoDataInTimeRangeError:
              log.error('No match, not making historical')
              continue
         except ValueError as e:
