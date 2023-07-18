@@ -11,7 +11,7 @@
 **patches**
 * Raise error for invalid dates by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/84
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/86
-
+* Ready for release v1.0.0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/87 
 
 **Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.5.0...v1.0.0
 
