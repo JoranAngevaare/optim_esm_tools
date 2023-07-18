@@ -50,7 +50,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
             if masks_and_clusters[0] == []:
                 log.warning(f'No results for {result.__class__.__name__} - masks are empty')
                 continue
-        except (NoDataInTimeRangeError, NotImplementedError):
+        except (NoDataInTimeRangeError, NotImplementedError, RuntimeError):
              log.error(f'No match, not making {result.__class__.__name__}')
              continue
         except ValueError as e:
@@ -90,11 +90,17 @@ if __name__ == '__main__':
     if args.profile_memory:
         from memory_profiler import memory_usage
         import time
+        import numpy as np
+
         log = get_log(args)
         start = time.time()
         mem = memory_usage(proc=(main, (log, args,)), max_iterations=1)
-        log.warning(f"Memory profiler says peak RAM usage was: {max(mem):.1f} MB")
-        log.error(f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h ')
+        message = f"Memory profiler says peak RAM usage was: {max(mem):.1f} MB, average: {np.mean(mem): .1f} MB"
+        log.warning(message)
+        print(message)
+        message = f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h '
+        log.warning(message)
+        print(message)
         # print(f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h ')
         log.info('Bye, bye')
     else:

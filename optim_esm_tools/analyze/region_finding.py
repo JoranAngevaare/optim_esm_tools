@@ -319,7 +319,7 @@ class MaxRegion(RegionExtractor):
             axes = mm_sel.time_series(
                 variable=self.variable,
                 other_dim=(),
-                interval=False,
+                show_std=False,
                 labels=plot_labels,
                 axes=axes,
                 only_rm=only_rm,
@@ -534,7 +534,7 @@ class Percentiles(RegionExtractor):
             mm_sel = MapMaker(ds_sel)
             axes = mm_sel.time_series(
                 variable=self.variable,
-                interval=True,
+                show_std=True,
                 labels=plot_labels,
                 axes=axes,
                 only_rm=only_rm,
@@ -738,14 +738,16 @@ class LocalHistory(PercentilesHistory):
         return masks, clusters
 
     @apply_options
-    def _plot_basic_map(self, normalizations=None, read_ds_kw=None):
+    def _plot_basic_map(self, historical_normalizations=None, read_ds_kw=None):
         read_ds_kw = read_ds_kw or dict()
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)
         ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
 
         mm = HistoricalMapMaker(
-            self.data_set, ds_historical=ds_historical, normalizations=normalizations
+            self.data_set,
+            ds_historical=ds_historical,
+            normalizations=historical_normalizations,
         )
         mm.plot_selected()
         plt.suptitle(self.title, y=0.95)
