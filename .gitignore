@@ -18,3 +18,4 @@ optism_esm_tools.egg-info/*
 .coverage
 optim_esm_tools/optim_esm_tools.egg-info
 *.egg-info
+cmip/data*

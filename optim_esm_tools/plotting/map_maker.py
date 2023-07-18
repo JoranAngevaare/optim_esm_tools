@@ -24,6 +24,8 @@ class MapMaker(object):
     labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
     contitions: ty.Mapping
+    normalizations: ty.Optional[ty.Mapping] = None
+    _cache: bool = False
 
     def __init__(
         self,
@@ -63,10 +65,6 @@ class MapMaker(object):
             label: condition for label, condition in zip(self.labels, conditions)
         }
         self.labels = tuple(self.conditions.keys())
-
-    normalizations: ty.Optional[ty.Mapping] = None
-
-    _cache: bool = False
 
     def get_normalizations(self, normalizations=None):
         normalizations_start = (
@@ -348,7 +346,10 @@ class HistoricalMapMaker(MapMaker):
 
     @staticmethod
     def calculate_ratio_and_max(da, da_historical):
-        result = da / da_historical
+        mask_divide_by_zero = (da_historical == 0) & (da > 0)
+        denominator = da_historical.values
+        denominator[denominator == 0] = np.inf
+        result = da / denominator
         ret_array = result.values
         if len(ret_array) == 0:
             raise ValueError(
@@ -356,7 +357,7 @@ class HistoricalMapMaker(MapMaker):
                 f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
             )
         max_val = np.nanmax(ret_array)
-        mask_divide_by_zero = (da_historical == 0) & (da > 0)
+
         # Anything clearly larger than the max val
         ret_array[mask_divide_by_zero.values] = 10 * max_val
         result.data = ret_array

@@ -1,3 +1,21 @@
+1.0.0 / 2023-07-18
+------------------
+**major change**
+* Harmonize preprocessing with `cdo` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/81
+
+**minor changes**
+* Plotting routine for masked regions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/82
+* Plot region mask by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/85
+* Add plot maker by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/83
+
+**patches**
+* Raise error for invalid dates by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/84
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/86
+* Ready for release v1.0.0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/87
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.5.0...v1.0.0
+
+
 0.5.0 / 2023-07-07
 ------------------
 **Last release before refactoring pre-processing**
