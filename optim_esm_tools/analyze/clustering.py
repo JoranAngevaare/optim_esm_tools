@@ -174,10 +174,9 @@ def build_weighted_cluster(
 def _check_input(data, lon_coord, lat_coord):
     """Check for consistancy and if we need to convert the lon/lat coordinates to a meshgrid"""
     if len(lon_coord.shape) <= 1:
-        get_logger().warning('Expected lon and lat values, but got x, y values')
-        # seperate x, y values, bad practice?
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
+        # In an older version, this would have been the default.
         lon, lat = lon_coord, lat_coord
 
     if data.shape != lon.shape or data.shape != lat.shape:

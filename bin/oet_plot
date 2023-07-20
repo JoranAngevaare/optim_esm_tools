@@ -37,7 +37,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
 
     from optim_esm_tools.analyze.cmip_handler import read_ds
 
-    log.warning('Read path')
+    log.info('Read path')
     read_ds_kw=read_ds_kw if read_ds_kw is not None else dict()
     ds = read_ds(path, **read_ds_kw)
     kw = dict(data_set=ds, variable=variable, path=None, read_ds_kw=read_ds_kw)
@@ -59,7 +59,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
                 continue
             raise e
         result.show=show
-        log.warning(f'====== {result.__class__.__name__} ======')
+        log.warning(f'{result.__class__.__name__}')
         result.workflow()
 
     log.warning('All done')
@@ -91,17 +91,13 @@ if __name__ == '__main__':
         from memory_profiler import memory_usage
         import time
         import numpy as np
-
         log = get_log(args)
         start = time.time()
         mem = memory_usage(proc=(main, (log, args,)), max_iterations=1)
-        message = f"Memory profiler says peak RAM usage was: {max(mem):.1f} MB, average: {np.mean(mem): .1f} MB"
+        message = f"RAM usage was: {max(mem):.0f} MB (max), {np.mean(mem): .0f} MB (avg). "
+        message += f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h '
         log.warning(message)
         print(message)
-        message = f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h '
-        log.warning(message)
-        print(message)
-        # print(f'Took {time.time() - start:.1f} s = {(time.time() - start) / 3600:.2f} h ')
         log.info('Bye, bye')
     else:
         log = get_log(args)
