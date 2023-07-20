@@ -9,6 +9,7 @@ from optim_esm_tools.analyze.clustering import (
 from optim_esm_tools.plotting.plot import setup_map, _show
 from optim_esm_tools.analyze.tipping_criteria import rank2d
 from optim_esm_tools.analyze.find_matches import base_from_path
+from .globals import _CMIP_HANDLER_VERSION
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,6 +21,7 @@ from functools import wraps
 import inspect
 import matplotlib.pyplot as plt
 import immutabledict
+import os
 
 
 # >>> import scipy
@@ -30,11 +32,43 @@ import immutabledict
 _two_sigma_percent = 97.72498680518208
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None):
+def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
+    # Modify the ds in place - make a copy!
+    data_set = data_set.copy()
     if masked_dims is None:
         masked_dims = oet.config.config['analyze']['lon_lat_dim'].split(',')
 
     ds_start = data_set.copy()
+    func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
+    data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
+    data_set = data_set.assign_attrs(ds_start.attrs)
+    return data_set
+
+
+def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
+    """Drop values with masked_dims dimentions.
+    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to bad results,
+    for example for time_bnds (time, bnds) being dropped by (lon, lat). So we have to do
+    some funny bookkeeping of which datavars we can drop with data_set.where.
+    """
+
+    dropped = []
+    for k, data_array in data_set.data_vars.items():
+        if not all(dim in list(data_array.dims) for dim in masked_dims):
+            dropped += [k]
+
+    data_set = data_set.drop_vars(dropped)
+
+    data_set = data_set.where(da_mask, drop=True)
+
+    # Restore ignored variables and attributes
+    for k in dropped:
+        data_set[k] = ds_start[k]
+    return data_set
+
+
+def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
+    """Rebuild data_set for each variabled that has all masked_dims"""
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             # First dim is time?
@@ -45,7 +79,7 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None):
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da
-    data_set = data_set.assign_attrs(ds_start.attrs)
+
     return data_set
 
 
@@ -204,7 +238,7 @@ class RegionExtractor:
                 ret_m.append(m)
                 ret_c.append(c)
 
-        self.log.warn(f'Keeping {len(ret_m)}/{len(masks_and_clusters[0])} of masks')
+        self.log.info(f'Keeping {len(ret_m)}/{len(masks_and_clusters[0])} of masks')
         return ret_m, ret_c
 
     @plt_show
@@ -212,6 +246,26 @@ class RegionExtractor:
         self._summarize_mask(mask)
         plt.suptitle(self.title + f' cluster {m_i}')
         self.save(f'{self.title_label}_cluster_{m_i}')
+
+        self.store_mask(mask, m_i)
+
+    @apply_options
+    def store_mask(self, mask, m_i, store_masks=True):
+        if not store_masks:
+            return
+        save_in = self.save_kw['save_in']
+        store_in_dir = os.path.join(save_in, 'masks')
+        os.makedirs(store_in_dir, exist_ok=True)
+        # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
+        # While we could make this more efficient (and only use the second step), the first step does only take ~10 ms
+        ds_masked = mask_xr_ds(self.data_set.copy(), mask)
+        ds_masked = mask_xr_ds(ds_masked, ~ds_masked['cell_area'].isnull(), drop=True)
+        ds_masked.to_netcdf(
+            os.path.join(
+                store_in_dir,
+                f'{self.title_label}_cluster-{m_i}_v{_CMIP_HANDLER_VERSION}.nc',
+            )
+        )
 
     def _summarize_mask(self, mask, plot=None):
         axes = oet.plotting.map_maker.summarize_mask(self.data_set, mask, plot=plot)
@@ -621,7 +675,7 @@ class PercentilesHistory(Percentiles):
 
         for try_n, update_query in enumerate(query_updates):
             if try_n:
-                self.log.warning(
+                self.log.info(
                     f'No results after {try_n} try, retying with {update_query}'
                 )
             search.update(update_query)
@@ -717,12 +771,16 @@ class LocalHistory(PercentilesHistory):
         for lab in labels:
             arr = self.data_set[lab].values
             arr_historical = historical_ds[lab].values
-            mask_divide = arr / arr_historical > n_times_historical
+
             # If arr_historical is 0, the devision is going to get a nan assigned,
             # despite this being the most interesting region (no historical
             # changes, only in the scenario's)!
-            mask_no_std = (arr_historical == 0) & (arr > 0)
-            masks.append(mask_divide | mask_no_std)
+            mask_no_std = arr_historical == 0
+            mask_divide = np.zeros_like(mask_no_std)
+            mask_divide[~mask_no_std] = (
+                arr[~mask_no_std] / arr_historical[~mask_no_std] > n_times_historical
+            )
+            masks.append(mask_divide | (mask_no_std & (arr != 0)))
 
         all_mask = np.ones_like(masks[0])
         for m in masks:
