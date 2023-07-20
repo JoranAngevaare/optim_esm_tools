@@ -5,6 +5,7 @@ import typing as ty
 from warnings import warn
 import numba
 from math import sin, cos, sqrt, atan2, radians
+import xarray as xr
 
 
 @timed()
@@ -50,7 +51,7 @@ def build_clusters(
         )
     except ValueError as e:
         raise ValueError(
-            f'With {coordinates_rad.shape} and {weights.shape} {coordinates_rad}, {weights}'
+            f'With {coordinates_rad.shape} and {getattr(weights, "shape", None)} {coordinates_rad}, {weights}'
         ) from e
 
     labels = db_fit.labels_
@@ -80,8 +81,8 @@ def build_clusters(
 @timed()
 def build_cluster_mask(
     global_mask: np.ndarray,
-    lon_coord: np.array,
     lat_coord: np.array,
+    lon_coord: np.array,
     show_tqdm: bool = False,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
@@ -101,19 +102,22 @@ def build_cluster_mask(
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
-    lon, lat = _check_input(global_mask, lon_coord, lat_coord)
-    xy_data = np.array([lon[global_mask], lat[global_mask]])
+    if max_distance_km == 'infer':
+        max_distance_km = _infer_max_step_size(lat_coord, lon_coord)
+    lat, lon = _check_input(
+        global_mask,
+        lat_coord,
+        lon_coord,
+    )
+    xy_data = np.array([lat[global_mask], lon[global_mask]])
 
     if len(xy_data.T) <= 2:
-        warn(f'No data from this mask {xy_data}!')
+        get_logger().info(f'No data from this mask {xy_data}!')
         return [], []
 
-    if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(lon_coord.flatten(), lat_coord.flatten())
-
     masks, clusters = _build_cluster_with_kw(
-        lon,
-        lat,
+        lat=lat,
+        lon=lon,
         coordinates_deg=xy_data,
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
@@ -126,8 +130,8 @@ def build_cluster_mask(
 @timed()
 def build_weighted_cluster(
     weights: np.ndarray,
-    lon_coord: np.array,
     lat_coord: np.array,
+    lon_coord: np.array,
     show_tqdm: bool = False,
     threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
@@ -149,18 +153,17 @@ def build_weighted_cluster(
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
-
-    lon, lat = _check_input(weights, lon_coord, lat_coord)
-    xy_data = np.array([lon.flatten(), lat.flatten()])
-
     if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(lon.flatten(), lat.flatten())
+        max_distance_km = _infer_max_step_size(lat_coord, lon_coord)
 
-    flat_weights = weights.T.flatten()
+    lat, lon = _check_input(weights, lat_coord, lon_coord)
+    xy_data = np.array([lat.flatten(), lon.flatten()])
+
+    flat_weights = weights.flatten()
     mask = flat_weights > threshold
     masks, clusters = _build_cluster_with_kw(
-        lon,
-        lat,
+        lat=lat,
+        lon=lon,
         coordinates_deg=xy_data[:, mask],
         weights=flat_weights[mask],
         show_tqdm=show_tqdm,
@@ -171,21 +174,21 @@ def build_weighted_cluster(
     return masks, clusters
 
 
-def _check_input(data, lon_coord, lat_coord):
+def _check_input(data, lat_coord, lon_coord):
     """Check for consistancy and if we need to convert the lon/lat coordinates to a meshgrid"""
     if len(lon_coord.shape) <= 1:
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
         # In an older version, this would have been the default.
-        lon, lat = lon_coord, lat_coord
+        lat, lon = lat_coord, lon_coord
 
     if data.shape != lon.shape or data.shape != lat.shape:
         message = f'Wrong input {data.shape} != {lon.shape, lat.shape}'
         raise ValueError(message)
-    return lon, lat
+    return lat, lon
 
 
-def _build_cluster_with_kw(lon, lat, show_tqdm=False, **cluster_kw):
+def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
     """Overlapping logic between functions to get the masks and clusters"""
     masks = []
     clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
@@ -193,22 +196,62 @@ def _build_cluster_with_kw(lon, lat, show_tqdm=False, **cluster_kw):
         raise ValueError(f'Got inconsistent input {lat.shape} != {lon.shape}')
     for cluster in clusters:
         mask = np.zeros(lat.shape, np.bool_)
-        for s_x, s_y in tqdm(cluster, desc='fill_mask', disable=not show_tqdm):
+        for coord_lat, coord_lon in tqdm(
+            cluster, desc='fill_mask', disable=not show_tqdm
+        ):
             # This is a bit blunt, but it's fast enough to regain the indexes such that we can build a 2d masked array.
-            mask_x = np.isclose(lon, s_x)
-            mask_y = np.isclose(lat, s_y)
+            mask_x = np.isclose(lon, coord_lon)
+            mask_y = np.isclose(lat, coord_lat)
             mask |= mask_x & mask_y
         masks.append(mask)
     return masks, clusters
 
 
-def _infer_max_step_size(xs, ys):
-    ys = ys[ys > 0]
-    # coords = [[[xs[0], ys[0]], [xs[0], ys[1]]], [[xs[0], ys[0]], [xs[1], ys[0]]]]
-    # Return long:lat
-    coords = [[[ys[0], xs[0]], [ys[0], xs[1]]], [[ys[0], xs[0]], [ys[1], xs[0]]]]
+def _infer_max_step_size(lat, lon, off_by_factor=1.1):
+    if len(lat.shape) == 1:
+        return np.max(calculate_distance_map(lat, lon)) * off_by_factor
+    lat = lat[lat > 0]
+    coords = [
+        [[lat[0], lon[0]], [lat[0], lon[1]]],
+        [[lat[0], lon[0]], [lat[1], lon[0]]],
+    ]
     # Return 2x the distance between grid cells
     return 2 * max(_distance(c) for c in coords)
+
+
+def calculate_distance_map(lat, lon):
+    """For each point in a spanned lat lon grid, calculate the distance to the neighbouring points"""
+    if isinstance(lat, xr.DataArray):
+        lat = lat.values
+        lon = lon.values
+    return _calculate_distance_map(lat, lon)
+
+
+@numba.njit
+def _calculate_distance_map(lat, lon):
+    n_lat = len(lat)
+    n_lon = len(lon)
+    distances = np.zeros((n_lat, n_lon))
+
+    shift_by_index = np.array(
+        [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (1, -1), (-1, 1)]
+    )
+    neighbourgs = np.zeros(len(shift_by_index), dtype=np.float64)
+    for lon_i in range(n_lon):
+        for lat_i in range(n_lat):
+            neighbourgs[:] = 0
+            current = (lat[lat_i], lon[lon_i])
+            for i, (x, y) in enumerate(shift_by_index):
+                alt_lon = np.mod(lon_i + x, n_lon)
+                alt_lat = lat_i + y
+                if alt_lat == n_lat or alt_lat < 0:
+                    continue
+                alt_coord = (lat[alt_lat], lon[alt_lon])
+                if alt_coord == current:
+                    continue
+                neighbourgs[i] = _distance_bf_coord(*current, *alt_coord)
+            distances[lat_i][lon_i] = np.max(neighbourgs)
+    return distances
 
 
 def _distance(coords, force_math=False):
