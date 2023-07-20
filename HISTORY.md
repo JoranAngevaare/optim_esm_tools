@@ -1,3 +1,13 @@
+1.0.1 / 2023-07-20
+------------------
+* fix /0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/89
+* Cache region maps by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/90
+* Clusting bugs by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/88
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.0.0...v1.0.1
+
+
 1.0.0 / 2023-07-18
 ------------------
 **major change**
