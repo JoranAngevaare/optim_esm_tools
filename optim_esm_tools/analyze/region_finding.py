@@ -771,12 +771,16 @@ class LocalHistory(PercentilesHistory):
         for lab in labels:
             arr = self.data_set[lab].values
             arr_historical = historical_ds[lab].values
-            mask_divide = arr / arr_historical > n_times_historical
+
             # If arr_historical is 0, the devision is going to get a nan assigned,
             # despite this being the most interesting region (no historical
             # changes, only in the scenario's)!
-            mask_no_std = (arr_historical == 0) & (arr > 0)
-            masks.append(mask_divide | mask_no_std)
+            mask_no_std = arr_historical == 0
+            mask_divide = np.zeros_like(mask_no_std)
+            mask_divide[~mask_no_std] = (
+                arr[~mask_no_std] / arr_historical[~mask_no_std] > n_times_historical
+            )
+            masks.append(mask_divide | (mask_no_std & (arr != 0)))
 
         all_mask = np.ones_like(masks[0])
         for m in masks:
