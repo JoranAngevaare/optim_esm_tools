@@ -1,8 +1,7 @@
 import numpy as np
 from optim_esm_tools.utils import tqdm, timed
-from optim_esm_tools.config import get_logger
+from optim_esm_tools.config import get_logger, config
 import typing as ty
-from warnings import warn
 import numba
 from math import sin, cos, sqrt, atan2, radians
 import xarray as xr
@@ -14,10 +13,10 @@ def build_clusters(
     weights: ty.Optional[np.ndarray] = None,
     max_distance_km: ty.Union[float, int] = 750,
     only_core: bool = True,
-    min_samples: int = 10,
+    min_samples: int = int(config['analyze']['clustering_min_neighbors']),
     cluster_opts: ty.Optional[dict] = None,
 ) -> ty.List[np.ndarray]:
-    """Build clusters based on a list of coordinates, use halfsine metric for spherical spatiol data
+    """Build clusters based on a list of coordinates, use halfsine metric for spherical spatial data
 
     Args:
         coordinates_deg (np.ndarray): set of xy coordinates in degrees
@@ -25,7 +24,7 @@ def build_clusters(
         max_distance_km (ty.Union[float, int], optional): max distance to other points to consider part of
             cluster (see DBSCAN(eps=<..>)). Defaults to 750.
         only_core (bool, optional): Use only core samples. Defaults to True.
-        min_samples (int): Minimum number of samples in cluster. Defaults to 20.
+        min_samples (int): Minimum number of samples in cluster. Defaults to 8.
         cluster_opts (ty.Optional[dict], optional): Additional options passed to sklearn.cluster.DBSCAN. Defaults to None.
 
     Returns:
@@ -87,13 +86,13 @@ def build_cluster_mask(
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
-    """Build set of clusters and masks based on the global mask, basically a utility wrapper arround build_clusters'
+    """Build set of clusters and masks based on the global mask, basically a utility wrapper around build_clusters'
 
     Args:
         global_mask (np.ndarray): full 2d mask of the data
         lon_coord (np.array): all longitude values
         lat_coord (np.array): all latitude values
-        show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
+        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
@@ -103,7 +102,7 @@ def build_cluster_mask(
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
     if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(lat_coord, lon_coord)
+        max_distance_km = infer_max_step_size(lat_coord, lon_coord)
     lat, lon = _check_input(
         global_mask,
         lat_coord,
@@ -147,14 +146,14 @@ def build_weighted_cluster(
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
             Defaults to 'infer'.
-        show_tqdm (bool, optional): use verboose progressbar. Defaults to False.
+        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         threshold: float, min value of the passed weights. Defaults to 0.99.
 
     Returns:
         ty.List[ty.List[np.ndarray], ty.List[np.ndarray]]: Return two lists, containing the masks, and clusters respectively.
     """
     if max_distance_km == 'infer':
-        max_distance_km = _infer_max_step_size(lat_coord, lon_coord)
+        max_distance_km = infer_max_step_size(lat_coord, lon_coord)
 
     lat, lon = _check_input(weights, lat_coord, lon_coord)
     xy_data = np.array([lat.flatten(), lon.flatten()])
@@ -175,7 +174,7 @@ def build_weighted_cluster(
 
 
 def _check_input(data, lat_coord, lon_coord):
-    """Check for consistancy and if we need to convert the lon/lat coordinates to a meshgrid"""
+    """Check for consistency and if we need to convert the lon/lat coordinates to a meshgrid"""
     if len(lon_coord.shape) <= 1:
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
@@ -207,20 +206,46 @@ def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
     return masks, clusters
 
 
-def _infer_max_step_size(lat, lon, off_by_factor=1.1):
+def infer_max_step_size(
+    lat: np.ndarray, lon: np.ndarray, off_by_factor: float = None
+) -> float:
+    """
+    Infer the max. distance between two points to be considered as belonging to the same cluster.
+
+    There are two methods implemented, preferably, the lon, lat values are 1d-arrays, which can be
+    interpreted as a regular grid. If this is the case, calculate the distance for each point to
+    it's neighbors (also diagonally). Then, the max distance for the clustering can be taken as
+    the max. distance to any of the neighboring points.
+
+    Empirically, we found that this distance is not enough, and an additional fudge factor is
+    taken into account from version v1.0.3 onwards, this is taken to be sqrt(2). This is probably
+    not a coincidence, but it's not really clear where it's coming from.
+    """
+    if off_by_factor is None:
+        off_by_factor = float(config['analyze']['clustering_fudge_factor'])
     if len(lat.shape) == 1:
-        return np.max(calculate_distance_map(lat, lon)) * off_by_factor
-    lat = lat[lat > 0]
+        return off_by_factor * np.max(calculate_distance_map(lat, lon))
+
+    get_logger().info(
+        '(Irregular) grid, max_step_size based on first points above equator'
+    )
+    # We have to get two points from the potentially irregular grid and guess the distance from
+    # that. This is not as reliable as calculating this for a regular grid.
+
+    equator_idx = np.argmin(np.abs(np.mean(lat, axis=1)) - 90)
+    lon_0 = lon[0]
     coords = [
-        [[lat[0], lon[0]], [lat[0], lon[1]]],
-        [[lat[0], lon[0]], [lat[1], lon[0]]],
+        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx][0], lon_0[1]]],
+        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx + 1][0], lon_0[0]]],
+        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx + 1][0], lon_0[1]]],
     ]
-    # Return 2x the distance between grid cells
-    return 2 * max(_distance(c) for c in coords)
+    # assert False, coords
+    # Return the distance between grid cells * off_by_factor
+    return off_by_factor * max(_distance(c) for c in coords)
 
 
 def calculate_distance_map(lat, lon):
-    """For each point in a spanned lat lon grid, calculate the distance to the neighbouring points"""
+    """For each point in a spanned lat lon grid, calculate the distance to the neighboring points"""
     if isinstance(lat, xr.DataArray):
         lat = lat.values
         lon = lon.values
@@ -236,10 +261,10 @@ def _calculate_distance_map(lat, lon):
     shift_by_index = np.array(
         [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (1, -1), (-1, 1)]
     )
-    neighbourgs = np.zeros(len(shift_by_index), dtype=np.float64)
+    neighbors = np.zeros(len(shift_by_index), dtype=np.float64)
     for lon_i in range(n_lon):
         for lat_i in range(n_lat):
-            neighbourgs[:] = 0
+            neighbors[:] = 0
             current = (lat[lat_i], lon[lon_i])
             for i, (x, y) in enumerate(shift_by_index):
                 alt_lon = np.mod(lon_i + x, n_lon)
@@ -249,8 +274,8 @@ def _calculate_distance_map(lat, lon):
                 alt_coord = (lat[alt_lat], lon[alt_lon])
                 if alt_coord == current:
                     continue
-                neighbourgs[i] = _distance_bf_coord(*current, *alt_coord)
-            distances[lat_i][lon_i] = np.max(neighbourgs)
+                neighbors[i] = _distance_bf_coord(*current, *alt_coord)
+            distances[lat_i][lon_i] = np.max(neighbors)
     return distances
 
 

@@ -358,7 +358,7 @@ def timed(
                 message = (
                     f'{fn.__name__} took {dt:{_fmt}} s{hours} (for '
                     f'{_chopped_string(args, _args_max)}, '
-                    f'{_chopped_string(kwargs,_args_max)})'
+                    f'{_chopped_string(kwargs, _args_max)})'
                 ).replace('\n', ' ')
                 if _report == 'print':
                     print(message)
