@@ -5,7 +5,7 @@ import xarray as xr
 import typing as ty
 from warnings import warn
 
-from .globals import _FOLDER_FMT
+from .globals import _FOLDER_FMT, _DEFAULT_MAX_TIME
 import optim_esm_tools as oet
 from optim_esm_tools.analyze import tipping_criteria
 
@@ -21,8 +21,10 @@ def add_conditions_to_ds(
 
     Args:
         ds (xr.Dataset): input dataset
-        calculate_conditions (ty.Tuple[tipping_criteria._Condition], optional): Calculate the results of these tipping conditions. Defaults to None.
-        condition_kwargs (ty.Mapping, optional): kwargs for the tipping conditions. Defaults to None.
+        calculate_conditions (ty.Tuple[tipping_criteria._Condition], optional): Calculate the
+            results of these tipping conditions. Defaults to None.
+        condition_kwargs (ty.Mapping, optional): kwargs for the tipping conditions. Defaults to
+            None.
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
 
@@ -30,7 +32,7 @@ def add_conditions_to_ds(
         ValueError: If there are multiple tipping conditions with the same short_description
 
     Returns:
-        xr.Dataset: The fully initiallized dataset
+        xr.Dataset: The fully initialized dataset
     """
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     if calculate_conditions is None:
@@ -68,7 +70,7 @@ def add_conditions_to_ds(
 def read_ds(
     base: str,
     variable_of_interest: ty.Tuple[str] = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
+    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
     pre_process: bool = True,
@@ -84,19 +86,24 @@ def read_ds(
     Args:
         base (str): Folder to load the data from
         variable_of_interest (ty.Tuple[str], optional): Variables to handle. Defaults to ('tas',).
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
-        apply_transform: (bool, optional): Apply analysis specific postprocessing algoritms. Defaults to True.
-        pre_process (bool, optional): Should be true, this pre-processing of the data is required later on. Defaults to True.
-        area_query_kwargs (ty.Mapping, optional): additionall keyword arguments for searching.
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to (2100, 12, 31).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to None.
+        apply_transform: (bool, optional): Apply analysis specific postprocessing algorithms.
+            Defaults to True.
+        pre_process (bool, optional): Should be true, this pre-processing of the data is required
+            later on. Defaults to True.
+        area_query_kwargs (ty.Mapping, optional): additionally keyword arguments for searching.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
-        _cache (bool, optional): cache the dataset with it's extra fields to alow faster (re)loading. Defaults to True.
+        _cache (bool, optional): cache the dataset with it's extra fields to alow faster
+            (re)loading. Defaults to True.
         _file_name (str, optional): name to match. Defaults to configs settings.
 
     kwargs:
-        any kwargs are passed onto transfor_ds.
+        any kwargs are passed onto transform_ds.
 
     Returns:
         xr.Dataset: An xarray dataset with the appropriate variables
@@ -149,7 +156,7 @@ def read_ds(
         )
     else:
         log.warning(
-            f'Not preprocessing file is dangerous, dimentions may differ wildly!'
+            f'Not preprocessing file is dangerous, dimensions may differ wildly!'
         )
     data_set = oet.analyze.io.load_glob(data_path, load=load)
 

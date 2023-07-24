@@ -60,14 +60,14 @@ def find_matches(
     """
     if grid is not None:
         get_logger().warning(
-            f'grid argument for find_matches is depricated, use grid_label'
+            f'grid argument for find_matches is deprecated, use grid_label'
         )
         grid_label = grid
     if max_versions is None:
         max_versions = int(9e9)
     if max_members is None:
         max_members = int(9e9)
-    variantes = sorted(
+    variants = sorted(
         glob.glob(
             os.path.join(
                 base,
@@ -85,7 +85,7 @@ def find_matches(
         key=_variant_label_id_and_version,
     )
     seen = dict()
-    for candidate in variantes:
+    for candidate in variants:
         folders = candidate.split(os.sep)
         group = folders[-7]
         member = folders[-5]

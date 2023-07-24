@@ -2,6 +2,8 @@ from optim_esm_tools.utils import timed
 from optim_esm_tools.config import config, get_logger
 from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
 from optim_esm_tools.analyze.io import load_glob
+from optim_esm_tools.analyze.globals import _DEFAULT_MAX_TIME
+import numpy as np
 import os
 import typing as ty
 
@@ -10,7 +12,7 @@ import typing as ty
 def pre_process(
     source: str,
     target_grid: str = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 1, 1),
+    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     save_as: str = None,
     clean_up: bool = True,
@@ -26,9 +28,12 @@ def pre_process(
 
     Args:
         source (str): path of file to parse
-        target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and is taken from config.
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and
+            is taken from config.
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to (2100, 12, 31).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to None.
         save_as (str, optional): path where to store the pre-processed folder. Defaults to None.
         clean_up (bool, optional): delete intermediate files. Defaults to True.
         _ma_window (int, optional): moving average window (assumed 10 years). Defaults to None.
@@ -44,7 +49,7 @@ def pre_process(
 
     _remove_bad_vars(source)
     variable_id = variable_id or _read_variable_id(source)
-    max_time = max_time or (9999, 1, 1)  # unreasonably far away
+    max_time = max_time or (9999, 12, 31)  # unreasonably far away
     min_time = min_time or (0, 1, 1)  # unreasonably long ago
     target_grid = target_grid or config['analyze']['regrid_to']
     _ma_window = _ma_window or config['analyze']['moving_average_years']
@@ -90,8 +95,14 @@ def pre_process(
     os.remove(f_tmp)
 
     cdo_int.runmean(_ma_window, input=f_regrid, output=f_tmp)
-
-    cdo_int.chname(f'{var},{var_rm}', input=f_tmp, output=f_rm)
+    _run_mean_patch(
+        f_start=f_regrid,
+        f_rm=f_tmp,
+        f_out=f_rm,
+        ma_window=_ma_window,
+        var_name=var,
+        var_rm_name=var_rm,
+    )
     os.remove(f_tmp)
 
     cdo_int.detrend(input=f_rm, output=f_tmp)
@@ -136,6 +147,32 @@ def _check_time_range(path, max_time, min_time, ma_window):
     if time_mask.sum() < float(ma_window):
         message = f'Data from {path} has {time_mask.sum()} time stamps in [{min_time}, {max_time}]'
         raise NoDataInTimeRangeError(message)
+
+
+def _run_mean_patch(f_start, f_rm, f_out, ma_window, var_name, var_rm_name):
+    """
+    Patch running mean file, since cdo decreases the length of the file by the ma_window, merging
+    two files of different durations results in bad data.
+
+    As a solution, we take the original file (f_start) and use it's shape (like the number of
+    timestamps) and fill those timestamps where the value of the running mean is defined.
+    Everything else is set to zero.
+    """
+    ds_base = load_glob(f_start)
+    ds_rm = load_glob(f_rm)
+    ds_out = ds_base.copy()
+
+    # Replace timestamps with the CDO computed running mean
+    data = np.zeros(ds_base[var_name].shape, ds_base[var_name].dtype)
+    data[:] = np.nan
+    ma_window = int(ma_window)
+    data[ma_window // 2 : 1 - ma_window // 2] = ds_rm[var_name].values
+    ds_out[var_name].data = data
+
+    # Patch variables and save
+    ds_out = ds_out.rename({var_name: var_rm_name})
+    ds_out.attrs = ds_rm.attrs
+    ds_out.to_netcdf(f_out)
 
 
 class NoDataInTimeRangeError(Exception):

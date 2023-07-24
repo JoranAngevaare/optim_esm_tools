@@ -46,10 +46,10 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
 
 
 def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
-    """Drop values with masked_dims dimentions.
+    """Drop values with masked_dims dimensions.
     Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to bad results,
     for example for time_bnds (time, bnds) being dropped by (lon, lat). So we have to do
-    some funny bookkeeping of which datavars we can drop with data_set.where.
+    some funny bookkeeping of which data vars we can drop with data_set.where.
     """
 
     dropped = []
@@ -68,7 +68,7 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
 
 
 def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
-    """Rebuild data_set for each variabled that has all masked_dims"""
+    """Rebuild data_set for each variable that has all masked_dims"""
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             # First dim is time?
@@ -257,7 +257,8 @@ class RegionExtractor:
         store_in_dir = os.path.join(save_in, 'masks')
         os.makedirs(store_in_dir, exist_ok=True)
         # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
-        # While we could make this more efficient (and only use the second step), the first step does only take ~10 ms
+        # While we could make this more efficient (and only use the second step), the first step
+        # does only take ~10 ms
         ds_masked = mask_xr_ds(self.data_set.copy(), mask)
         ds_masked = mask_xr_ds(ds_masked, ~ds_masked['cell_area'].isnull(), drop=True)
         ds_masked.to_netcdf(
@@ -280,7 +281,7 @@ class RegionExtractor:
 
 class MaxRegion(RegionExtractor):
     def get_masks(self) -> dict:
-        """Get mask for max of ii and iii and a box arround that"""
+        """Get mask for max of ii and iii and a box around that"""
 
         def _val(label):
             return self.data_set[label].values
@@ -651,8 +652,6 @@ class PercentilesHistory(Percentiles):
         query_updates=None,
         search_kw=None,
     ):
-        from optim_esm_tools.config import config
-
         base = base_from_path(
             self.data_set.attrs['path'], look_back_extra=look_back_extra
         )
@@ -772,7 +771,7 @@ class LocalHistory(PercentilesHistory):
             arr = self.data_set[lab].values
             arr_historical = historical_ds[lab].values
 
-            # If arr_historical is 0, the devision is going to get a nan assigned,
+            # If arr_historical is 0, the division is going to get a nan assigned,
             # despite this being the most interesting region (no historical
             # changes, only in the scenario's)!
             mask_no_std = arr_historical == 0
