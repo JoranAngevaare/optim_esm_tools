@@ -218,7 +218,7 @@ def infer_max_step_size(
     the max. distance to any of the neighboring points.
 
     Empirically, we found that this distance is not enough, and an additional fudge factor is
-    taken into account from version v1.0.2 onwards, this is taken to be sqrt(2). This is probably
+    taken into account from version v1.0.3 onwards, this is taken to be sqrt(2). This is probably
     not a coincidence, but it's not really clear where it's coming from.
     """
     if off_by_factor is None:
