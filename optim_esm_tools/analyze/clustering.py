@@ -24,7 +24,7 @@ def build_clusters(
         max_distance_km (ty.Union[float, int], optional): max distance to other points to consider part of
             cluster (see DBSCAN(eps=<..>)). Defaults to 750.
         only_core (bool, optional): Use only core samples. Defaults to True.
-        min_samples (int): Minimum number of samples in cluster. Defaults to 20.
+        min_samples (int): Minimum number of samples in cluster. Defaults to 8.
         cluster_opts (ty.Optional[dict], optional): Additional options passed to sklearn.cluster.DBSCAN. Defaults to None.
 
     Returns:
