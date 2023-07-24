@@ -13,7 +13,7 @@ def build_clusters(
     weights: ty.Optional[np.ndarray] = None,
     max_distance_km: ty.Union[float, int] = 750,
     only_core: bool = True,
-    min_samples: int = 10,
+    min_samples: int = int(config['analyze']['clustering_min_neighbors']),
     cluster_opts: ty.Optional[dict] = None,
 ) -> ty.List[np.ndarray]:
     """Build clusters based on a list of coordinates, use halfsine metric for spherical spatial data
