@@ -76,3 +76,14 @@ def test_geopy_alternative():
         clustering._distance(coords),
         rtol=0.1,
     )
+
+
+def test_infer_step_size():
+    ds = optim_esm_tools._test_utils.minimal_xr_ds().copy()
+    res_0 = clustering.infer_max_step_size(ds.lat, ds.lon)
+    lat_m, lon_m = np.meshgrid(ds.lat, ds.lon)
+    lat_m, lon_m = lat_m.T, lon_m.T
+    assert lat_m.shape == ds['var'].shape[1:]
+    assert lon_m.shape == ds['var'].shape[1:]
+    res_1 = clustering.infer_max_step_size(lat_m, lon_m)
+    assert np.isclose(res_0, res_1, atol=1)
