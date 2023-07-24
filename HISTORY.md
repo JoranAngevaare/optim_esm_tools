@@ -1,8 +1,17 @@
+1.0.3 / 2023-07-24
+------------------
+* Fix clustering fudge factor by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/91
+* Preprocessing running mean fix by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/92
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.0.2...v1.0.3
+
+
 1.0.2 / 2023-07-20
 ------------------
 * fix /0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/89
 * Cache region maps by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/90
-* Clusting bugs by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/88
+* Clustering bugs by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/88
 
 
 **Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.0.0...v1.0.1
@@ -82,14 +91,14 @@
 ## What's Changed
 * Refactor code - next release by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/46
 * Add new file tools by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/48
-* Add timeing decorator by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/49
+* Add timing decorator by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/49
 * Clustering improvements by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/50
 * Add download routine from pangeo store by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/51
 * Add more timed functions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/52
 * Split `read_ds` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/53
 * stop double test by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/54
-* Condition and results as propper classes by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/55
-* Add config for timeing tool by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/56
+* Condition and results as proper classes by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/55
+* Add config for timing tool by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/56
 * Add minimal install test by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/57
 * Add region finder by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/58
 * Fix labels by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/59
