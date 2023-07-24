@@ -2,6 +2,7 @@ from optim_esm_tools.utils import timed
 from optim_esm_tools.config import config, get_logger
 from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
 from optim_esm_tools.analyze.io import load_glob
+from optim_esm_tools.analyze.globals import _DEFAULT_MAX_TIME
 import numpy as np
 import os
 import typing as ty
@@ -11,7 +12,7 @@ import typing as ty
 def pre_process(
     source: str,
     target_grid: str = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = (2100, 12, 31),
+    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     save_as: str = None,
     clean_up: bool = True,
@@ -27,9 +28,12 @@ def pre_process(
 
     Args:
         source (str): path of file to parse
-        target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and is taken from config.
-        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to (2100, 1, 1).
-        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to load data. Defaults to None.
+        target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and
+            is taken from config.
+        max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to (2100, 12, 31).
+        min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
+            load data. Defaults to None.
         save_as (str, optional): path where to store the pre-processed folder. Defaults to None.
         clean_up (bool, optional): delete intermediate files. Defaults to True.
         _ma_window (int, optional): moving average window (assumed 10 years). Defaults to None.

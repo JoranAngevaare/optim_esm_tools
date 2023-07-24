@@ -167,8 +167,8 @@ def running_mean_diff(
         rename_to (str, optional): . Defaults to 'long_name'.
         unit (str, optional): . Defaults to 'absolute'.
         apply_abs (bool, optional): . Defaults to True.
-        _t_0_date (ty.Optional[tuple], optional): . Defaults to (2015, 1, 1).
-        _t_1_date (ty.Optional[tuple], optional): . Defaults to (2100, 1, 1).
+        _t_0_date (ty.Optional[tuple], optional): . Defaults to None.
+        _t_1_date (ty.Optional[tuple], optional): . Defaults to None.
 
     Raises:
         ValueError: when no timestamps are not none?
