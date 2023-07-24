@@ -81,7 +81,7 @@ def main(log, args):
                   extra_opt=args.extra_opt,
                   methods=args.methods,
                   )
-    except ValueError as e:
+    except Exception as e:
         write_error(args.err_file, f'{args.path} | {e}')
         raise e
 
