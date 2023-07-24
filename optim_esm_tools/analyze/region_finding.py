@@ -701,7 +701,7 @@ class ProductPercentiles(Percentiles):
     )
     @apply_options
     def get_masks(self, cluster_method='masked') -> dict:
-        """Get mask for max of ii and iii and a box arround that"""
+        """Get mask for max of ii and iii and a box around that"""
         if cluster_method == 'weighted':
             masks, clusters = self._get_masks_weighted()
         else:
@@ -733,7 +733,7 @@ class ProductPercentiles(Percentiles):
     def _get_masks_masked(
         self, product_percentiles=_two_sigma_percent, lon_lat_dim=('lon', 'lat')
     ) -> dict:
-        """Get mask for max of ii and iii and a box arround that"""
+        """Get mask for max of ii and iii and a box around that"""
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
