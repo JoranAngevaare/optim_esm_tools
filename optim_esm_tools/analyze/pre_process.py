@@ -31,7 +31,7 @@ def pre_process(
         target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and
             is taken from config.
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
-            load data. Defaults to (2100, 12, 31).
+            load data. Defaults to (2100, 12, 30).
         min_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
             load data. Defaults to None.
         save_as (str, optional): path where to store the pre-processed folder. Defaults to None.
@@ -49,7 +49,7 @@ def pre_process(
 
     _remove_bad_vars(source)
     variable_id = variable_id or _read_variable_id(source)
-    max_time = max_time or (9999, 12, 31)  # unreasonably far away
+    max_time = max_time or (9999, 12, 30)  # unreasonably far away
     min_time = min_time or (0, 1, 1)  # unreasonably long ago
     target_grid = target_grid or config['analyze']['regrid_to']
     _ma_window = _ma_window or config['analyze']['moving_average_years']

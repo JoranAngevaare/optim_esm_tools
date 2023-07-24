@@ -12,7 +12,7 @@ def write_error(err_file, message):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser( description='make plots')
+    parser = argparse.ArgumentParser(description='make plots')
     parser.add_argument('--path', type=str,)
     parser.add_argument('--methods', nargs='*', default='Percentiles ProductPercentiles LocalHistory'.split(), type=list,)
     parser.add_argument('--variable', type=str,)
@@ -28,12 +28,14 @@ def parse_args():
 def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods):
     save_kw = dict( save_in = save_in, sub_dir = None, file_types=('png', #'pdf'
                                                                    ), skip= False, )
-    from optim_esm_tools.utils import setup_plt
+    from optim_esm_tools.utils import setup_plt, print_versions
+    print_versions()
+    setup_plt()
     import optim_esm_tools.analyze.region_finding
     from optim_esm_tools.analyze.pre_process import NoDataInTimeRangeError
-    setup_plt()
     constructors = [getattr(optim_esm_tools.analyze.region_finding, meth, 'not found') for meth in methods]
-    if any(c=='not found' for c in constructors): raise ValueError(f'One or more non-existing methods {methods}')
+    if any(c=='not found' for c in constructors):
+        raise ValueError(f'One or more non-existing methods {methods}')
 
     from optim_esm_tools.analyze.cmip_handler import read_ds
 
@@ -55,7 +57,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
              continue
         except ValueError as e:
             if 'moving average window' in str(e):
-                log.error(f'ValueError for {result.__class__.__name__} as the dataset is too short. Probably in LocalHistory and unharmfull.')
+                log.error(f'ValueError for {result.__class__.__name__} as the dataset is too short. Probably in LocalHistory and unharmful.')
                 continue
             raise e
         result.show=show

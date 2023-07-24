@@ -75,7 +75,7 @@ def read_ds(
     apply_transform: bool = True,
     pre_process: bool = True,
     strict: bool = True,
-    load: bool = False,
+    load: bool = None,
     _ma_window: ty.Optional[int] = None,
     _cache: bool = True,
     _file_name: str = None,
@@ -158,6 +158,9 @@ def read_ds(
         log.warning(
             f'Not preprocessing file is dangerous, dimensions may differ wildly!'
         )
+    # At this point, if load is None, change it to true, we will have to load it anyway to do the
+    # transforms
+    load = load if load is not None else True
     data_set = oet.analyze.io.load_glob(data_path, load=load)
 
     if os.path.exists(temp_file):
