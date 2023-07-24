@@ -1,7 +1,10 @@
-import xarray as xr
 import numpy as np
 import optim_esm_tools._test_utils
 import optim_esm_tools.analyze.clustering as clustering
+from optim_esm_tools.config import config
+from optim_esm_tools.utils import timed
+import hypothesis
+import unittest
 
 
 def test_clustering_empty():
@@ -87,3 +90,63 @@ def test_infer_step_size():
     assert lon_m.shape == ds['var'].shape[1:]
     res_1 = clustering.infer_max_step_size(lat_m, lon_m)
     assert np.isclose(res_0, res_1, atol=1)
+
+
+class TestClustering(unittest.TestCase):
+    _max_lat = 100
+    _max_lon = 400
+
+    @hypothesis.settings(max_examples=10, deadline=None)
+    @hypothesis.given(
+        hypothesis.strategies.integers(min_value=4, max_value=_max_lon),
+        hypothesis.strategies.integers(min_value=4, max_value=_max_lat),
+        hypothesis.strategies.floats(min_value=-90, max_value=90, exclude_max=True),
+        hypothesis.strategies.floats(min_value=0, max_value=180),
+        hypothesis.strategies.integers(min_value=0, max_value=_max_lon),
+        hypothesis.strategies.integers(min_value=0, max_value=_max_lat),
+        hypothesis.strategies.integers(
+            min_value=1, max_value=int(config['analyze']['clustering_min_neighbors'])
+        ),
+    )
+    @timed(seconds=1, _report='print', _args_max=300)
+    def test_rand_cluster(
+        self,
+        len_lon,
+        len_lat,
+        coord_lat,
+        coord_lon,
+        lat_width,
+        lon_width,
+        min_samples_cluster,
+    ):
+        ds = optim_esm_tools._test_utils.minimal_xr_ds(
+            len_x=len_lon, len_y=len_lat, len_time=2, add_nans=False
+        )
+        mask = ds['var'].isel(time=0).values.copy()
+        mask[:] = 0
+        lat_idx = np.argmin(np.abs(ds['lat'].values - coord_lat))
+        lon_idx = np.argmin(np.abs(ds['lon'].values - coord_lon))
+        mask[slice(lat_idx - lat_width, lat_idx + lat_width + 1)] += 1
+        lon_min = lon_idx - lon_width
+        lon_max = lon_idx + lon_width + 1
+        if lon_min < 0:
+            mask[:, slice(360 + lon_min, 361)] += 1
+            lon_min = 0
+        if lon_max > len_lon:
+            mask[:, slice(0, lon_max - len_lon)] += 1
+            lon_max = len_lon
+        mask[:, slice(lon_min, lon_max)] += 1
+
+        candidates = np.sum(mask >= 2).sum()
+        min_samples_cluster = np.clip(min_samples_cluster, 1, candidates - 1)
+        clusters, masks = clustering.build_cluster_mask(
+            mask >= 2,
+            ds.lat,
+            ds.lon,
+            min_samples=min_samples_cluster,
+        )
+        if lat_width <= 1 or lon_width <= 1:
+            pass
+        elif candidates > 1 and candidates > min_samples_cluster:
+            assert len(masks)
+        print('done')
