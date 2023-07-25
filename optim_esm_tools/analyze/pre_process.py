@@ -20,7 +20,7 @@ def get_preprocessed_ds(source, **kw):
         get_logger().warning(message)
     with tempfile.TemporaryDirectory() as temp_dir:
         defaults = dict(
-            source=source, working_dir=temp_dir, clean_up=False, save_as='temp_res.nc'
+            source=source, working_dir=temp_dir, clean_up=False, save_as=None
         )
         for k, v in defaults.items():
             kw.setdefault(k, v)
