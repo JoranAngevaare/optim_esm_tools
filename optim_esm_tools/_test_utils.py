@@ -3,9 +3,13 @@ import os
 
 EXMPLE_DATA_SET = 'CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc'
 
+
 def cmip_store():
     import intake
-    return intake.open_esm_datastore( "https://storage.googleapis.com/cmip6/pangeo-cmip6.json")
+
+    return intake.open_esm_datastore(
+        'https://storage.googleapis.com/cmip6/pangeo-cmip6.json'
+    )
 
 
 def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
