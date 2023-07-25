@@ -144,37 +144,27 @@ def read_ds(
         warn(message)
         return None
 
-    temp_file = os.path.join(base, 'temp_final.nc')
     if pre_process:
-        data_path = oet.analyze.pre_process.pre_process(
+        data_set = oet.analyze.pre_process.get_preprocessed_ds(
             source=data_path,
             max_time=max_time,
             min_time=min_time,
-            save_as=temp_file,
             _ma_window=_ma_window,
             variable_id=variable_of_interest,
         )
     else:
-        log.warning(
-            f'Not preprocessing file is dangerous, dimensions may differ wildly!'
-        )
-    # At this point, if load is None, change it to true, we will have to load it anyway to do the
-    # transforms
-    load = load if load is not None else True
-    data_set = oet.analyze.io.load_glob(data_path, load=load)
-
-    if os.path.exists(temp_file):
-        # Maybe we can make this optional, but, for now, let's prevent double caching of
-        # res_file and temp_file
-        os.remove(temp_file)
+        message = 'Not preprocessing file is dangerous, dimensions may differ wildly!'
+        log.warning(message)
+        data_set = oet.analyze.io.load_glob(data_path, load=load)
 
     if apply_transform:
-        data_set = add_conditions_to_ds(
-            data_set,
-            variable_of_interest=variable_of_interest,
-            _ma_window=_ma_window,
-            **kwargs,
+        kwargs.update(
+            dict(
+                variable_of_interest=variable_of_interest,
+                _ma_window=_ma_window,
+            )
         )
+        data_set = add_conditions_to_ds(data_set, **kwargs)
 
     folders = base.split(os.sep)
 

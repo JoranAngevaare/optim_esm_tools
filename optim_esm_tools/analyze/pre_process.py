@@ -6,6 +6,28 @@ from optim_esm_tools.analyze.globals import _DEFAULT_MAX_TIME
 import numpy as np
 import os
 import typing as ty
+import tempfile
+
+
+def get_preprocessed_ds(source, **kw):
+    """Create a temporary working directory for pre-process and delete all intermediate files"""
+    if 'working_dir' in kw:
+        message = (
+            f'Calling get_preprocessed_ds with working_dir={kw.get("working_dir")} is not '
+            'intended, as this function is meant to open a temporary directory, load the '
+            'dataset, and remove all local files.'
+        )
+        get_logger().warning(message)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        defaults = dict(
+            source=source, working_dir=temp_dir, clean_up=False, save_as=None
+        )
+        for k, v in defaults.items():
+            kw.setdefault(k, v)
+        intermediate_file = pre_process(**kw)
+        # After with close this "with", we lose the file, so load it just to be sure we have all we need
+        ds = load_glob(intermediate_file).load()
+    return ds
 
 
 @timed
@@ -18,6 +40,7 @@ def pre_process(
     clean_up: bool = True,
     _ma_window: int = None,
     variable_id: str = None,
+    working_dir: str = None,
 ) -> str:
     """Apply several preprocessing steps to the file located at <source>:
       - Slice the data to desired time range
@@ -57,18 +80,19 @@ def pre_process(
 
     cdo_int = cdo.Cdo()
     head, _ = os.path.split(source)
+    working_dir = working_dir or head
 
     # Several intermediate_files
-    f_time = os.path.join(head, 'time_sel.nc')
-    f_det = os.path.join(head, 'detrend.nc')
-    f_det_rm = os.path.join(head, f'detrend_rm_{_ma_window}.nc')
-    f_rm = os.path.join(head, f'rm_{_ma_window}.nc')
-    f_tmp = os.path.join(head, 'tmp.nc')
-    f_regrid = os.path.join(head, 'regrid.nc')
-    f_area = os.path.join(head, 'area.nc')
+    f_time = os.path.join(working_dir, 'time_sel.nc')
+    f_det = os.path.join(working_dir, 'detrend.nc')
+    f_det_rm = os.path.join(working_dir, f'detrend_rm_{_ma_window}.nc')
+    f_rm = os.path.join(working_dir, f'rm_{_ma_window}.nc')
+    f_tmp = os.path.join(working_dir, 'tmp.nc')
+    f_regrid = os.path.join(working_dir, 'regrid.nc')
+    f_area = os.path.join(working_dir, 'area.nc')
     files = [f_time, f_det, f_det_rm, f_rm, f_tmp, f_regrid, f_area]
 
-    save_as = save_as or os.path.join(head, 'result.nc')
+    save_as = save_as or os.path.join(working_dir, 'result.nc')
 
     # Several names:
     var = variable_id
@@ -83,9 +107,8 @@ def pre_process(
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
 
-    cdo_int.seldate(
-        f'{_fmt_date(min_time)},{_fmt_date(max_time)}', input=source, output=f_time
-    )
+    time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
+    cdo_int.seldate(time_range, input=source, output=f_time)
 
     cdo_int.remapbil(target_grid, input=f_time, output=f_regrid)
     cdo_int.gridarea(input=f_regrid, output=f_area)
@@ -108,9 +131,9 @@ def pre_process(
     cdo_int.detrend(input=f_rm, output=f_tmp)
     cdo_int.chname(f'{var_rm},{var_det_rm}', input=f_tmp, output=f_det_rm)
     # remove in cleanup
-    cdo_int.merge(
-        input=' '.join([f_regrid, f_det, f_det_rm, f_rm, f_area]), output=save_as
-    )
+
+    input_files = ' '.join([f_regrid, f_det, f_det_rm, f_rm, f_area])
+    cdo_int.merge(input=input_files, output=save_as)
 
     if clean_up:
         for p in files:
