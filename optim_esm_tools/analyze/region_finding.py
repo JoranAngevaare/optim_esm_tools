@@ -517,9 +517,8 @@ class Percentiles(RegionExtractor):
             if cluster_kw is None:
                 cluster_kw = dict()
             for m_i, cluster in enumerate(clusters):
-                ax.scatter(
-                    *np.median(cluster, axis=0), label=f'cluster {m_i}', **cluster_kw
-                )
+                lat, lon = np.median(cluster, axis=0)
+                ax.scatter(lon, lat, label=f'cluster {m_i}', **cluster_kw)
             if legend:
                 plt.legend(**oet.utils.legend_kw())
         plt.suptitle(f'Clusters {self.title}', y=0.97 if len(masks) < 4 else 0.99)
@@ -578,12 +577,12 @@ class Percentiles(RegionExtractor):
             loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
         )
         for m_i, (mask, cluster) in enumerate(zip(masks, clusters)):
-            x, y = np.median(cluster, axis=0)
+            lat, lon = np.median(cluster, axis=0)
             plot_labels = {
-                f'{self.variable}': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
-                f'{self.variable}_detrend': f'Cluster {m_i} near ~{x:.1f}:{y:.1f}',
-                f'{self.variable}_detrend_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{x:.1f}:{y:.1f}',
-                f'{self.variable}_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{x:.1f}:{y:.1f}',
+                f'{self.variable}': f'Cluster {m_i} near ~{lat:.1f}:{lon:.1f}',
+                f'{self.variable}_detrend': f'Cluster {m_i} near ~{lat:.1f}:{lon:.1f}',
+                f'{self.variable}_detrend_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{lat:.1f}:{lon:.1f}',
+                f'{self.variable}_run_mean_{_ma_window}': f'Cluster {m_i} $RM_{{{_ma_window}}}$ near ~{lat:.1f}:{lon:.1f}',
             }
             ds_sel = mask_xr_ds(self.data_set.copy(), mask)
             mm_sel = MapMaker(ds_sel)

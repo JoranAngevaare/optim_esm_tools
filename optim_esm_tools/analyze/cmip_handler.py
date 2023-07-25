@@ -144,6 +144,18 @@ def read_ds(
         warn(message)
         return None
 
+    # if pre_process:
+    # data_set = oet.analyze.pre_process.get_preprocessed_ds(
+    # source=data_path,
+    # max_time=max_time,
+    # min_time=min_time,
+    # _ma_window=_ma_window,
+    # variable_id=variable_of_interest,)
+    # else:
+    #    message='Not preprocessing file is dangerous, dimensions may differ wildly!'
+    #    log.warning(message)
+    #    data_set = oet.analyze.io.load_glob(data_path, load=load)
+
     temp_file = os.path.join(base, 'temp_final.nc')
     if pre_process:
         data_path = oet.analyze.pre_process.pre_process(
@@ -156,7 +168,7 @@ def read_ds(
         )
     else:
         log.warning(
-            f'Not preprocessing file is dangerous, dimensions may differ wildly!'
+            'Not preprocessing file is dangerous, dimensions may differ wildly!'
         )
     # At this point, if load is None, change it to true, we will have to load it anyway to do the
     # transforms

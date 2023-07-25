@@ -12,16 +12,12 @@ import tempfile
 def get_preprocessed_ds(source, **kw):
     """Create a temporary working directory for pre-process and delete all intermediate files"""
     if 'working_dir' in kw:
-        message = (
-            f'Calling get_preprocessed_ds with working_dir={kw.get("working_dir")} is not '
-            'intended, as this function is meant to open a temporary directory, load the '
-            'dataset, and remove all local files.'
-        )
+        message = (f'Calling get_preprocessed_ds with working_dir={kw.get("working_dir")} is not '
+                   'intended, as this function is meant to open a temporary directory, load the '
+                   'dataset, and remove all local files.')
         get_logger().warning(message)
     with tempfile.TemporaryDirectory() as temp_dir:
-        for k, v in dict(
-            source=source, working_dir=temp_dir, clean_up=False, save_as='some_temp.nc'
-        ):
+        for k, v in dict(source=source, working_dir = temp_dir, clean_up=False, save_as = 'some_temp.nc'):
             kw.setdefault(k, v)
         intermediate_file = pre_process(**kw)
         # After with close this "with", we lose the file, so load it just to be sure we have all we need
@@ -106,8 +102,8 @@ def pre_process(
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
 
-    time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
-    cdo_int.seldate(time_range, input=source, output=f_time)
+    time_range=f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
+    cdo_int.seldate( time_range, input=source, output=f_time )
 
     cdo_int.remapbil(target_grid, input=f_time, output=f_regrid)
     cdo_int.gridarea(input=f_regrid, output=f_area)
@@ -132,7 +128,7 @@ def pre_process(
     # remove in cleanup
 
     input_files = ' '.join([f_regrid, f_det, f_det_rm, f_rm, f_area])
-    cdo_int.merge(input=input_files, output=save_as)
+    cdo_int.merge( input=input_files, output=save_as )
 
     if clean_up:
         for p in files:
