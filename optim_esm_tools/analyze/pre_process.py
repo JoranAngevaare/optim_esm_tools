@@ -19,9 +19,10 @@ def get_preprocessed_ds(source, **kw):
         )
         get_logger().warning(message)
     with tempfile.TemporaryDirectory() as temp_dir:
-        for k, v in dict(
-            source=source, working_dir=temp_dir, clean_up=False, save_as='some_temp.nc'
-        ):
+        defaults = dict(
+            source=source, working_dir=temp_dir, clean_up=False, save_as='temp_res.nc'
+        )
+        for k, v in defaults.items():
             kw.setdefault(k, v)
         intermediate_file = pre_process(**kw)
         # After with close this "with", we lose the file, so load it just to be sure we have all we need
