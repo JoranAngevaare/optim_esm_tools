@@ -13,8 +13,6 @@ from immutabledict import immutabledict
 from .plot import *
 from matplotlib.colors import LogNorm
 
-# import xrft
-
 from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
 from optim_esm_tools.analyze import tipping_criteria
 

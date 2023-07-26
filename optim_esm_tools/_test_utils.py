@@ -4,6 +4,14 @@ import os
 EXMPLE_DATA_SET = 'CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc'
 
 
+def cmip_store():
+    import intake
+
+    return intake.open_esm_datastore(
+        'https://storage.googleapis.com/cmip6/pangeo-cmip6.json'
+    )
+
+
 def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
     dest_folder = os.path.split(
         get_example_data_loc().replace('ssp585', experiment_id)
@@ -15,9 +23,7 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
         print(f'already file at {write_to}')
         return write_to
 
-    from xmip.utils import google_cmip_col
-
-    col = google_cmip_col()
+    col = cmip_store()
     query = dict(
         source_id='CanESM5',
         variable_id='tas',

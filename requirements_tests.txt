@@ -3,6 +3,7 @@ coverage
 gcsfs
 geopy
 gitpython
+hypothesis
 hypothesis-numpy
 intake-esm
 numba

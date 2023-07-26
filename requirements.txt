@@ -1,4 +1,5 @@
 immutabledict
+intake-esm
 matplotlib
 numba
 numpy
@@ -6,4 +7,3 @@ pandas
 tqdm
 treelib
 xarray
-xrft
