@@ -4,6 +4,7 @@ gcsfs
 geopy
 gitpython
 hypothesis-numpy
+hypothesis
 intake-esm
 numba
 pytest
