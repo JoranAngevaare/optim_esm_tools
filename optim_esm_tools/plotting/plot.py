@@ -3,17 +3,18 @@ import optim_esm_tools as oet
 from optim_esm_tools.config import config
 
 
-
-def setup_map(projection=None,
-              coastlines=True,
-              add_features=False,
-              **projection_kwargs):
-    plt.gcf().add_subplot(projection=get_cartopy_projection(projection, **projection_kwargs))
+def setup_map(
+    projection=None, coastlines=True, add_features=False, **projection_kwargs
+):
+    plt.gcf().add_subplot(
+        projection=get_cartopy_projection(projection, **projection_kwargs)
+    )
     ax = plt.gca()
     if coastlines:
         ax.coastlines()
     if add_features:
         import cartopy.feature as cfeature
+
         for feat in oet.utils.to_str_tuple(add_features):
             assert feat.upper in ['LAND OCEAN COASTLINE BORDERS LAKES RIVERS'], feat
             ax.add_feature(getattr(cfeature, feat.upper()))
