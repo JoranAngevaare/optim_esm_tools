@@ -82,3 +82,56 @@ def _remove_any_none_times(da, time_dim, drop=True):
             get_logger().error(e)
             return alt_calc
     return data_var
+
+
+def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
+    # Modify the ds in place - make a copy!
+    data_set = data_set.copy()
+    if masked_dims is None:
+        from optim_esm_tools.config import config
+
+        masked_dims = config['analyze']['lon_lat_dim'].split(',')
+
+    ds_start = data_set.copy()
+    func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
+    data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
+    data_set = data_set.assign_attrs(ds_start.attrs)
+    return data_set
+
+
+def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
+    """Drop values with masked_dims dimensions.
+    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to bad results,
+    for example for time_bnds (time, bnds) being dropped by (lon, lat). So we have to do
+    some funny bookkeeping of which data vars we can drop with data_set.where.
+    """
+
+    dropped = []
+    for k, data_array in data_set.data_vars.items():
+        if not all(dim in list(data_array.dims) for dim in masked_dims):
+            dropped += [k]
+
+    data_set = data_set.drop_vars(dropped)
+
+    data_set = data_set.where(da_mask, drop=True)
+
+    # Restore ignored variables and attributes
+    for k in dropped:
+        data_set[k] = ds_start[k]
+    return data_set
+
+
+def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
+    """Rebuild data_set for each variable that has all masked_dims"""
+    for k, data_array in data_set.data_vars.items():
+        if all(dim in list(data_array.dims) for dim in masked_dims):
+            # First dim is time?
+            if (
+                'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape
+            ) or data_array.shape == da_mask.T.shape:
+                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
+            da = data_set[k].where(da_mask, drop=False)
+            da = da.assign_attrs(ds_start[k].attrs)
+            data_set[k] = da
+
+    return data_set
