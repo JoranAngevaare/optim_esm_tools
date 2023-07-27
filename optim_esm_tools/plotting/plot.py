@@ -63,7 +63,7 @@ def get_unit(ds, var):
     return ds[var].attrs.get('units', '?').replace('%', '\%')
 
 
-def get_cartopy_projection(projection, **projection_kwargs):
+def get_cartopy_projection(projection=None, **projection_kwargs):
     import cartopy.crs as ccrs
 
     projection = projection or config['analyze']['cartopy_projection']
