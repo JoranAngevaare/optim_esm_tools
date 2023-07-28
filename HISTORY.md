@@ -1,3 +1,18 @@
+1.1.0 / 2023-07-28
+## What's Changed
+*Minor change*
+Add the required tools to analyze time series and their properties
+* Statistical tools for time series by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/96
+*Patch*
+* Fix lon/lat for cluster plot and temp folder for preprocess by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/93
+* Load intake store from intake by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/94
+* Plotting flexibility by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/95
+* Minor search tweak by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/97
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.0.3...v1.1.0
+
+
 1.0.3 / 2023-07-24
 ------------------
 * Fix clustering fudge factor by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/91
