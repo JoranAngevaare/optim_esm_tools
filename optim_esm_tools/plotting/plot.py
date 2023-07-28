@@ -15,8 +15,9 @@ def setup_map(
     if add_features:
         import cartopy.feature as cfeature
 
+        allowed = 'LAND OCEAN COASTLINE BORDERS LAKES RIVERS'.split()
         for feat in oet.utils.to_str_tuple(add_features):
-            assert feat.upper in ['LAND OCEAN COASTLINE BORDERS LAKES RIVERS'], feat
+            assert feat.upper() in allowed, f'{feat} not in {allowed}'
             ax.add_feature(getattr(cfeature, feat.upper()))
 
     gl = ax.gridlines(draw_labels=True)
