@@ -43,7 +43,7 @@ class MapMaker(object):
             title=dict(fontsize=12),
             gridspec=dict(hspace=0.3),
             cbar=dict(orientation='horizontal', extend='both'),
-            plot=dict(transform=get_cartopy_projection()),
+            plot=dict(transform=get_cartopy_transform()),
             subplot=dict(projection=get_cartopy_projection()),
         )
 
@@ -172,8 +172,10 @@ class MapMaker(object):
 
         plt_ax = prop.plot(**kw)
 
-        plt.xlim(-180, 180)
-        plt.ylim(-90, 90)
+        _xlim, _ylim = oet.plotting.plot.get_xy_lim_for_projection()
+        plt.xlim(*_xlim)
+        plt.ylim(*_ylim)
+
         description = self.conditions[label].long_description
         ax.set_title(label.upper() + '\n' + description, **self.kw['title'])
         gl = ax.gridlines(draw_labels=True)
@@ -463,6 +465,7 @@ def summarize_mask(
                 **mm_sel.kw.get('cbar', {}),
                 **dict(extend='neither', label='Sum of area [km$^2$]'),
             },
+            transform=oet.plotting.plot.get_cartopy_transform(),
         )
         ax.coastlines()
         exponent = int(np.log10(tot_area))
@@ -470,7 +473,7 @@ def summarize_mask(
         plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{exponent}$ km$^2$')
         gl = ax.gridlines(draw_labels=True)
         gl.top_labels = False
-        gl.right_labels = False
+        # gl.right_labels = False
     else:
         ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
         mm_sel.plot_i(label=plot, ax=ax, coastlines=True)

@@ -60,7 +60,7 @@ Add the required tools to analyze time series and their properties
 *Next release will use CDO tools instead of xMip tools to do pre-processing for reliability reasons*
 
 * Lon and lat coords for clustering by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/79
-* Queriable area field by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/80
+* Queryable area field by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/80
 
 
 **Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v0.4.0...v0.5.0
