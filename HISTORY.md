@@ -1,9 +1,10 @@
 1.1.0 / 2023-07-28
 ------------------
-*Minor change*
+#### Minor change
 Add the required tools to analyze time series and their properties
 * Statistical tools for time series by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/96
-*Patch*
+
+#### Patch
 * Fix lon/lat for cluster plot and temp folder for preprocess by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/93
 * Load intake store from intake by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/94
 * Plotting flexibility by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/95
@@ -37,15 +38,15 @@ Add the required tools to analyze time series and their properties
 
 1.0.0 / 2023-07-18
 ------------------
-**major change**
+#### major change
 * Harmonize preprocessing with `cdo` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/81
 
-**minor changes**
+#### minor changes
 * Plotting routine for masked regions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/82
 * Plot region mask by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/85
 * Add plot maker by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/83
 
-**patches**
+#### patches
 * Raise error for invalid dates by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/84
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/86
 * Ready for release v1.0.0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/87
