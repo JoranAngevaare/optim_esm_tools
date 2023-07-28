@@ -1,5 +1,5 @@
 1.1.0 / 2023-07-28
-## What's Changed
+------------------
 *Minor change*
 Add the required tools to analyze time series and their properties
 * Statistical tools for time series by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/96
