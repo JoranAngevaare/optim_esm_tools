@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import optim_esm_tools as oet
-from optim_esm_tools.config import config
+from optim_esm_tools.config import config, get_logger
+import typing as ty
 
 
 def setup_map(
@@ -64,10 +65,46 @@ def get_unit(ds, var):
     return ds[var].attrs.get('units', '?').replace('%', '\%')
 
 
-def get_cartopy_projection(projection=None, **projection_kwargs):
+def get_cartopy_projection(projection=None, _field='projection', **projection_kwargs):
     import cartopy.crs as ccrs
 
-    projection = projection or config['analyze']['cartopy_projection']
+    projection = projection or config['cartopy'][_field]
     if not hasattr(ccrs, projection):
         raise ValueError(f'Invalid projection {projection}')
     return getattr(ccrs, projection)(**projection_kwargs)
+
+
+def get_cartopy_transform(projection=None, **projection_kwargs):
+    return get_cartopy_projection(
+        projection=projection, _field='transform', **projection_kwargs
+    )
+
+
+def get_xy_lim_for_projection(
+    projection=None,
+) -> ty.Tuple[ty.Tuple[float, float], ty.Tuple[float, float]]:
+    """
+    Blunt hardcoding for the different projections. Calling plt.xlim(0, 360) will have vastly
+    different outcomes depending on the projection used. Here we hardcoded some of the more common.
+    """
+    projection = projection or config['cartopy']['projection']
+    lims = dict(
+        Robinson=(
+            (-17005833.33052523, 17005833.33052523),
+            (-8625154.6651, 8625154.6651),
+        ),
+        EqualEarth=(
+            (-17243959.06221695, 17243959.06221695),
+            (-8392927.59846645, 8392927.598466456),
+        ),
+        Mollweide=(
+            (-18040095.696147293, 18040095.696147293),
+            (-9020047.848073646, 9020047.848073646),
+        ),
+        PlateCarree=((0, 360), (-90, 90)),
+    )
+    if projection not in lims:
+        get_logger().warning(
+            f'No hardcoded x/y lims for {projection}, might yield odd figures.'
+        )
+    return lims.get(projection, ((0, 360), (-90, 90)))

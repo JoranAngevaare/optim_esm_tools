@@ -259,12 +259,18 @@ class MaxRegion(RegionExtractor):
             oet.plotting.plot.setup_map()
             ax = plt.gca()
         for i, (label, xy) in enumerate(zip(self.labels, points.values())):
-            ax.scatter(*xy, marker='oxv^'[i], label=f'Maximum {label}')
+            ax.scatter(
+                *xy,
+                marker='oxv^'[i],
+                label=f'Maximum {label}',
+                transform=oet.plotting.plot.get_cartopy_transform(),
+            )
         if legend:
             ax.legend(**oet.utils.legend_kw())
         plt.suptitle(self.title, y=0.95)
-        plt.ylim(-90, 90)
-        plt.xlim(-180, 180)
+        _xlim, _ylim = oet.plotting.plot.get_xy_lim_for_projection()
+        plt.xlim(*_xlim)
+        plt.ylim(*_ylim)
 
     def _mask_to_coord(self, mask_2d):
         arg_mask = np.argwhere(mask_2d)[0]
@@ -453,14 +459,25 @@ class Percentiles(RegionExtractor):
 
         ds_dummy['area_square'] = (ds_dummy['cell_area'].dims, all_masks / 1e6)
 
-        ds_dummy['area_square'].plot(cbar_kwargs=mask_cbar_kw, vmin=0, extend='neither')
+        ds_dummy['area_square'].plot(
+            cbar_kwargs=mask_cbar_kw,
+            vmin=0,
+            extend='neither',
+            transform=oet.plotting.plot.get_cartopy_transform(),
+        )
         plt.title('')
         if scatter_medians:
             if cluster_kw is None:
                 cluster_kw = dict()
             for m_i, cluster in enumerate(clusters):
                 lat, lon = np.median(cluster, axis=0)
-                ax.scatter(lon, lat, label=f'cluster {m_i}', **cluster_kw)
+                ax.scatter(
+                    lon,
+                    lat,
+                    label=f'cluster {m_i}',
+                    **cluster_kw,
+                    transform=oet.plotting.plot.get_cartopy_transform(),
+                )
             if legend:
                 plt.legend(**oet.utils.legend_kw())
         plt.suptitle(f'Clusters {self.title}', y=0.97 if len(masks) < 4 else 0.99)
