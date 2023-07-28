@@ -245,6 +245,26 @@ def legend_kw(**kw):
     return options
 
 
+def filter_keyword_arguments(
+    kw: ty.Mapping, func: type, allow_varkw: bool = False
+) -> dict:
+    """Only pass accepted keyword arguments (from kw) into function "func"
+
+    Args:
+        kw (ty.Mapping): kwargs that could go into function func
+        func (type): a function
+        allow_varkw (bool, optional): If True and the function take kwargs, just return the <kw>
+            argument. Defaults to False.
+
+    Returns:
+        dict: Filtered keyword arguments
+    """
+    spec = inspect.getfullargspec(func)
+    if allow_varkw and spec.varkw is not None:
+        return kw
+    return {k: v for k, v in kw.items() if k in spec.args}
+
+
 def check_accepts(
     accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
     do_raise: bool = True,

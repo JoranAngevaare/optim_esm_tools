@@ -1,15 +1,12 @@
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.globals import _CMIP_HANDLER_VERSION
 from optim_esm_tools.analyze.cmip_handler import read_ds
-from optim_esm_tools.analyze.clustering import (
-    build_cluster_mask,
-    build_weighted_cluster,
-)
+from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.analyze.clustering import build_weighted_cluster
+from optim_esm_tools.analyze.xarray_tools import mask_xr_ds, mask_to_reduced_dataset
 from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.tipping_criteria import rank2d
-from optim_esm_tools.analyze.find_matches import base_from_path
-from .globals import _CMIP_HANDLER_VERSION
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,57 +27,6 @@ import os
 # >> scipy.stats.norm.cdf(2)
 # 0.9772498680518208
 _two_sigma_percent = 97.72498680518208
-
-
-def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
-    # Modify the ds in place - make a copy!
-    data_set = data_set.copy()
-    if masked_dims is None:
-        masked_dims = oet.config.config['analyze']['lon_lat_dim'].split(',')
-
-    ds_start = data_set.copy()
-    func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
-    data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
-    data_set = data_set.assign_attrs(ds_start.attrs)
-    return data_set
-
-
-def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
-    """Drop values with masked_dims dimensions.
-    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to bad results,
-    for example for time_bnds (time, bnds) being dropped by (lon, lat). So we have to do
-    some funny bookkeeping of which data vars we can drop with data_set.where.
-    """
-
-    dropped = []
-    for k, data_array in data_set.data_vars.items():
-        if not all(dim in list(data_array.dims) for dim in masked_dims):
-            dropped += [k]
-
-    data_set = data_set.drop_vars(dropped)
-
-    data_set = data_set.where(da_mask, drop=True)
-
-    # Restore ignored variables and attributes
-    for k in dropped:
-        data_set[k] = ds_start[k]
-    return data_set
-
-
-def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
-    """Rebuild data_set for each variable that has all masked_dims"""
-    for k, data_array in data_set.data_vars.items():
-        if all(dim in list(data_array.dims) for dim in masked_dims):
-            # First dim is time?
-            if (
-                'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape
-            ) or data_array.shape == da_mask.T.shape:
-                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
-            da = data_set[k].where(da_mask, drop=False)
-            da = da.assign_attrs(ds_start[k].attrs)
-            data_set[k] = da
-
-    return data_set
 
 
 def plt_show(*a):
@@ -245,7 +191,7 @@ class RegionExtractor:
     def summarize_mask(self, mask, m_i):
         self._summarize_mask(mask)
         plt.suptitle(self.title + f' cluster {m_i}')
-        self.save(f'{self.title_label}_cluster_{m_i}')
+        self.save(f'{self.title_label}_cluster-{m_i}')
 
         self.store_mask(mask, m_i)
 
@@ -256,11 +202,7 @@ class RegionExtractor:
         save_in = self.save_kw['save_in']
         store_in_dir = os.path.join(save_in, 'masks')
         os.makedirs(store_in_dir, exist_ok=True)
-        # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
-        # While we could make this more efficient (and only use the second step), the first step
-        # does only take ~10 ms
-        ds_masked = mask_xr_ds(self.data_set.copy(), mask)
-        ds_masked = mask_xr_ds(ds_masked, ~ds_masked['cell_area'].isnull(), drop=True)
+        ds_masked = mask_to_reduced_dataset(self.data_set, mask)
         ds_masked.to_netcdf(
             os.path.join(
                 store_in_dir,
@@ -421,7 +363,7 @@ class Percentiles(RegionExtractor):
         sums = []
         for lab in labels:
             vals = self.data_set[lab].values
-            vals = rank2d(vals)
+            vals = tipping_criteria.rank2d(vals)
             vals[np.isnan(vals)] = 0
             sums.append(vals)
 
@@ -651,36 +593,15 @@ class PercentilesHistory(Percentiles):
         query_updates=None,
         search_kw=None,
     ):
-        base = base_from_path(
-            self.data_set.attrs['path'], look_back_extra=look_back_extra
+        path = self.data_set.attrs['path']
+        return oet.analyze.find_matches.associate_historical(
+            path=path,
+            data_set=None,
+            match_to=match_to,
+            look_back_extra=look_back_extra,
+            query_updates=query_updates,
+            search_kw=search_kw,
         )
-
-        search = oet.analyze.find_matches.folder_to_dict(self.data_set.attrs['path'])
-        search['activity_id'] = 'CMIP'
-        if search['experiment_id'] == match_to:
-            raise NotImplementedError(f'Cannot match {match_to} to itself!')
-        search['experiment_id'] = match_to
-        if search_kw:
-            search.update(search_kw)
-        if query_updates is None:
-            query_updates = [
-                dict(),
-                dict(variant_label='*'),
-                dict(version='*'),
-                # can lead to funny behavior as grid differences may cause breaking compares
-                dict(grid_label='*'),
-            ]
-
-        for try_n, update_query in enumerate(query_updates):
-            if try_n:
-                self.log.info(
-                    f'No results after {try_n} try, retying with {update_query}'
-                )
-            search.update(update_query)
-            this_try = oet.analyze.find_matches.find_matches(base, **search)
-            if this_try:
-                return this_try
-        raise RuntimeError(f'Looked for {search}, in {base} found nothing')
 
     @apply_options
     def get_historical_ds(self, read_ds_kw=None, **kw):
@@ -717,7 +638,7 @@ class ProductPercentiles(Percentiles):
         combined_score = np.ones_like(ds[labels[0]].values)
 
         for label in labels:
-            combined_score *= rank2d(ds[label].values)
+            combined_score *= tipping_criteria.rank2d(ds[label].values)
         self.check_shape(combined_score)
         masks, clusters = build_weighted_cluster(
             weights=combined_score,
@@ -738,7 +659,7 @@ class ProductPercentiles(Percentiles):
         ds = self.data_set.copy()
         combined_score = np.ones_like(ds[labels[0]].values)
         for label in labels:
-            combined_score *= rank2d(ds[label].values)
+            combined_score *= tipping_criteria.rank2d(ds[label].values)
 
         # Combined score is fraction, not percent!
         all_mask = combined_score > (product_percentiles / 100)

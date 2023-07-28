@@ -9,7 +9,7 @@ import os
 
 class Work(unittest.TestCase):
     """
-    Note of caution! cache=True can lead to funky behavoir!
+    Note of caution! _CACHE_TRUE=True can lead to funky behavior!
     """
 
     @classmethod
@@ -19,13 +19,7 @@ class Work(unittest.TestCase):
 
     @staticmethod
     def get_path(data_name, refresh=True):
-        path = optim_esm_tools._test_utils.get_file_from_pangeo(
-            data_name, refresh=refresh
-        )
-        year_path = optim_esm_tools._test_utils.year_means(path, refresh=refresh)
-        assert year_path
-        assert os.path.exists(year_path)
-        return year_path
+        return optim_esm_tools._test_utils.get_path_for_ds(data_name, refresh=refresh)
 
     def test_max_region(self, make='MaxRegion', new_opt=None, skip_save=True):
         cls = getattr(region_finding, make)
