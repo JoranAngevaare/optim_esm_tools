@@ -8,7 +8,7 @@ from collections import defaultdict
 @timed
 @check_accepts(
     accepts=dict(
-        activity_id=('ScenarioMIP', 'CMIP', '*'),
+        activity_id=('AerChemMIP', 'ScenarioMIP', 'CMIP', '*'),
         experiment_id=(
             'piControl',
             'historical',
@@ -189,24 +189,30 @@ def associate_historical(
     data_set=None,
     path=None,
     match_to='piControl',
+    activity_id='CMIP',
     look_back_extra=0,
     query_updates=None,
     search_kw=None,
+    strict=True,
 ):
     if data_set is None and path is None:
         raise ValueError(
             'No dataset, no path, can\'t match if I don\'t know what I\'m looking for'
         )
-
-    path = path or data_set['path']
+    log = get_logger()
+    path = path or data_set.attrs['path']
     base = base_from_path(path, look_back_extra=look_back_extra)
     search = folder_to_dict(path)
-    search['activity_id'] = 'CMIP'
+    search['activity_id'] = activity_id
     if search['experiment_id'] == match_to:
-        raise NotImplementedError(f'Cannot match {match_to} to itself!')
+        message = f'Cannot match {match_to} to itself!'
+        if strict:
+            raise NotImplementedError(message)
+        log.warning(message)
     search['experiment_id'] = match_to
     if search_kw:
         search.update(search_kw)
+        print(search)
     if query_updates is None:
         query_updates = [
             dict(),
@@ -219,9 +225,12 @@ def associate_historical(
     for try_n, update_query in enumerate(query_updates):
         if try_n:
             message = f'No results after {try_n} try, retying with {update_query}'
-            get_logger().info(message)
+            log.info(message)
         search.update(update_query)
         this_try = find_matches(base, **search)
         if this_try:
             return this_try
-    raise RuntimeError(f'Looked for {search}, in {base} found nothing')
+    message = f'Looked for {search}, in {base} found nothing'
+    if strict:
+        raise RuntimeError(message)
+    log.warning(message)

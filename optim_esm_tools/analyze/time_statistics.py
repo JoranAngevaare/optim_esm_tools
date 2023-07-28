@@ -33,7 +33,6 @@ class TimeStatistics:
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
     """Load the global mask and rename it's dims to the original ones"""
-    oet.config.get_logger().error('Temporary patch, replace mask in region finding!')
     mapping = oet.analyze.xarray_tools.default_rename_mask_dims_dict()
     inverse_mapping = {v: k for k, v in mapping.items()}
     rename_dict = rename_dict or inverse_mapping
