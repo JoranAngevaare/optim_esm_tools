@@ -71,7 +71,7 @@ def calculate_dip_test(ds, field=None):
 
 
 def calculate_skewtest(ds, field=None):
-    values = get_values_from_data_set(ds, field)
+    values = get_values_from_data_set(ds, field, add='')
     return scipy.stats.skewtest(values, nan_policy='omit').pvalue
 
 

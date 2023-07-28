@@ -1,16 +1,12 @@
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
 from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.globals import _CMIP_HANDLER_VERSION
 from optim_esm_tools.analyze.cmip_handler import read_ds
-from optim_esm_tools.analyze.clustering import (
-    build_cluster_mask,
-    build_weighted_cluster,
-)
+from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.analyze.clustering import build_weighted_cluster
+from optim_esm_tools.analyze.xarray_tools import mask_xr_ds, add_mask_renamed
 from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.tipping_criteria import rank2d
-from optim_esm_tools.analyze.find_matches import base_from_path
-from optim_esm_tools.analyze.xarray_tools import mask_xr_ds
-from .globals import _CMIP_HANDLER_VERSION
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -210,7 +206,9 @@ class RegionExtractor:
         # While we could make this more efficient (and only use the second step), the first step
         # does only take ~10 ms
         ds_masked = mask_xr_ds(self.data_set.copy(), mask)
-        ds_masked = mask_xr_ds(ds_masked, ~ds_masked['cell_area'].isnull(), drop=True)
+        bool_mask_data_array = ~ds_masked['cell_area'].isnull()
+        ds_masked = mask_xr_ds(ds_masked, bool_mask_data_array, drop=True)
+        ds_masked = add_mask_renamed(ds_masked, bool_mask_data_array)
         ds_masked.to_netcdf(
             os.path.join(
                 store_in_dir,
@@ -371,7 +369,7 @@ class Percentiles(RegionExtractor):
         sums = []
         for lab in labels:
             vals = self.data_set[lab].values
-            vals = rank2d(vals)
+            vals = tipping_criteria.rank2d(vals)
             vals[np.isnan(vals)] = 0
             sums.append(vals)
 
@@ -646,7 +644,7 @@ class ProductPercentiles(Percentiles):
         combined_score = np.ones_like(ds[labels[0]].values)
 
         for label in labels:
-            combined_score *= rank2d(ds[label].values)
+            combined_score *= tipping_criteria.rank2d(ds[label].values)
         self.check_shape(combined_score)
         masks, clusters = build_weighted_cluster(
             weights=combined_score,
@@ -667,7 +665,7 @@ class ProductPercentiles(Percentiles):
         ds = self.data_set.copy()
         combined_score = np.ones_like(ds[labels[0]].values)
         for label in labels:
-            combined_score *= rank2d(ds[label].values)
+            combined_score *= tipping_criteria.rank2d(ds[label].values)
 
         # Combined score is fraction, not percent!
         all_mask = combined_score > (product_percentiles / 100)

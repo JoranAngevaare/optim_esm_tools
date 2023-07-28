@@ -3,6 +3,7 @@ import numpy as np
 import typing as ty
 import xarray as xr
 from functools import wraps
+from optim_esm_tools.config import config
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
@@ -88,14 +89,25 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
     if masked_dims is None:
-        from optim_esm_tools.config import config
-
         masked_dims = config['analyze']['lon_lat_dim'].split(',')
 
     ds_start = data_set.copy()
     func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
     data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
     data_set = data_set.assign_attrs(ds_start.attrs)
+    return data_set
+
+
+def rename_mask_coords(da_mask, rename_dict=None):
+    rename_dict = rename_dict or {
+        k: f'{k}_mask' for k in config['analyze']['lon_lat_dim'].split(',')
+    }
+    mask = da_mask.rename(rename_dict)
+    return mask
+
+
+def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):
+    data_set[mask_name] = rename_mask_coords(da_mask, **kw)
     return data_set
 
 
