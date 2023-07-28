@@ -473,7 +473,6 @@ def summarize_mask(
         plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{exponent}$ km$^2$')
         gl = ax.gridlines(draw_labels=True)
         gl.top_labels = False
-        # gl.right_labels = False
     else:
         ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
         mm_sel.plot_i(label=plot, ax=ax, coastlines=True)

@@ -83,6 +83,10 @@ def get_cartopy_transform(projection=None, **projection_kwargs):
 def get_xy_lim_for_projection(
     projection=None,
 ) -> ty.Tuple[ty.Tuple[float, float], ty.Tuple[float, float]]:
+    """
+    Blunt hardcoding for the different projections. Calling plt.xlim(0, 360) will have vastly
+    different outcomes depending on the projection used. Here we hardcoded some of the more common.
+    """
     projection = projection or config['cartopy']['projection']
     lims = dict(
         Robinson=(
@@ -103,7 +107,4 @@ def get_xy_lim_for_projection(
         get_logger().warning(
             f'No hardcoded x/y lims for {projection}, might yield odd figures.'
         )
-    return lims.get(
-        projection,
-        ((0, 360), (-90, 90)),
-    )
+    return lims.get(projection, ((0, 360), (-90, 90)))
