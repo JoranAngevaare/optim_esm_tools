@@ -92,6 +92,14 @@ def synda_test_available():
     )
 
 
+def get_path_for_ds(data_name, refresh=True):
+    path = get_file_from_pangeo(data_name, refresh=refresh)
+    year_path = year_means(path, refresh=refresh)
+    assert year_path
+    assert os.path.exists(year_path)
+    return year_path
+
+
 def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     import numpy as np
     import xarray as xr

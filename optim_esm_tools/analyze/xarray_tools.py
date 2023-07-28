@@ -98,12 +98,81 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
     return data_set
 
 
-def rename_mask_coords(da_mask, rename_dict=None):
-    rename_dict = rename_dict or {
-        k: f'{k}_mask' for k in config['analyze']['lon_lat_dim'].split(',')
-    }
-    mask = da_mask.rename(rename_dict)
+def rename_mask_coords(
+    da_mask: xr.DataArray, rename_dict: ty.Mapping = None
+) -> xr.DataArray:
+    """
+    Get a boolean DataArray with renamed dimensionality.
+    For some applications, we want to prune a dataset of nan values along a given lon/lat mask.
+    Removing data along a given mask can greatly reduce file-size and speed up data-set handling.
+    This however makes it somewhat cumbersome to later re-apply said mask (to other data) since
+    it's shape will be inconsistent with other (non-masked) data. To this end, we want to store
+    the mask separately in a dataset. To avoid dimension clashes between masked data and the masked
+    information, we rename the dimensions of the mask.
+
+    Args:
+        da_mask (xr.DataArray): Mask to be renamed.
+        rename_dict (ty.Mapping, optional): Mapping from the dims in da_mask to renamed dims.
+
+    Returns:
+        xr.DataArray: da_mask with renamed dims.
+    """
+    rename_dict = rename_dict or default_rename_mask_dims_dict()
+    if any(dim not in da_mask.dims for dim in rename_dict.keys()):
+        raise KeyError(
+            f'Trying to rename {rename_dict}, but this DataArray has {da_mask.dims}'
+        )
+    mask = da_mask.copy().rename(rename_dict)
+    message = (
+        'Full global mask with full lat/lon dimensionality in order to be save the masked '
+        'time series with all nan values dropped (to conserve disk space)'
+    )
+    mask.attrs.update(dict(info=message))
     return mask
+
+
+def mask_to_reduced_dataset(
+    data_set: xr.Dataset,
+    mask: ty.Union[xr.DataArray, np.ndarray],
+    add_global_mask: bool = True,
+) -> xr.Dataset:
+    """
+    Reduce data_set by dropping all data where mask is False.
+    This greatly reduces the size (which is absolutely required for exporting time series from
+    global data).
+
+    Args:
+        data_set (xr.Dataset): data set to mask by mask
+        mask (ty.Union[xr.DataArray, np.ndarray]): boolean array to mask
+        add_global_mask (bool, optional): Add global mask with full dimensionality (see
+            rename_mask_coords for more info). Defaults to True.
+
+    Raises:
+        ValueError: If mask has a wrong shape
+
+    Returns:
+        xr.Dataset: Original dataset where mask is True
+    """
+    if isinstance(mask, xr.DataArray):
+        mask = mask.values
+    if mask.shape != (expected := data_set['cell_area'].shape):
+        raise ValueError(
+            f'Inconsistent dimensionality, expected {expected}, got {mask.shape}'
+        )
+
+    # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
+    # While we could make this more efficient (and only use the second step), the first step
+    # does only take ~10 ms
+    ds_masked = mask_xr_ds(data_set.copy(), mask)
+    bool_mask_data_array = ~ds_masked['cell_area'].isnull()
+    ds_masked = mask_xr_ds(ds_masked, bool_mask_data_array, drop=True)
+    if add_global_mask:
+        ds_masked = add_mask_renamed(ds_masked, bool_mask_data_array)
+    return ds_masked
+
+
+def default_rename_mask_dims_dict():
+    return {k: f'{k}_mask' for k in config['analyze']['lon_lat_dim'].split(',')}
 
 
 def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):

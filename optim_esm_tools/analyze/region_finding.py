@@ -5,7 +5,7 @@ from optim_esm_tools.analyze.globals import _CMIP_HANDLER_VERSION
 from optim_esm_tools.analyze.cmip_handler import read_ds
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.analyze.clustering import build_weighted_cluster
-from optim_esm_tools.analyze.xarray_tools import mask_xr_ds, add_mask_renamed
+from optim_esm_tools.analyze.xarray_tools import mask_xr_ds, mask_to_reduced_dataset
 from optim_esm_tools.plotting.plot import setup_map, _show
 
 import numpy as np
@@ -202,13 +202,7 @@ class RegionExtractor:
         save_in = self.save_kw['save_in']
         store_in_dir = os.path.join(save_in, 'masks')
         os.makedirs(store_in_dir, exist_ok=True)
-        # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
-        # While we could make this more efficient (and only use the second step), the first step
-        # does only take ~10 ms
-        ds_masked = mask_xr_ds(self.data_set.copy(), mask)
-        bool_mask_data_array = ~ds_masked['cell_area'].isnull()
-        ds_masked = mask_xr_ds(ds_masked, bool_mask_data_array, drop=True)
-        ds_masked = add_mask_renamed(ds_masked, bool_mask_data_array)
+        ds_masked = mask_to_reduced_dataset(self.data_set, mask)
         ds_masked.to_netcdf(
             os.path.join(
                 store_in_dir,

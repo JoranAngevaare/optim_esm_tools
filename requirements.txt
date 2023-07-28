@@ -1,3 +1,4 @@
+diptest
 immutabledict
 intake-esm
 matplotlib
