@@ -1,6 +1,5 @@
 import optim_esm_tools as oet
 import numpy as np
-import scipy
 import xarray as xr
 import typing as ty
 from functools import partial
@@ -82,6 +81,8 @@ def calculate_dip_test(ds, field=None):
 
 
 def calculate_skewtest(ds, field=None):
+    import scipy
+
     values = get_values_from_data_set(ds, field, add='')
     return scipy.stats.skewtest(values, nan_policy='omit').pvalue
 
