@@ -3,10 +3,23 @@ import optim_esm_tools as oet
 from optim_esm_tools.config import config
 
 
-def setup_map():
-    plt.gcf().add_subplot(projection=get_cartopy_projection())
+def setup_map(
+    projection=None, coastlines=True, add_features=False, **projection_kwargs
+):
+    plt.gcf().add_subplot(
+        projection=get_cartopy_projection(projection, **projection_kwargs)
+    )
     ax = plt.gca()
-    ax.coastlines()
+    if coastlines:
+        ax.coastlines()
+    if add_features:
+        import cartopy.feature as cfeature
+
+        allowed = 'LAND OCEAN COASTLINE BORDERS LAKES RIVERS'.split()
+        for feat in oet.utils.to_str_tuple(add_features):
+            assert feat.upper() in allowed, f'{feat} not in {allowed}'
+            ax.add_feature(getattr(cfeature, feat.upper()))
+
     gl = ax.gridlines(draw_labels=True)
     gl.top_labels = False
 
@@ -51,10 +64,10 @@ def get_unit(ds, var):
     return ds[var].attrs.get('units', '?').replace('%', '\%')
 
 
-def get_cartopy_projection():
+def get_cartopy_projection(projection=None, **projection_kwargs):
     import cartopy.crs as ccrs
 
-    projection = config['analyze']['cartopy_projection']
+    projection = projection or config['analyze']['cartopy_projection']
     if not hasattr(ccrs, projection):
         raise ValueError(f'Invalid projection {projection}')
-    return getattr(ccrs, projection)()
+    return getattr(ccrs, projection)(**projection_kwargs)
