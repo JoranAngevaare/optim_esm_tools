@@ -8,7 +8,7 @@ from collections import defaultdict
 @timed
 @check_accepts(
     accepts=dict(
-        activity_id=('ScenarioMIP', 'CMIP', '*'),
+        activity_id=('AerChemMIP', 'ScenarioMIP', 'CMIP', '*'),
         experiment_id=(
             'piControl',
             'historical',
