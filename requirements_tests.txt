@@ -1,5 +1,6 @@
 aiohttp
 coverage
+diptest
 gcsfs
 geopy
 gitpython
@@ -9,3 +10,4 @@ intake-esm
 numba
 pytest
 scikit-learn
+scipy

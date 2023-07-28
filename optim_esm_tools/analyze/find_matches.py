@@ -183,3 +183,45 @@ def base_from_path(path, look_back_extra=0):
             : -len(config['CMIP_files']['folder_fmt'].split()) - look_back_extra
         ],
     )
+
+
+def associate_historical(
+    data_set=None,
+    path=None,
+    match_to='piControl',
+    look_back_extra=0,
+    query_updates=None,
+    search_kw=None,
+):
+    if data_set is None and path is None:
+        raise ValueError(
+            'No dataset, no path, can\'t match if I don\'t know what I\'m looking for'
+        )
+
+    path = path or data_set['path']
+    base = base_from_path(path, look_back_extra=look_back_extra)
+    search = folder_to_dict(path)
+    search['activity_id'] = 'CMIP'
+    if search['experiment_id'] == match_to:
+        raise NotImplementedError(f'Cannot match {match_to} to itself!')
+    search['experiment_id'] = match_to
+    if search_kw:
+        search.update(search_kw)
+    if query_updates is None:
+        query_updates = [
+            dict(),
+            dict(variant_label='*'),
+            dict(version='*'),
+            # can lead to funny behavior as grid differences may cause breaking compares
+            dict(grid_label='*'),
+        ]
+
+    for try_n, update_query in enumerate(query_updates):
+        if try_n:
+            message = f'No results after {try_n} try, retying with {update_query}'
+            get_logger().info(message)
+        search.update(update_query)
+        this_try = find_matches(base, **search)
+        if this_try:
+            return this_try
+    raise RuntimeError(f'Looked for {search}, in {base} found nothing')
