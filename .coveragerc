@@ -8,5 +8,11 @@ exclude_lines =
     warn
     plt.show()
     return
+    message =
+    log.warning
+    get_logger().warning
+    log.error
+    get_logger().error
+
 
 ignore_errors = True

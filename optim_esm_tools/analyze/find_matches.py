@@ -208,8 +208,7 @@ def associate_historical(
         message = f'Cannot match {match_to} to itself!'
         if strict:
             raise NotImplementedError(message)
-        else:
-            log.warning(message)
+        log.warning(message)
     search['experiment_id'] = match_to
     if search_kw:
         search.update(search_kw)
