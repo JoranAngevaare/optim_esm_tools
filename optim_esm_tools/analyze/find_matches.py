@@ -94,7 +94,7 @@ def find_matches(
         if group not in seen:
             seen[group] = defaultdict(list)
         seen_members = seen[group]
-        if len(seen_members) < max_members or member in seen_members:
+        if len(seen_members) <= max_members or member in seen_members:
             if required_file and required_file not in os.listdir(candidate):
                 get_logger().warning(f'{required_file} not in {candidate}')
                 continue
