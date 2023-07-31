@@ -89,7 +89,7 @@ def get_values_from_data_set(ds, field, add='_detrend'):
 def calculate_dip_test(ds, field=None):
     import diptest
 
-    values = get_values_from_data_set(ds, field)
+    values = get_values_from_data_set(ds, field, add='')
 
     _, pval = diptest.diptest(values, boot_pval=False)
     return pval
@@ -98,7 +98,7 @@ def calculate_dip_test(ds, field=None):
 def calculate_skewtest(ds, field=None):
     import scipy
 
-    values = get_values_from_data_set(ds, field, add='')
+    values = get_values_from_data_set(ds, field)
     if sum(~np.isnan(values)) < 8:
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
