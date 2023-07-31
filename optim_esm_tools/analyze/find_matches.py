@@ -58,10 +58,9 @@ def find_matches(
     Returns:
         list: of matches corresponding to the query
     """
+    log = get_logger()
     if grid is not None:
-        get_logger().warning(
-            f'grid argument for find_matches is deprecated, use grid_label'
-        )
+        log.error(f'grid argument for find_matches is deprecated, use grid_label')
         grid_label = grid
     if max_versions is None:
         max_versions = int(9e9)
@@ -88,21 +87,24 @@ def find_matches(
     for candidate in variants:
         folders = candidate.split(os.sep)
         group = folders[-7]
-        member = folders[-5]
         version = folders[-1]
 
         if group not in seen:
             seen[group] = defaultdict(list)
         seen_members = seen[group]
-        if len(seen_members) < max_members or member in seen_members:
-            if required_file and required_file not in os.listdir(candidate):
-                get_logger().warning(f'{required_file} not in {candidate}')
-                continue
-            if len(seen_members.get(version, [])) == max_versions:
-                continue
-            if is_excluded(candidate):
-                continue
-            seen_members[version].append(candidate)
+
+        if (
+            len(seen_members) == max_versions
+            and len(seen_members.get(version, [])) == max_members
+        ):
+            continue
+        if required_file and required_file not in os.listdir(candidate):
+            log.warning(f'{required_file} not in {candidate}')
+            continue
+        if is_excluded(candidate):
+            log.info(f'{candidate} is excluded')
+            continue
+        seen_members[version].append(candidate)
 
     return [
         folder
@@ -212,7 +214,7 @@ def associate_historical(
     search['experiment_id'] = match_to
     if search_kw:
         search.update(search_kw)
-        print(search)
+
     if query_updates is None:
         query_updates = [
             dict(),

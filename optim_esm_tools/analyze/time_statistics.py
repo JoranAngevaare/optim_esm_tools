@@ -15,7 +15,23 @@ class TimeStatistics:
     def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
         """
         For a given dataset calculate the statistical properties of the dataset based on three tests:
-            1. The standard deviation w.r.t. the standard
+            1. The standard deviation w.r.t. the standard deviation of the piControl run
+            2. The p-value of the "dip test" [1]
+            3. The p-value of the Skewness test [2]
+
+        Citations:
+            [1]:
+                Hartigan, P. M. (1985). Computation of the Dip Statistic to Test for Unimodality.
+                Journal of the Royal Statistical Society. Series C (Applied Statistics), 34(3),
+                320-325.
+                Code from:
+                https://pypi.org/project/diptest/
+            [2]:
+                R. B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using
+                powerful and informative tests of normality", American Statistician 44, pp.
+                316-321, 1990.
+                Code from:
+                https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
 
         Returns:
             ty.Dict[ty.Optional[float]]: _description_
@@ -83,6 +99,10 @@ def calculate_skewtest(ds, field=None):
     import scipy
 
     values = get_values_from_data_set(ds, field, add='')
+    if sum(~np.isnan(values)) < 8:
+        # At least 8 samples are needed
+        oet.config.get_logger().error('Dataset too short for skewtest')
+        return None
     return scipy.stats.skewtest(values, nan_policy='omit').pvalue
 
 
