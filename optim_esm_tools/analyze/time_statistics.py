@@ -21,16 +21,16 @@ class TimeStatistics:
 
         Citations:
             [1]:
-                Hartigan, P. M. (1985). Computation of the Dip Statistic to Test for Unimodality. 
-                Journal of the Royal Statistical Society. Series C (Applied Statistics), 34(3), 
-                320-325. 
-                Code from: 
+                Hartigan, P. M. (1985). Computation of the Dip Statistic to Test for Unimodality.
+                Journal of the Royal Statistical Society. Series C (Applied Statistics), 34(3),
+                320-325.
+                Code from:
                 https://pypi.org/project/diptest/
             [2]:
-                R. B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using 
-                powerful and informative tests of normality", American Statistician 44, pp. 
+                R. B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using
+                powerful and informative tests of normality", American Statistician 44, pp.
                 316-321, 1990.
-                Code from: 
+                Code from:
                 https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
 
         Returns:
