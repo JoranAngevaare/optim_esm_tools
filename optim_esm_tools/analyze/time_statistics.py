@@ -56,10 +56,16 @@ class TimeStatistics:
             for k, f in functions.items()
         }
 
-def n_times_global_std(ds, field='std detrended', min_time=None, max_time=(2100, 12, 30), average_over=None): 
-    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(',')
-    ds_global=oet.read_ds(ds.attrs['path'], min_time=min_time, max_time=max_time)
+
+def n_times_global_std(
+    ds, field='std detrended', min_time=None, max_time=(2100, 12, 30), average_over=None
+):
+    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
+        ','
+    )
+    ds_global = oet.read_ds(ds.attrs['path'], min_time=min_time, max_time=max_time)
     return float(ds[field].mean(average_over) / ds_global[field].mean(average_over))
+
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
     """Load the global mask and rename it's dims to the original ones"""
