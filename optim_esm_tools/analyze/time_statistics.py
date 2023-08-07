@@ -104,7 +104,7 @@ def calculate_dip_test(ds, field=None):
     return pval
 
 
-def calculate_skewtest(ds, field=None):
+def calculate_skewtest(ds, field=None, nan_policy='omit'):
     import scipy
 
     values = get_values_from_data_set(ds, field)
@@ -112,13 +112,17 @@ def calculate_skewtest(ds, field=None):
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
         return None
-    return scipy.stats.skewtest(values, nan_policy='omit').pvalue
+    return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_symmetry_test(ds, field=None):
+def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     import rpy_symmetry as rsym
 
     values = get_values_from_data_set(ds, field)
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:
+        raise NotImplementedError('Not sure how to deal with nans other than omit')
     return rsym.p_symmetry(values)
 
 
