@@ -18,6 +18,7 @@ class TimeStatistics:
             1. The standard deviation w.r.t. the standard deviation of the piControl run
             2. The p-value of the "dip test" [1]
             3. The p-value of the Skewness test [2]
+            4. The p-value fo the symmetry test [3]
 
         Citations:
             [1]:
@@ -32,14 +33,22 @@ class TimeStatistics:
                 316-321, 1990.
                 Code from:
                 https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
+            [3]:
+                Mira A (1999) Distribution-free test for symmetry based on Bonferroni's measure.
+                J Appl Stat 26(8):959–972. https://doi.org/10.1080/02664769921963
+                Code from:
+                https://cran.r-project.org/web/packages/symmetry
+                Code at:
+                https://github.com/JoranAngevaare/rpy_symmetry
 
         Returns:
-            ty.Dict[ty.Optional[float]]: _description_
+            ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
         functions = dict(
             n_sigma_historical=calculate_historical_std,
             p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
+            p_symmetry=calculate_symmetry_test,
         )
         return {
             k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
