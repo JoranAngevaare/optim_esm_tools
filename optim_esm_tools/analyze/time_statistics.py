@@ -49,12 +49,17 @@ class TimeStatistics:
             p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
             p_symmetry=calculate_symmetry_test,
+            n_std_global=n_times_global_std,
         )
         return {
             k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
             for k, f in functions.items()
         }
 
+def n_times_global_std(ds, field='std detrended', min_time=None, max_time=(2100, 12, 30), average_over=None): 
+    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(',')
+    ds_global=oet.read_ds(ds.attrs['path'], min_time=min_time, max_time=max_time)
+    return float(ds[field].mean(average_over) / ds_global[field].mean(average_over))
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
     """Load the global mask and rename it's dims to the original ones"""
@@ -107,7 +112,7 @@ def calculate_dip_test(ds, field=None):
 def calculate_skewtest(ds, field=None, nan_policy='omit'):
     import scipy
 
-    values = get_values_from_data_set(ds, field)
+    values = get_values_from_data_set(ds, field, add='')
     if sum(~np.isnan(values)) < 8:
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
@@ -118,7 +123,7 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
 def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     import rpy_symmetry as rsym
 
-    values = get_values_from_data_set(ds, field)
+    values = get_values_from_data_set(ds, field, add='')
     if nan_policy == 'omit':
         values = values[~np.isnan(values)]
     else:
