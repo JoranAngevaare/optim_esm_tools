@@ -62,9 +62,7 @@ jobs:
         if: matrix.test == 'partial'
         run: |
           conda activate synda
-
           bash .github/scripts/install_env.sh "--no_synda"
-          conda install -c conda-forge r-base r-essentials
       # ALL
       - name: run full install
         if: matrix.test == 'full'
@@ -72,7 +70,6 @@ jobs:
           conda activate synda
           bash .github/scripts/install_env.sh
           bash .github/scripts/install_tex.sh
-          conda install -c conda-forge r-base r-essentials
       - name: set Synda config
         if: matrix.test == 'full'
         env:
