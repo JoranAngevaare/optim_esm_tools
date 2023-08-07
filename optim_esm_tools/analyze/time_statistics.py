@@ -106,26 +106,17 @@ def calculate_skewtest(ds, field=None):
     return scipy.stats.skewtest(values, nan_policy='omit').pvalue
 
 
-def calculate_symmetry_test(ds, field=None):
-    import rpy_symmetry as rsym
-
-    values = get_values_from_data_set(ds, field)
-    return rsym.p_symmetry(values)
-
-
-def calculate_historical_std(
-    ds, field='std detrended', field_pi_control='max jump', **kw
-):
+def calculate_historical_std(ds, field='std detrended', **kw):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
-    da = ds[field]
-    da_hist = ds_hist_masked[field_pi_control]
-    assert da.shape == da_hist.shape, f'{da.shape} != {da_hist.shape}'
-    cur = da.values
-    his = da_hist.values
+    assert (
+        ds[field].shape == ds_hist_masked[field].shape
+    ), f'{ds[field].shape} != {ds_hist_masked[field].shape}'
+    cur = ds[field].values
+    his = ds_hist_masked[field].values
     isnnan = np.isnan(cur) | np.isnan(his)
     cur = cur[~isnnan]
     his = his[~isnnan]

@@ -7,5 +7,3 @@ pandas
 tqdm
 treelib
 xarray
-# Optional, required for some submodules:
-# rpy_symmetry

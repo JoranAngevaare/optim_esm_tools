@@ -9,6 +9,5 @@ hypothesis-numpy
 intake-esm
 numba
 pytest
-rpy_symmetry
 scikit-learn
 scipy
