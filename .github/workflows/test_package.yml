@@ -62,6 +62,7 @@ jobs:
         if: matrix.test == 'partial'
         run: |
           conda activate synda
+          mamba install -c conda-forge r-base r-essentials
           bash .github/scripts/install_env.sh "--no_synda"
 
       # ALL
