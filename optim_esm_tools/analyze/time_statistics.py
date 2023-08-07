@@ -18,6 +18,7 @@ class TimeStatistics:
             1. The standard deviation w.r.t. the standard deviation of the piControl run
             2. The p-value of the "dip test" [1]
             3. The p-value of the Skewness test [2]
+            4. The p-value fo the symmetry test [3]
 
         Citations:
             [1]:
@@ -32,14 +33,22 @@ class TimeStatistics:
                 316-321, 1990.
                 Code from:
                 https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
+            [3]:
+                Mira A (1999) Distribution-free test for symmetry based on Bonferroni's measure.
+                J Appl Stat 26(8):959–972. https://doi.org/10.1080/02664769921963
+                Code from:
+                https://cran.r-project.org/web/packages/symmetry
+                Code at:
+                https://github.com/JoranAngevaare/rpy_symmetry
 
         Returns:
-            ty.Dict[ty.Optional[float]]: _description_
+            ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
         functions = dict(
             n_sigma_historical=calculate_historical_std,
             p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
+            p_symmetry=calculate_symmetry_test,
         )
         return {
             k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
@@ -95,7 +104,7 @@ def calculate_dip_test(ds, field=None):
     return pval
 
 
-def calculate_skewtest(ds, field=None):
+def calculate_skewtest(ds, field=None, nan_policy='omit'):
     import scipy
 
     values = get_values_from_data_set(ds, field)
@@ -103,20 +112,33 @@ def calculate_skewtest(ds, field=None):
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
         return None
-    return scipy.stats.skewtest(values, nan_policy='omit').pvalue
+    return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_historical_std(ds, field='std detrended', **kw):
+def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
+    import rpy_symmetry as rsym
+
+    values = get_values_from_data_set(ds, field)
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:
+        raise NotImplementedError('Not sure how to deal with nans other than omit')
+    return rsym.p_symmetry(values)
+
+
+def calculate_historical_std(
+    ds, field='std detrended', field_pi_control='max jump', **kw
+):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
-    assert (
-        ds[field].shape == ds_hist_masked[field].shape
-    ), f'{ds[field].shape} != {ds_hist_masked[field].shape}'
-    cur = ds[field].values
-    his = ds_hist_masked[field].values
+    da = ds[field]
+    da_hist = ds_hist_masked[field_pi_control]
+    assert da.shape == da_hist.shape, f'{da.shape} != {da_hist.shape}'
+    cur = da.values
+    his = da_hist.values
     isnnan = np.isnan(cur) | np.isnan(his)
     cur = cur[~isnnan]
     his = his[~isnnan]
