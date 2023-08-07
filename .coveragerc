@@ -7,7 +7,6 @@ exclude_lines =
     print
     warn
     plt.show()
-    return
     message =
     log.warning
     get_logger().warning
