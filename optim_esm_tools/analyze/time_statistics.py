@@ -129,6 +129,7 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
 def calculate_max_jump_in_std_vs_history(
     ds,  field='max jump', field_pi_control='std detrended', **kw
 ):
+
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None
