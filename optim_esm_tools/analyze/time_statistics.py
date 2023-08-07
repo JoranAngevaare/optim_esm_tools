@@ -15,7 +15,7 @@ class TimeStatistics:
     def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
         """
         For a given dataset calculate the statistical properties of the dataset based on three tests:
-            1. The standard deviation w.r.t. the standard deviation of the piControl run
+            1. The max 10-year jump w.r.t. the standard deviation of the piControl run
             2. The p-value of the "dip test" [1]
             3. The p-value of the Skewness test [2]
             4. The p-value fo the symmetry test [3]
@@ -45,7 +45,7 @@ class TimeStatistics:
             ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
         functions = dict(
-            n_sigma_historical=calculate_historical_std,
+            max_jump=calculate_max_jump_in_std_vs_history,
             p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
             p_symmetry=calculate_symmetry_test,
@@ -126,8 +126,8 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     return rsym.p_symmetry(values)
 
 
-def calculate_historical_std(
-    ds, field='std detrended', field_pi_control='max jump', **kw
+def calculate_max_jump_in_std_vs_history(
+    ds,  field='max jump', field_pi_control='std detrended', **kw
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
