@@ -214,7 +214,7 @@ class RegionExtractor:
             if k not in 'max_time min_time'.split()
         }
         statistics = TimeStatistics(
-            ds_masked, calculation_kwargs=dict(max_jump=kw)
+            ds_masked, calculation_kwargs=dict(max_jump=kw, n_std_global=kw)
         ).calculate_statistics()
         ds_masked.attrs.update(statistics)
         ds_masked.to_netcdf(
