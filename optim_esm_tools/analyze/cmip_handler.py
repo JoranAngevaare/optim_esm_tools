@@ -46,7 +46,9 @@ def add_conditions_to_ds(
     if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
         calculate_conditions
     ):
-        raise ValueError(f'One or more non unique descriptions {desc}')
+        raise ValueError(
+            f'One or more non unique descriptions {desc}'
+        )  # pragma: no cover
     if condition_kwargs is None:
         condition_kwargs = dict()
 
@@ -117,7 +119,7 @@ def read_ds(
     )
 
     if not isinstance(variable_of_interest, str):
-        raise ValueError('Only single vars supported')
+        raise ValueError('Only single vars supported')  # pragma: no cover
     if kwargs:
         log.error(f'Not really advised yet to call with {kwargs}')
         _cache = False
@@ -137,11 +139,11 @@ def read_ds(
     if os.path.exists(res_file) and _cache:
         return oet.analyze.io.load_glob(res_file)
 
-    if not os.path.exists(data_path):
+    if not os.path.exists(data_path):  # pragma: no cover
         message = f'No dataset at {data_path}'
         if strict:
             raise FileNotFoundError(message)
-        warn(message)
+        log.warning(message)
         return None
 
     if pre_process:
