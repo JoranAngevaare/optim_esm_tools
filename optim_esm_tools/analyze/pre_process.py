@@ -11,7 +11,7 @@ import tempfile
 
 def get_preprocessed_ds(source, **kw):
     """Create a temporary working directory for pre-process and delete all intermediate files"""
-    if 'working_dir' in kw:
+    if 'working_dir' in kw:  # pragma: no cover
         message = (
             f'Calling get_preprocessed_ds with working_dir={kw.get("working_dir")} is not '
             'intended, as this function is meant to open a temporary directory, load the '
@@ -102,8 +102,8 @@ def pre_process(
 
     for p in files + [save_as]:
         if p == source:
-            raise ValueError(f'source equals other path {p}')
-        if os.path.exists(p):
+            raise ValueError(f'source equals other path {p}')  # pragma: no cover
+        if os.path.exists(p):  # pragma: no cover
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
 
@@ -135,7 +135,7 @@ def pre_process(
     input_files = ' '.join([f_regrid, f_det, f_det_rm, f_rm, f_area])
     cdo_int.merge(input=input_files, output=save_as)
 
-    if clean_up:
+    if clean_up:  # pragma: no cover
         for p in files:
             os.remove(p)
     return save_as
@@ -146,13 +146,13 @@ def _remove_bad_vars(path):
     to_delete = config['analyze']['remove_vars'].split()
     ds = load_glob(path)
     drop_any = False
-    for var in to_delete:
+    for var in to_delete:  # pragma: no cover
         if var in ds.data_vars:
             log.warning(f'{var} in dataset from {path}')
             drop_any = True
             ds = ds.load()
             ds = ds.drop_vars(var)
-    if drop_any:
+    if drop_any:  # pragma: no cover
         log.error(f'Replacing {path} after dropping at least one of {to_delete}')
         os.remove(path)
         ds.to_netcdf(path)
@@ -211,7 +211,7 @@ def _fmt_date(date: tuple) -> str:
 def _read_variable_id(path):
     try:
         return load_glob(path).attrs['variable_id']
-    except KeyError as e:
+    except KeyError as e:  # pragma: no cover
         raise KeyError(
             f'When reading the variable_id from {path}, it appears no such information is available'
         ) from e

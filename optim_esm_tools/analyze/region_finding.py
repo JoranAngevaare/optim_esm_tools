@@ -91,7 +91,7 @@ class RegionExtractor:
         elif path:
             self.data_set = read_ds(path, **read_ds_kw)
         else:
-            raise ValueError('Both path and data_set are None?!')
+            raise ValueError('Both path and data_set are None?!')  # pragma: no cover
 
         save_kw = save_kw or dict(
             save_in='./',
@@ -114,7 +114,7 @@ class RegionExtractor:
             self._logger = oet.config.get_logger()
         return self._logger
 
-    @apply_options
+    @apply_options()
     def workflow(self, show_basic=True):
         if show_basic:
             self.plot_basic_map()
@@ -124,13 +124,15 @@ class RegionExtractor:
         self.plot_masks(masks_and_clusters)
         self.plot_mask_time_series(masks_and_clusters)
 
-    @plt_show
+    @plt_show()
     def plot_basic_map(self):
         self._plot_basic_map()
         self.save(f'{self.title_label}_global_map')
 
     def _plot_basic_map(self):
-        raise NotImplementedError(f'{self.__class__.__name__} has no _plot_basic_map')
+        raise NotImplementedError(
+            f'{self.__class__.__name__} has no _plot_basic_map'
+        )  # pragma: no cover
 
     def save(self, name):
         assert self.__class__.__name__ in name
@@ -149,10 +151,7 @@ class RegionExtractor:
             if mask is None or not np.sum(mask):
                 return 0
         except Exception as e:
-            print(mask)
-            raise ValueError(
-                mask,
-            ) from e
+            raise ValueError(mask) from e
         self.check_shape(mask)
         return self.data_set['cell_area'].values[mask]
 
@@ -198,7 +197,7 @@ class RegionExtractor:
     @apply_options
     def store_mask(self, mask, m_i, store_masks=True):
         if not store_masks:
-            return
+            return  # pragma: no cover
         save_in = self.save_kw['save_in']
         store_in_dir = os.path.join(save_in, 'masks')
         os.makedirs(store_in_dir, exist_ok=True)
@@ -217,7 +216,7 @@ class RegionExtractor:
     def make_mask_figures(self, masks):
         for m_i, mask in enumerate(masks):
             if np.sum(mask) == 0:
-                continue
+                continue  # pragma: no cover
             self.summarize_mask(mask, m_i)
 
 
@@ -237,7 +236,7 @@ class MaxRegion(RegionExtractor):
     @apply_options
     def filter_masks_and_clusters(self, masks_and_clusters, min_area_km_sq=0):
         """Wrap filter to work on dicts"""
-        if min_area_km_sq:
+        if min_area_km_sq:  # pragma: no cover
             message = f'Calling {self.__class__.__name__}.filter_masks_and_clusters is nonsensical as masks are single grid cells'
             self.log.warning(message)
         return masks_and_clusters

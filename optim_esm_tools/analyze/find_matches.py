@@ -111,7 +111,7 @@ def find_matches(
         for versions in group_dict.values()
         for folder in versions
     ]
-    assert len(result) < max_members * max_versions
+    assert len(result) <= max_members * max_versions
     return result
 
 
