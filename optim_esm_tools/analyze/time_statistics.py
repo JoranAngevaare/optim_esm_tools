@@ -66,6 +66,7 @@ class TimeStatistics:
             for k, f in self.functions.items()
         }
 
+
 def n_times_global_std(ds, field='std detrended', average_over=None, **read_kw):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
         ','
