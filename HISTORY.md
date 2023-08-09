@@ -1,3 +1,24 @@
+1.2.0 / 2023-07-09
+------------------
+#### Minor change
+Add `rpy_symmetry` for statistical properties
+* `rpy_symmetry` for symmetry test using Mira (1999) by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/106
+### Patches
+* Fix format HISTORY.md by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/98
+* Cartopy transform argument by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/99
+* Off by one in find by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/100
+* Fix where to detrend by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/101
+* Add excluded datasets to config by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/105
+* Fix historical fields for time series statistics - max jump  by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/107
+* Save statistics with mask by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/110
+* Different approach to coverage by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/109
+* Yearly statistics by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/108
+* Increase coverage after #109 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/111
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.1.0...v1.2.0
+
+
 1.1.0 / 2023-07-28
 ------------------
 #### Minor change
