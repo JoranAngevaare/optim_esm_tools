@@ -93,10 +93,9 @@ def find_matches(
             seen[group] = defaultdict(list)
         seen_members = seen[group]
 
-        if (
-            len(seen_members) == max_versions
-            and len(seen_members.get(version, [])) == max_members
-        ):
+        if (len(seen_members) == max_versions and version not in seen_members) or len(
+            seen_members.get(version, [])
+        ) == max_members:
             continue  # pragma: no cover
         if required_file and required_file not in os.listdir(
             candidate
@@ -107,13 +106,18 @@ def find_matches(
             log.info(f'{candidate} is excluded')
             continue
         seen_members[version].append(candidate)
+    assert all(len(group) <= max_versions for group in seen.values())
+    assert all(
+        len(members) <= max_members
+        for group in seen.values()
+        for members in group.values()
+    )
     result = [
         folder
         for group_dict in seen.values()
         for versions in group_dict.values()
         for folder in versions
     ]
-    assert len(result) <= max_members * max_versions
     return result
 
 
