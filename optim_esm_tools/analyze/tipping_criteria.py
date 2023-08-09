@@ -119,7 +119,7 @@ class MaxJumpYearly(MaxJump):
 
 
 class StdDetrendedYearly(StdDetrended):
-    short_description: str = 'std detrend yearly'
+    short_description: str = 'std detrended yearly'
 
     @property
     def long_description(self):
