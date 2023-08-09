@@ -28,11 +28,11 @@ class _Condition(abc.ABC):
             self.defaults = immutabledict(kwargs)
 
     def calculate(self, *arg, **kwarg):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @property
     def long_description(self):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class StartEndDifference(_Condition):
@@ -180,7 +180,7 @@ def running_mean_diff(
     _time_values = data_set[time_var].dropna(time_var)
 
     if not len(_time_values):
-        raise ValueError(f'No values for {time_var} in data_set?')
+        raise ValueError(f'No values for {time_var} in data_set?')  # pragma: no cover
 
     data_var = _remove_any_none_times(data_set[var_name], time_var)
 
