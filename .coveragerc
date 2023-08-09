@@ -3,15 +3,6 @@
 # Regexes for lines to exclude from consideration
 exclude_lines =
     if __name__ == .__main__.:
-    raise
-    print
-    warn
-    plt.show()
-    message =
-    log.warning
-    get_logger().warning
-    log.error
-    get_logger().error
-
+    pragma: no cover
 
 ignore_errors = True

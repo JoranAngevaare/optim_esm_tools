@@ -60,6 +60,14 @@ class TestMapMaker(unittest.TestCase):
     def test_map_maker_time_series_only_running_mean(self):
         self.test_map_maker_time_series(only_rm=True)
 
+    def read_w_no_cache(self):
+        oet.read_ds(
+            os.path.split(self.ayear_file)[0],
+            _file_name=self.name_merged,
+            apply_transform=False,
+            pre_process=False,
+        )
+
     def test_date_out_of_range(self):
         with self.assertRaises(oet.analyze.pre_process.NoDataInTimeRangeError):
             oet.read_ds(

@@ -18,7 +18,7 @@ def load_glob(
         xr.Dataset: loaded from pattern
     """
     if not os.path.exists(pattern):
-        raise FileNotFoundError(f'{pattern} does not exists')
+        raise FileNotFoundError(f'{pattern} does not exists')  # pragma: no cover
     for k, v in dict(
         use_cftime=True,
         concat_dim='time',

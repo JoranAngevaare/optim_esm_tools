@@ -35,7 +35,7 @@ def find_matches(
     max_versions: int = 1,
     max_members: int = 1,
     required_file='merged.nc',
-    # Depricated arg
+    # Deprecated arg
     grid=None,
 ) -> list:
     """Follow synda folder format to find matches
@@ -61,11 +61,11 @@ def find_matches(
     log = get_logger()
     if grid is not None:
         log.error(f'grid argument for find_matches is deprecated, use grid_label')
-        grid_label = grid
+        grid_label = grid  # pragma: no cover
     if max_versions is None:
-        max_versions = int(9e9)
+        max_versions = int(9e9)  # pragma: no cover
     if max_members is None:
-        max_members = int(9e9)
+        max_members = int(9e9)  # pragma: no cover
     variants = sorted(
         glob.glob(
             os.path.join(
@@ -97,21 +97,22 @@ def find_matches(
             len(seen_members) == max_versions
             and len(seen_members.get(version, [])) == max_members
         ):
-            continue
+            continue  # pragma: no cover
         if required_file and required_file not in os.listdir(candidate):
             log.warning(f'{required_file} not in {candidate}')
-            continue
+            continue  # pragma: no cover
         if is_excluded(candidate):
-            log.info(f'{candidate} is excluded')
-            continue
+            log.info(f'{candidate} is excluded')  # pragma: no cover
+            continue  # pragma: no cover
         seen_members[version].append(candidate)
-
-    return [
+    result = [
         folder
         for group_dict in seen.values()
         for versions in group_dict.values()
         for folder in versions
     ]
+    assert len(result) <= max_members * max_versions
+    return result
 
 
 def _get_head(path):
@@ -139,7 +140,7 @@ def is_excluded(path):
         path_ends_with = os.path.join(*path.split(os.sep)[-len(folders) :])
         match_to = os.path.join(*folders)
         if fnmatch(path_ends_with, match_to):
-            return True
+            return True  # pragma: no cover
     return False
 
 
@@ -208,7 +209,7 @@ def associate_historical(
     search['activity_id'] = activity_id
     if search['experiment_id'] == match_to:
         message = f'Cannot match {match_to} to itself!'
-        if strict:
+        if strict:  # pragma: no cover
             raise NotImplementedError(message)
         log.warning(message)
     search['experiment_id'] = match_to
