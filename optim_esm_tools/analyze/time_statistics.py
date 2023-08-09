@@ -149,7 +149,6 @@ def calculate_max_jump_in_std_vs_history(
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
-        raise ValueError
         return None
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
