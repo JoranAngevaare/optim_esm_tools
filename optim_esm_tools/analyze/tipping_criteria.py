@@ -63,12 +63,16 @@ class StdDetrended(_Condition):
     def long_description(self):
         return f'Standard deviation of running mean ({self.running_mean} yr). Detrended'
 
+    @property
+    def use_variable(self):
+        return '{variable}_detrend_run_mean_{running_mean}'
+
     def calculate(self, data_set):
         return running_mean_std(
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming='{variable}_detrend_run_mean_{running_mean}',
+            naming=self.use_variable,
             running_mean=self.running_mean,
             **self.defaults,
         )
@@ -85,16 +89,43 @@ class MaxJump(_Condition):
     def long_description(self):
         return f'Max change in {self.number_of_years} yr in the running mean ({self.running_mean} yr). Not detrended'
 
+    @property
+    def use_variable(self):
+        return '{variable}_run_mean_{running_mean}'
+
     def calculate(self, data_set):
         return max_change_xyr(
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming='{variable}_run_mean_{running_mean}',
+            naming=self.use_variable,
             x_yr=self.number_of_years,
             running_mean=self.running_mean,
             **self.defaults,
         )
+
+
+class MaxJumpYearly(MaxJump):
+    short_description: str = 'max jump yearly'
+
+    def __init__(self, *args, **kwargs):
+        kwargs['running_mean'] = 1
+        super().__init__(*args, **kwargs)
+
+    def use_variable(self):
+        assert self.running_mean == 1
+        return '{variable}'
+
+
+class StdYeaStdDetrendedYearlyrly(StdDetrended):
+    short_description: str = 'std detrend yearly'
+
+    @property
+    def long_description(self):
+        return f'Standard deviation. Detrended'
+
+    def use_variable(self):
+        return '{variable}_detrend'
 
 
 class MaxDerivitive(_Condition):

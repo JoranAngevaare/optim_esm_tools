@@ -138,7 +138,7 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
 
 
 def calculate_max_jump_in_std_vs_history(
-    ds, field='max jump', field_pi_control='std detrended', **kw
+    ds, field='max jump yearly', field_pi_control='std yearly', **kw
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
@@ -154,4 +154,4 @@ def calculate_max_jump_in_std_vs_history(
     cur = cur[~isnnan]
     his = his[~isnnan]
 
-    return np.median(cur / his)
+    return np.mean(cur) / np.mean(his)

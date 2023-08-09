@@ -39,7 +39,9 @@ def add_conditions_to_ds(
         calculate_conditions = (
             tipping_criteria.StartEndDifference,
             tipping_criteria.StdDetrended,
+            tipping_criteria.StdDetrendedYearly,
             tipping_criteria.MaxJump,
+            tipping_criteria.MaxJumpYearly,
             tipping_criteria.MaxDerivitive,
             tipping_criteria.MaxJumpAndStd,
         )
