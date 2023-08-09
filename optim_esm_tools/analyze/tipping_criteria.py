@@ -117,7 +117,7 @@ class MaxJumpYearly(MaxJump):
         return '{variable}'
 
 
-class StdYeaStdDetrendedYearlyrly(StdDetrended):
+class StdDetrendedYearly(StdDetrended):
     short_description: str = 'std detrend yearly'
 
     @property
