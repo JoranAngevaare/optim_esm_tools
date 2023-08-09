@@ -20,7 +20,11 @@ class TestUtils(unittest.TestCase):
                 print(f'Most likely cause is that latex did not install, ran into {e}')
 
     def test_print_version(self):
-        oet.utils.print_versions(['numpy', 'optim_esm_tools'])
+        oet.utils.print_versions(['numpy', 'optim_esm_tools', 'somethingsomething'])
+
+    def test_str_ops(self):
+        assert oet.utils.mathrm('bla') == oet.utils.string_to_mathrm('bla')
+        assert oet.utils.to_str_tuple(('bla',)) == ('bla',)
 
 
 class TestTimed:

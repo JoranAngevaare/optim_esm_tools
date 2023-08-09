@@ -18,7 +18,7 @@ try:
     from git import Repo, InvalidGitRepositoryError
 
     GIT_INSTALLED = True
-except (ImportError, ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError):  # pragma: no cover
     GIT_INSTALLED = False
 
 import sys
@@ -28,7 +28,7 @@ import sys
 if any('jupyter' in arg for arg in sys.argv):
     # In some cases we are not using any notebooks,
     # Taken from 44952863 on stack overflow thanks!
-    from tqdm.notebook import tqdm
+    from tqdm.notebook import tqdm  # pragma: no cover
 else:
     from tqdm import tqdm
 
@@ -154,7 +154,7 @@ def print_versions(
     :return: optional, the message that would have been printed
     """
     versions = defaultdict(list)
-    if not GIT_INSTALLED and include_git:
+    if not GIT_INSTALLED and include_git:  # pragma: no cover
         warnings.warn('Git is not installed, maybe try pip install gitpython')
         include_git = False
     if include_python:
@@ -165,7 +165,7 @@ def print_versions(
     for m in to_str_tuple(modules):
         result = _version_info_for_module(m, include_git=include_git)
         if result is None:
-            continue
+            continue  # pragma: no cover
         version, path, git_info = result
         versions['module'].append(m)
         versions['version'].append(version)
@@ -196,11 +196,11 @@ def _version_info_for_module(module_name, include_git):
         else:
             try:
                 branch = repo.active_branch
-            except TypeError:
+            except TypeError:  # pragma: no cover
                 branch = 'unknown'
             try:
                 commit_hash = repo.head.object.hexsha
-            except TypeError:
+            except TypeError:  # pragma: no cover
                 commit_hash = 'unknown'
             git = f'branch:{branch} | {commit_hash[:7]}'
     return version, module_path, git
@@ -261,7 +261,7 @@ def filter_keyword_arguments(
     """
     spec = inspect.getfullargspec(func)
     if allow_varkw and spec.varkw is not None:
-        return kw
+        return kw  # pragma: no cover
     return {k: v for k, v in kw.items() if k in spec.args}
 
 
@@ -298,10 +298,12 @@ def check_accepts(
             message = ''
             for k, v in kwargs.items():
                 if k in accepts and v not in accepts[k]:
-                    message += f'{k} for {v} but only accepts {accepts[k]}'
-            if do_raise and message:
+                    message += (
+                        f'{k} for {v} but only accepts {accepts[k]}'  # pragma: no cover
+                    )
+            if do_raise and message:  # pragma: no cover
                 raise ValueError(message)
-            if message:
+            if message:  # pragma: no cover
                 warnings.warn(message)
             response = fn(*args, **kwargs)
             return response
