@@ -72,7 +72,7 @@ class StdDetrended(_Condition):
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming=self.use_variable,
+            naming=str(self.use_variable),
             running_mean=self.running_mean,
             **self.defaults,
         )
@@ -98,7 +98,7 @@ class MaxJump(_Condition):
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming=self.use_variable,
+            naming=str(self.use_variable),
             x_yr=self.number_of_years,
             running_mean=self.running_mean,
             **self.defaults,
