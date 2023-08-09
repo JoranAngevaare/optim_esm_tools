@@ -24,6 +24,12 @@ class Work(unittest.TestCase):
         ds = oet.read_ds(head, _file_name=tail)
         cls.data_set = ds
 
+    def test_raises(self):
+        with self.assertRaises(ValueError):
+            oet.analyze.time_statistics.TimeStatistics(
+                self.data_set, calculation_kwargs=dict(bad=True)
+            )
+
     def test_get_statistics(self, use_field_for_mask='cell_area'):
         ds = self.data_set.copy()
         x, y = ds[use_field_for_mask].shape
@@ -35,9 +41,9 @@ class Work(unittest.TestCase):
         hist_file_name = os.path.split(get_path_for_ds('piControl', refresh=False))[-1]
         stat = oet.analyze.time_statistics.TimeStatistics(
             ds_masked,
-            calculation_kwargs=dict(n_sigma_historical=dict(_file_name=hist_file_name)),
+            calculation_kwargs=dict(max_jump=dict(_file_name=hist_file_name)),
         )
         result = stat.calculate_statistics()
         for k, v in result.items():
             print(k, v)
-            assert v, f'{dict(k=v)} is not True from {result}'
+            assert v, f'{k}={v} is not True from {result}'
