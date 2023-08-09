@@ -27,7 +27,7 @@ def setup_map(
 
 def _show(show):
     if show:
-        plt.show()
+        plt.show()  # pragma: no cover
     else:
         plt.clf()
         plt.close()
@@ -70,7 +70,7 @@ def get_cartopy_projection(projection=None, _field='projection', **projection_kw
 
     projection = projection or config['cartopy'][_field]
     if not hasattr(ccrs, projection):
-        raise ValueError(f'Invalid projection {projection}')
+        raise ValueError(f'Invalid projection {projection}')  # pragma: no cover
     return getattr(ccrs, projection)(**projection_kwargs)
 
 
@@ -106,5 +106,5 @@ def get_xy_lim_for_projection(
     if projection not in lims:
         get_logger().warning(
             f'No hardcoded x/y lims for {projection}, might yield odd figures.'
-        )
+        )  # pragma: no cover
     return lims.get(projection, ((0, 360), (-90, 90)))

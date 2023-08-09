@@ -101,7 +101,7 @@ def get_historical_ds(ds, _file_name=None, **kw):
         hist_path = oet.analyze.find_matches.associate_historical(
             path=ds.attrs['path'], **find_kw
         )
-    except RuntimeError as e:
+    except RuntimeError as e:  # pragma: no cover
         print(e)
         return
     read_kw.setdefault('max_time', None)
@@ -131,7 +131,7 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
     import scipy
 
     values = get_values_from_data_set(ds, field, add='')
-    if sum(~np.isnan(values)) < 8:
+    if sum(~np.isnan(values)) < 8:  # pragma: no cover
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
         return None
@@ -145,7 +145,9 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     if nan_policy == 'omit':
         values = values[~np.isnan(values)]
     else:
-        raise NotImplementedError('Not sure how to deal with nans other than omit')
+        raise NotImplementedError(
+            'Not sure how to deal with nans other than omit'
+        )  # pragma: no cover
     return rsym.p_symmetry(values)
 
 
@@ -154,7 +156,7 @@ def calculate_max_jump_in_std_vs_history(
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
-        return None
+        return None  # pragma: no cover
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
     da = ds[field]

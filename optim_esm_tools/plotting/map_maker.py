@@ -97,7 +97,7 @@ class MapMaker(object):
                 f'Normalizations should be mapping from'
                 f'{self.conditions.keys()} to vmin, vmax, '
                 f'got {normalizations} (from {normalizations_start})'
-            )
+            )  # pragma: no cover
         return normalizations
 
     def set_normalizations(
@@ -109,8 +109,8 @@ class MapMaker(object):
         if normalizations is not None:
             self.normalizations = norm
 
-    def plot(self, *a, **kw):
-        print('Depricated use plot_all')
+    def plot(self, *a, **kw):  # pragma: no cover
+        print('Deprecated use plot_all')
         return self.plot_all(*a, **kw)
 
     def plot_selected(self, items=('ii', 'iii'), nx=None, fig=None, **_gkw):
@@ -144,7 +144,7 @@ class MapMaker(object):
     @oet.utils.timed()
     def plot_i(self, label, ax=None, coastlines=True, **kw):
         if ax is None:
-            ax = plt.gca()
+            ax = plt.gca()  # pragma: no cover
         if coastlines:
             ax.coastlines()
 
@@ -220,7 +220,7 @@ class MapMaker(object):
         if not len(variables) == len(labels):
             raise ValueError(
                 f'Inconsistent number of vars and labels {variables, labels}'
-            )
+            )  # pragma: no cover
         plot_kw.setdefault('ds', self.data_set)
         assert 'ds' in plot_kw
         for v, l in zip(variables, labels):
@@ -293,7 +293,7 @@ class MapMaker(object):
             else oet.config.config['analyze']['lon_lat_dim'].split(',')
         )
         rm = running_mean or oet.config.config['analyze']['moving_average_years']
-        if interval is not None:
+        if interval is not None:  # pragma: no cover
             oet.config.get_logger().warning('Interval kwarg is replaced by show_std')
             kw['show_std'] = interval
 
@@ -315,7 +315,7 @@ class MapMaker(object):
         return axes
 
     @property
-    def dataset(self):
+    def dataset(self):  # pragma: no cover
         warn(f'Calling {self.__class__.__name__}.data_set not .dataset')
         return self.data_set
 
@@ -340,7 +340,7 @@ class MapMaker(object):
 class HistoricalMapMaker(MapMaker):
     def __init__(self, *args, ds_historical=None, **kwargs):
         if ds_historical is None:
-            raise ValueError('Argument ds_historical is required')
+            raise ValueError('Argument ds_historical is required')  # pragma: no cover
         self.ds_historical = ds_historical
         super().__init__(*args, **kwargs)
 
@@ -355,7 +355,7 @@ class HistoricalMapMaker(MapMaker):
             raise ValueError(
                 f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
                 f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
-            )
+            )  # pragma: no cover
         max_val = np.nanmax(ret_array)
 
         # Anything clearly larger than the max val

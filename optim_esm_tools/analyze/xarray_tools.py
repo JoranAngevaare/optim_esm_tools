@@ -9,11 +9,11 @@ from optim_esm_tools.config import config
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
     """Create date object using the date formatting from the time-array"""
 
-    if isinstance(time_array, xr.DataArray):
+    if isinstance(time_array, xr.DataArray):  # pragma: no cover
         return _native_date_fmt(time_array=time_array.values, date=date)
 
-    if not len(time_array):
-        raise ValueError(f'No values in dataset?')
+    if not len(time_array):  # pragma: no cover
+        raise ValueError('No values in dataset?')
 
     # Support cftime.DatetimeJulian, cftime.DatetimeGregorian, cftime.DatetimeNoLeap and similar
     _time_class = time_array[0].__class__
@@ -65,7 +65,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
         # array. Perhaps we should raise higher up.
         raise ValueError(
             f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
-        )
+        )  # pragma: no cover
 
     if np.any(time_null):
         try:
@@ -77,7 +77,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
                 alt_calc = alt_calc.dropna(time_dim)
             data_var = data_var.load().where(~time_null, drop=drop)
             assert np.all((alt_calc == data_var).values)
-        except IndexError as e:
+        except IndexError as e:  # pragma: no cover
             from optim_esm_tools.config import get_logger
 
             get_logger().error(e)
@@ -121,7 +121,7 @@ def rename_mask_coords(
     if any(dim not in da_mask.dims for dim in rename_dict.keys()):
         raise KeyError(
             f'Trying to rename {rename_dict}, but this DataArray has {da_mask.dims}'
-        )
+        )  # pragma: no cover
     mask = da_mask.copy().rename(rename_dict)
     message = (
         'Full global mask with full lat/lon dimensionality in order to be save the masked '
@@ -158,7 +158,7 @@ def mask_to_reduced_dataset(
     if mask.shape != (expected := data_set['cell_area'].shape):
         raise ValueError(
             f'Inconsistent dimensionality, expected {expected}, got {mask.shape}'
-        )
+        )  # pragma: no cover
 
     # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
     # While we could make this more efficient (and only use the second step), the first step
@@ -210,7 +210,9 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
             if (
                 'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape
             ) or data_array.shape == da_mask.T.shape:
-                raise ValueError(f'Please make "{k}" lat, lon, now "{data_array.dims}"')
+                raise ValueError(
+                    f'Please make "{k}" lat, lon, now "{data_array.dims}"'
+                )  # pragma: no cover
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da

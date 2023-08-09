@@ -59,9 +59,9 @@ def find_matches(
         list: of matches corresponding to the query
     """
     log = get_logger()
-    if grid is not None:
+    if grid is not None:  # pragma: no cover
         log.error(f'grid argument for find_matches is deprecated, use grid_label')
-        grid_label = grid  # pragma: no cover
+        grid_label = grid
     if max_versions is None:
         max_versions = int(9e9)  # pragma: no cover
     if max_members is None:
@@ -98,12 +98,14 @@ def find_matches(
             and len(seen_members.get(version, [])) == max_members
         ):
             continue  # pragma: no cover
-        if required_file and required_file not in os.listdir(candidate):
+        if required_file and required_file not in os.listdir(
+            candidate
+        ):  # pragma: no cover
             log.warning(f'{required_file} not in {candidate}')
-            continue  # pragma: no cover
-        if is_excluded(candidate):
-            log.info(f'{candidate} is excluded')  # pragma: no cover
-            continue  # pragma: no cover
+            continue
+        if is_excluded(candidate):  # pragma: no cover
+            log.info(f'{candidate} is excluded')
+            continue
         seen_members[version].append(candidate)
     result = [
         folder
@@ -162,7 +164,7 @@ def _variant_label_id_and_version(full_path):
     if run_variant_number is None or grid_version is None:
         raise ValueError(
             f'could not find run and version from {full_path} {run_variant_number} {grid_version}'
-        )
+        )  # pragma: no cover
     return -grid_version, run_variant_number
 
 
@@ -175,7 +177,9 @@ def folder_to_dict(path):
             for i, k in enumerate(config['CMIP_files']['folder_fmt'].split()[::-1])
         }
         # great
-    raise NotImplementedError(f'folder {path} does not end with a version')
+    raise NotImplementedError(
+        f'folder {path} does not end with a version'
+    )  # pragma: no cover
 
 
 def base_from_path(path, look_back_extra=0):
@@ -201,15 +205,15 @@ def associate_historical(
     if data_set is None and path is None:
         raise ValueError(
             'No dataset, no path, can\'t match if I don\'t know what I\'m looking for'
-        )
+        )  # pragma: no cover
     log = get_logger()
     path = path or data_set.attrs['path']
     base = base_from_path(path, look_back_extra=look_back_extra)
     search = folder_to_dict(path)
     search['activity_id'] = activity_id
-    if search['experiment_id'] == match_to:
+    if search['experiment_id'] == match_to:  # pragma: no cover
         message = f'Cannot match {match_to} to itself!'
-        if strict:  # pragma: no cover
+        if strict:
             raise NotImplementedError(message)
         log.warning(message)
     search['experiment_id'] = match_to
@@ -236,4 +240,4 @@ def associate_historical(
     message = f'Looked for {search}, in {base} found nothing'
     if strict:
         raise RuntimeError(message)
-    log.warning(message)
+    log.warning(message)  # pragma: no cover

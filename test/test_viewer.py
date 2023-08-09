@@ -15,7 +15,7 @@ class TestViewer(unittest.TestCase):
     def test_basic(self, **kw):
         path = self.base
         viewer = oet.synda_files.synda_files.SyndaViewer(path, **kw)
-        viewer.tree().show()
+        viewer.show()
 
     def test_max_depth(self):
         self.test_basic(max_depth=3)
@@ -25,3 +25,6 @@ class TestViewer(unittest.TestCase):
 
     def test_count_files(self):
         self.test_basic(count_files=1)
+
+    def test_no_concat(self):
+        self.test_basic(concatenate_folders=False)
