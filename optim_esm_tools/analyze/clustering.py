@@ -48,7 +48,7 @@ def build_clusters(
         db_fit = DBSCAN(eps=max_distance_km / 6371.0, **cluster_opts).fit(
             X=coordinates_rad, sample_weight=weights
         )
-    except ValueError as e:
+    except ValueError as e:  # pragma: no cover
         raise ValueError(
             f'With {coordinates_rad.shape} and {getattr(weights, "shape", None)} {coordinates_rad}, {weights}'
         ) from e
@@ -181,7 +181,7 @@ def _check_input(data, lat_coord, lon_coord):
         # In an older version, this would have been the default.
         lat, lon = lat_coord, lon_coord
 
-    if data.shape != lon.shape or data.shape != lat.shape:
+    if data.shape != lon.shape or data.shape != lat.shape:  # pragma: no cover
         message = f'Wrong input {data.shape} != {lon.shape, lat.shape}'
         raise ValueError(message)
     return lat, lon
@@ -192,7 +192,9 @@ def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
     masks = []
     clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
     if lat.shape != lon.shape:
-        raise ValueError(f'Got inconsistent input {lat.shape} != {lon.shape}')
+        raise ValueError(
+            f'Got inconsistent input {lat.shape} != {lon.shape}'
+        )  # pragma: no cover
     for cluster in clusters:
         mask = np.zeros(lat.shape, np.bool_)
         for coord_lat, coord_lon in tqdm(
@@ -273,7 +275,7 @@ def _calculate_distance_map(lat, lon):
                     continue
                 alt_coord = (lat[alt_lat], lon[alt_lon])
                 if alt_coord == current:
-                    continue
+                    raise ValueError('How can this happen?')  # pragma: no cover
                 neighbors[i] = _distance_bf_coord(*current, *alt_coord)
             distances[lat_i][lon_i] = np.max(neighbors)
     return distances
@@ -286,7 +288,7 @@ def _distance(coords, force_math=False):
             from geopy.distance import geodesic
 
             return geodesic(*coords).km
-        except (ImportError, ModuleNotFoundError):
+        except (ImportError, ModuleNotFoundError):  # pragma: no cover
             pass
     if len(coords) != 4:
         coords = [c for cc in coords for c in cc]

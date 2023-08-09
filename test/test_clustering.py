@@ -79,6 +79,11 @@ def test_geopy_alternative():
         clustering._distance(coords),
         rtol=0.1,
     )
+    assert np.isclose(
+        clustering._distance_bf_coord(*flat_coord),
+        clustering._distance(coords, force_math=True),
+        rtol=0.1,
+    )
 
 
 def test_infer_step_size():
