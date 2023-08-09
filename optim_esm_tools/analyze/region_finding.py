@@ -207,8 +207,14 @@ class RegionExtractor:
         store_in_dir = os.path.join(save_in, 'masks')
         os.makedirs(store_in_dir, exist_ok=True)
         ds_masked = mask_to_reduced_dataset(self.data_set, mask)
-
-        statistics = TimeStatistics(ds_masked, **self.read_ds_kw).calculate_statistics()
+        kw = {
+            k: v
+            for k, v in self.read_ds_kw.items()
+            if k not in 'max_time min_time'.split()
+        }
+        statistics = TimeStatistics(
+            ds_masked, calculation_kwargs=dict(n_sigma_historical=kw)
+        ).calculate_statistics()
         ds_masked.attrs.update(statistics)
         ds_masked.to_netcdf(
             os.path.join(
