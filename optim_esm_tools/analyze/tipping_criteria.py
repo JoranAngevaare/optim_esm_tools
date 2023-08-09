@@ -72,7 +72,7 @@ class StdDetrended(_Condition):
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming=str(self.use_variable),
+            naming=self.use_variable,
             running_mean=self.running_mean,
             **self.defaults,
         )
@@ -98,7 +98,7 @@ class MaxJump(_Condition):
             data_set,
             variable=self.variable,
             time_var=self.time_var,
-            naming=str(self.use_variable),
+            naming=self.use_variable,
             x_yr=self.number_of_years,
             running_mean=self.running_mean,
             **self.defaults,
@@ -112,6 +112,7 @@ class MaxJumpYearly(MaxJump):
         kwargs['running_mean'] = 1
         super().__init__(*args, **kwargs)
 
+    @property
     def use_variable(self):
         assert self.running_mean == 1
         return '{variable}'
@@ -124,6 +125,7 @@ class StdDetrendedYearly(StdDetrended):
     def long_description(self):
         return f'Standard deviation. Detrended'
 
+    @property
     def use_variable(self):
         return '{variable}_detrend'
 
