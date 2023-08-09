@@ -75,7 +75,7 @@ def n_times_global_std(ds, field='std detrended', average_over=None, **read_kw):
     path = ds.attrs['file']
     if os.path.exists(path):
         ds_global = oet.load_glob(path)
-    else:
+    else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
     return float(ds[field].mean(average_over) / ds_global[field].mean(average_over))
 
