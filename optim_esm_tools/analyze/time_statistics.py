@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 import typing as ty
 from functools import partial
+import os
 
 
 class TimeStatistics:
@@ -71,7 +72,11 @@ def n_times_global_std(ds, field='std detrended', average_over=None, **read_kw):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
         ','
     )
-    ds_global = oet.load_glob(ds.attrs['file'], **read_kw)
+    path = ds.attrs['file']
+    if os.path.exists(path):
+        ds_global = oet.load_glob(path)
+    else:  # pragma: no cover
+        ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
     return float(ds[field].mean(average_over) / ds_global[field].mean(average_over))
 
 
@@ -145,7 +150,7 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
 
 
 def calculate_max_jump_in_std_vs_history(
-    ds, field='max jump', field_pi_control='std detrended', **kw
+    ds, field='max jump yearly', field_pi_control='std detrended yearly', **kw
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
@@ -161,4 +166,4 @@ def calculate_max_jump_in_std_vs_history(
     cur = cur[~isnnan]
     his = his[~isnnan]
 
-    return np.median(cur / his)
+    return np.mean(cur) / np.mean(his)
