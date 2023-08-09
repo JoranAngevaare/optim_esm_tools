@@ -11,6 +11,20 @@ class TimeStatistics:
     def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
         self.data_set = data_set
         self.calculation_kwargs = calculation_kwargs or dict()
+        self.functions = self.default_calculations()
+        if any(k not in self.functions for k in self.calculation_kwargs):
+            bad = set(self.calculation_kwargs.keys()) - set(self.functions.keys())
+            message = f'One or more of {bad} are not used by any function'
+            raise ValueError(message)
+
+    def default_calculations(self) -> ty.Mapping:
+        return dict(
+            max_jump=calculate_max_jump_in_std_vs_history,
+            p_skewness=calculate_skewtest,
+            p_dip=calculate_dip_test,
+            p_symmetry=calculate_symmetry_test,
+            n_std_global=n_times_global_std,
+        )
 
     def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
         """
@@ -47,16 +61,9 @@ class TimeStatistics:
         Returns:
             ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
-        functions = dict(
-            max_jump=calculate_max_jump_in_std_vs_history,
-            p_skewness=calculate_skewtest,
-            p_dip=calculate_dip_test,
-            p_symmetry=calculate_symmetry_test,
-            n_std_global=n_times_global_std,
-        )
         return {
             k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
-            for k, f in functions.items()
+            for k, f in self.functions.items()
         }
 
 
@@ -142,6 +149,7 @@ def calculate_max_jump_in_std_vs_history(
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
+        raise ValueError
         return None
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
