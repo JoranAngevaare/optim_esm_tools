@@ -17,6 +17,7 @@ class TestMatches(unittest.TestCase):
                 f.write('hello world')
         base = path.split('ScenarioMIP')[0]
         head, tail = os.path.split(path)
+        assert oet.analyze.find_matches._get_head(path) == head
         kw = oet.analyze.find_matches.folder_to_dict(head)
         matches = oet.analyze.find_matches.find_matches(
             base=base,
@@ -28,3 +29,6 @@ class TestMatches(unittest.TestCase):
             required_file=tail,
             **kw,
         )
+
+    def test_basics(self):
+        assert oet.analyze.find_matches._get_head('/bla/') == '/bla'
