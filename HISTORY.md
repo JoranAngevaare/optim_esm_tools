@@ -1,4 +1,4 @@
-1.2.1 / 2023-07-10
+1.2.1 / 2023-08-10
 ------------------
 * Fix logic finding by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/112
 * Fix threading issues between rpy2 and dask by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/113
