@@ -223,8 +223,8 @@ class RegionExtractor:
             ds_masked, calculation_kwargs=dict(max_jump=kw, n_std_global=kw)
         ).calculate_statistics()
         self.log.debug(f'done start cal {statistics}')
-        ds_masked.attrs.update(
-            {k: (v if v is not None else 'None') for k, v in statistics.items()}
+        ds_masked = ds_masked.assign_attrs(
+            {k: (v if v is not None else float('nan')) for k, v in statistics.items()}
         )
         ds_masked.to_netcdf(
             os.path.join(
