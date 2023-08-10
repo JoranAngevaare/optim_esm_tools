@@ -1,4 +1,13 @@
-1.2.0 / 2023-07-09
+1.2.1 / 2023-07-10
+------------------
+* Fix logic finding by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/112
+* Fix threading issues between rpy2 and dask by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/113
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.2.0...v1.2.1
+
+
+1.2.0 / 2023-08-09
 ------------------
 #### Minor change
 Add `rpy_symmetry` for statistical properties
