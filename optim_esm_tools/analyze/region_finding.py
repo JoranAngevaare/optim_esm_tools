@@ -213,16 +213,26 @@ class RegionExtractor:
             for k, v in self.read_ds_kw.items()
             if k not in 'max_time min_time'.split()
         }
+        self.log.debug('start start cal')
+
+        # This line is very important, there is some non-optimal threading race condition going on
+        # between dask and rpy2
+        ds_masked = ds_masked.load()  # do not delete!
+
         statistics = TimeStatistics(
             ds_masked, calculation_kwargs=dict(max_jump=kw, n_std_global=kw)
         ).calculate_statistics()
-        ds_masked.attrs.update(statistics)
+        self.log.debug(f'done start cal {statistics}')
+        ds_masked = ds_masked.assign_attrs(
+            {k: (v if v is not None else float('nan')) for k, v in statistics.items()}
+        )
         ds_masked.to_netcdf(
             os.path.join(
                 store_in_dir,
                 f'{self.title_label}_cluster-{m_i}_v{_CMIP_HANDLER_VERSION}.nc',
             )
         )
+        self.log.debug('done save')
 
     def _summarize_mask(self, mask, plot=None):
         axes = oet.plotting.map_maker.summarize_mask(self.data_set, mask, plot=plot)
