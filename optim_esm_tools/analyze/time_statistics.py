@@ -169,7 +169,12 @@ def calculate_max_jump_in_std_vs_history(
     _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
     ds = ds.mean(_coord)
     ds_hist = ds_hist_masked.mean(_coord)
-    max_jump = oet.analyze.tipping_criteria.MaxJumpYearly().calculate(ds)
-    std_year = oet.analyze.tipping_criteria.StdDetrendedYearly().calculate(ds_hist)
+    variable = ds.attrs['variable_id']
+    max_jump = oet.analyze.tipping_criteria.MaxJumpYearly(variable=variable).calculate(
+        ds
+    )
+    std_year = oet.analyze.tipping_criteria.StdDetrendedYearly(
+        variable=variable
+    ).calculate(ds_hist)
 
     return max_jump / std_year
