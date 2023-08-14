@@ -68,7 +68,7 @@ class TimeStatistics:
         }
 
 
-def n_times_global_std(ds, average_over=None, **read_kw):
+def n_times_global_std(ds, field='std detrended', average_over=None, **read_kw):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
         ','
     )
@@ -77,11 +77,7 @@ def n_times_global_std(ds, average_over=None, **read_kw):
         ds_global = oet.load_glob(path)
     else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
-    val = oet.analyze.tipping_criteria.StdDetrended().calculate(ds.mean(average_over))
-    val_global = oet.analyze.tipping_criteria.StdDetrended().calculate(
-        ds_global.mean(average_over)
-    )
-    return val / val_global
+    return float(ds[field].mean(average_over) / ds_global[field].mean(average_over))
 
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
@@ -163,10 +159,13 @@ def calculate_max_jump_in_std_vs_history(
         return None  # pragma: no cover
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
-    _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
-    ds = ds.mean(_coord)
-    ds_hist = ds_hist_masked.mean(_coord)
-    max_jump = oet.analyze.tipping_criteria.MaxJumpYearly().calculate(ds)
-    std_year = oet.analyze.tipping_criteria.StdDetrendedYearly().calculate(ds_hist)
+    da = ds[field]
+    da_hist = ds_hist_masked[field_pi_control]
+    assert da.shape == da_hist.shape, f'{da.shape} != {da_hist.shape}'
+    cur = da.values
+    his = da_hist.values
+    isnnan = np.isnan(cur) | np.isnan(his)
+    cur = cur[~isnnan]
+    his = his[~isnnan]
 
-    return max_jump / std_year
+    return np.mean(cur) / np.mean(his)
