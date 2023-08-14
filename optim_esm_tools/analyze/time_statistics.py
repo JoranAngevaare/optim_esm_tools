@@ -77,8 +77,11 @@ def n_times_global_std(ds, average_over=None, **read_kw):
         ds_global = oet.load_glob(path)
     else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
-    val = oet.analyze.tipping_criteria.StdDetrended().calculate(ds.mean(average_over))
-    val_global = oet.analyze.tipping_criteria.StdDetrended().calculate(
+    variable = ds.attrs['variable_id']
+    val = oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
+        ds.mean(average_over)
+    )
+    val_global = oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
         ds_global.mean(average_over)
     )
     return val / val_global
