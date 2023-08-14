@@ -78,13 +78,18 @@ def n_times_global_std(ds, average_over=None, **read_kw):
     else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
     variable = ds.attrs['variable_id']
-    val = oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
-        ds.mean(average_over)
+    val = float(
+        oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
+            ds.mean(average_over)
+        )
     )
-    val_global = oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
-        ds_global.mean(average_over)
+    val_global = float(
+        oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
+            ds_global.mean(average_over)
+        )
     )
-    return float(val) / float(val_global)
+
+    return val / val_global if val_global else np.inf
 
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
@@ -125,10 +130,16 @@ def get_values_from_data_set(ds, field, add='_detrend'):
     return da.values
 
 
-def calculate_dip_test(ds, field=None):
+def calculate_dip_test(ds, field=None, nan_policy='omit'):
     import diptest
 
     values = get_values_from_data_set(ds, field, add='')
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:
+        raise NotImplementedError(
+            'Not sure how to deal with nans other than omit'
+        )  # pragma: no cover
 
     _, pval = diptest.diptest(values, boot_pval=False)
     return pval
@@ -170,11 +181,13 @@ def calculate_max_jump_in_std_vs_history(
     variable = ds.attrs['variable_id']
     ds = ds.mean(_coord)
     ds_hist = ds_hist_masked.mean(_coord)
-    max_jump = oet.analyze.tipping_criteria.MaxJumpYearly(variable=variable).calculate(
-        ds
+    max_jump = float(
+        oet.analyze.tipping_criteria.MaxJumpYearly(variable=variable).calculate(ds)
     )
-    std_year = oet.analyze.tipping_criteria.StdDetrendedYearly(
-        variable=variable
-    ).calculate(ds_hist)
+    std_year = float(
+        oet.analyze.tipping_criteria.StdDetrendedYearly(variable=variable).calculate(
+            ds_hist
+        )
+    )
 
-    return float(max_jump) / float(std_year)
+    return max_jump / std_year if std_year else np.inf
