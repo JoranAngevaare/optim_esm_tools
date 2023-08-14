@@ -254,8 +254,8 @@ def extend_indexes(mask_array, coord, cyclic=False, round_at=5):
 
 def extract_extended_mask(da_mask):
     mask = da_mask.values.copy()
-    inx_lat = extend_indexes(np.any(mask, axis=1), da_mask['lat'])
-    inx_lon = extend_indexes(np.any(mask, axis=0), da_mask['lon'], cyclic=True)
+    inx_lat = extend_indexes(np.any(mask, axis=1), da_mask['lat_mask'])
+    inx_lon = extend_indexes(np.any(mask, axis=0), da_mask['lon_mask'], cyclic=True)
     a, b = np.meshgrid(inx_lon, inx_lat)
     return a & b
 
