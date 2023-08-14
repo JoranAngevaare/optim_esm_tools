@@ -226,6 +226,8 @@ class RegionExtractor:
         ds_masked = ds_masked.assign_attrs(
             {k: (v if v is not None else float('nan')) for k, v in statistics.items()}
         )
+        oet.analyze.xarray_tools.add_extended_mask(ds_masked)
+        assert 'extended_mask' in ds_masked
         ds_masked.to_netcdf(
             os.path.join(
                 store_in_dir,
