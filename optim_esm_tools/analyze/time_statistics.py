@@ -167,9 +167,9 @@ def calculate_max_jump_in_std_vs_history(
     mask = get_mask_from_global_mask(ds)
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
     _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
+    variable = ds.attrs['variable_id']
     ds = ds.mean(_coord)
     ds_hist = ds_hist_masked.mean(_coord)
-    variable = ds.attrs['variable_id']
     max_jump = oet.analyze.tipping_criteria.MaxJumpYearly(variable=variable).calculate(
         ds
     )
