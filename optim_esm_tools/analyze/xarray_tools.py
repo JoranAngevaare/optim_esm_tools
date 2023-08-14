@@ -218,3 +218,48 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
             data_set[k] = da
 
     return data_set
+
+
+def extend_indexes(mask_array, coord, cyclic=False, round_at=5):
+    """Temporary fix for making extended region masks rounded at 5 deg. resolution"""
+    assert len(mask_array) == len(coord), (len(mask_array), len(coord))
+    for i, m in enumerate(mask_array):
+        idx_left = max(i - 1, 0) if not cyclic else np.mod(i - 1, len(coord))
+        idx_right = (
+            min(i + 1, len(coord) - 1) if not cyclic else np.mod(i + 1, len(coord))
+        )
+        goes_left = m != mask_array[idx_left]
+        goes_right = m != mask_array[idx_right]
+        if goes_left or goes_right:
+            prev_i = i
+            if goes_left:
+                iterator = range(idx_left, 0, -1)
+            else:
+                iterator = range(idx_right, len(coord))
+            for next_i in iterator:
+                n = (
+                    np.ceil(coord[prev_i] / round_at)
+                    if goes_right
+                    else np.floor(coord[prev_i] / round_at)
+                )
+
+                remain = coord[prev_i] - round_at * n
+                next_remain = coord[next_i] - round_at * n
+                if abs(remain) <= abs(next_remain):
+                    break
+                mask_array[next_i] = True
+                prev_i = next_i
+    return mask_array
+
+
+def extract_extended_mask(da_mask):
+    mask = da_mask.values.copy()
+    inx_lat = extend_indexes(np.any(mask, axis=1), da_mask['lat'])
+    inx_lon = extend_indexes(np.any(mask, axis=0), da_mask['lon'], cyclic=True)
+    a, b = np.meshgrid(inx_lon, inx_lat)
+    return a & b
+
+
+def add_extended_mask(ds):
+    values = extract_extended_mask(ds['global_mask'])
+    ds['extended_mask'] = xr.DataArray(values, dims=ds['global_mask'].dims)
