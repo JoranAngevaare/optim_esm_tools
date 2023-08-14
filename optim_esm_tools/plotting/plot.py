@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import optim_esm_tools as oet
 from optim_esm_tools.config import config, get_logger
 import typing as ty
+import xarray as xr
 
 
 def setup_map(
@@ -108,3 +109,9 @@ def get_xy_lim_for_projection(
             f'No hardcoded x/y lims for {projection}, might yield odd figures.'
         )  # pragma: no cover
     return lims.get(projection, ((0, 360), (-90, 90)))
+
+
+def plot_da(da: xr.DataArray, projection: str = None, **kw):
+    """Simple wrapper for da.plot() with correct transforms and projections"""
+    setup_map(projection=projection)
+    da.plot(transform=get_cartopy_transform(), **kw)
