@@ -1,9 +1,17 @@
 import optim_esm_tools as oet
 import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 
 
 def test_map_basic():
     oet.plotting.plot.setup_map()
+
+
+def test_plot_da():
+    oet.plotting.plot.plot_da(
+        xr.DataArray(np.ones(12).reshape(4, 3), dims=('lat', 'lon'))
+    )
 
 
 def plot_something_else(**alt_option):
