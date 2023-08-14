@@ -84,7 +84,7 @@ def n_times_global_std(ds, average_over=None, **read_kw):
     val_global = oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
         ds_global.mean(average_over)
     )
-    return val / val_global
+    return float(val) / float(val_global)
 
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
@@ -177,4 +177,4 @@ def calculate_max_jump_in_std_vs_history(
         variable=variable
     ).calculate(ds_hist)
 
-    return max_jump / std_year
+    return float(max_jump) / float(std_year)
