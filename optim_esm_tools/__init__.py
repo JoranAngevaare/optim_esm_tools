@@ -13,3 +13,5 @@ from . import plotting
 from .analyze.cmip_handler import read_ds
 from .analyze.io import load_glob
 from .plotting.map_maker import MapMaker
+
+from . import bin
