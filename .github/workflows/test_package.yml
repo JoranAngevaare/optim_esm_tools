@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-20.04]
         exclude:
           - test: full
-            os: ubuntu-20.04
+            os: ubuntu-latest
           - test: minimal
             os: ubuntu-latest
     defaults:
