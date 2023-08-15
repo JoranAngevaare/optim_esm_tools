@@ -115,7 +115,7 @@ def get_historical_ds(ds, _file_name=None, **kw):
     return hist_ds
 
 
-def get_values_from_data_set(ds, field, add='_detrend'):
+def get_values_from_data_set(ds, field, add=''):
     if field is None:
         field = ds.attrs['variable_id'] + add
     da = ds[field]
@@ -182,6 +182,41 @@ def calculate_max_jump_in_std_history_yearly(ds, **kw):
     kw.setdefault('field', 'max jump yearly')
     kw.setdefault('field_pi_control', 'std detrended yearly')
     return calculate_max_jump_in_std_history(ds, **kw)
+
+
+def calculate_n_breaks(
+    ds,
+    penalty=None,
+    min_size=None,
+    jump=None,
+    model=None,
+    field=None,
+    nan_policy='omit',
+    method=None,
+):
+    import ruptures as rpt
+
+    values = get_values_from_data_set(ds, field=field, add='')
+
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:  # pragma: no cover
+        message = 'Not sure how to deal with nans other than omit'
+        raise NotImplementedError(message)
+    if len(values) < min_size:
+        return None
+
+    penalty = penalty or float(oet.config.config['analyze']['rpt_penalty'])
+    min_size = min_size or int(oet.config.config['analyze']['rpt_min_size'])
+    jump = jump or int(oet.config.config['analyze']['rpt_jump'])
+    model = model or oet.config.config['analyze']['rpt_model']
+    method = method or oet.config.config['analyze']['rpt_method']
+
+    algorithm = getattr(rpt, method)(model=model, min_size=min_size, jump=jump).fit(
+        values
+    )
+
+    return len(algorithm.predict(pen=penalty)) - 1
 
 
 def calculate_max_jump_in_std_history(
