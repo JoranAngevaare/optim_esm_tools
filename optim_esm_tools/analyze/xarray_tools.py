@@ -207,9 +207,10 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             # First dim is time?
-            if (
-                'time' == data_array.dims[0] and data_array.shape[1:] == da_mask.T.shape
-            ) or data_array.shape == da_mask.T.shape:
+            lola = config['analyze']['lon_lat_dim'].split(',')
+            dim_incorrect = data_array.dims not in [('time', *lola), (*lola,)]
+            shape_incorrect = data_array.shape != data_array.T.shape
+            if dim_incorrect and shape_incorrect:
                 raise ValueError(
                     f'Please make "{k}" lat, lon, now "{data_array.dims}"'
                 )  # pragma: no cover
