@@ -41,7 +41,10 @@ class Work(unittest.TestCase):
         hist_file_name = os.path.split(get_path_for_ds('piControl', refresh=False))[-1]
         stat = oet.analyze.time_statistics.TimeStatistics(
             ds_masked,
-            calculation_kwargs=dict(max_jump=dict(_file_name=hist_file_name)),
+            calculation_kwargs=dict(
+                max_jump=dict(_file_name=hist_file_name),
+                max_jump_yearly=dict(_file_name=hist_file_name),
+            ),
         )
         result = stat.calculate_statistics()
         for k, v in result.items():

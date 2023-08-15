@@ -20,7 +20,8 @@ class TimeStatistics:
 
     def default_calculations(self) -> ty.Mapping:
         return dict(
-            max_jump=calculate_max_jump_in_std_vs_history,
+            max_jump=calculate_max_jump_in_std_history,
+            max_jump_yearly=calculate_max_jump_in_std_history_yearly,
             p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
             p_symmetry=calculate_symmetry_test,
@@ -68,7 +69,7 @@ class TimeStatistics:
         }
 
 
-def n_times_global_std(ds, average_over=None, **read_kw):
+def n_times_global_std(ds, average_over=None, citerion='std detrended', **read_kw):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
         ','
     )
@@ -78,17 +79,9 @@ def n_times_global_std(ds, average_over=None, **read_kw):
     else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
     variable = ds.attrs['variable_id']
-    val = float(
-        oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
-            ds.mean(average_over)
-        )
-    )
-    val_global = float(
-        oet.analyze.tipping_criteria.StdDetrended(variable=variable).calculate(
-            ds_global.mean(average_over)
-        )
-    )
-
+    crit = _get_tip_criterion(citerion)(variable=variable)
+    val = float(crit.calculate(ds.mean(average_over)))
+    val_global = float(crit.calculate(ds_global.mean(average_over)))
     return val / val_global if val_global else np.inf
 
 
@@ -140,7 +133,10 @@ def calculate_dip_test(ds, field=None, nan_policy='omit'):
         raise NotImplementedError(
             'Not sure how to deal with nans other than omit'
         )  # pragma: no cover
-
+    if len(values) < 3:  # pragma: no cover
+        # At least 3 samples are needed
+        oet.config.get_logger().error('Dataset too short for diptest')
+        return None
     _, pval = diptest.diptest(values, boot_pval=False)
     return pval
 
@@ -169,8 +165,27 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     return rsym.p_symmetry(values)
 
 
-def calculate_max_jump_in_std_vs_history(
-    ds, field='max jump yearly', field_pi_control='std detrended yearly', **kw
+def _get_tip_criterion(short_description):
+    for mod in oet.analyze.tipping_criteria.__dict__.values():
+        if not isinstance(mod, type):
+            continue
+        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):
+            continue
+        if getattr(mod, 'short_description', None) == short_description:
+            return mod
+    raise ValueError(
+        f'No tipping criterion associated to {short_description}'
+    )  # pragma: no cover
+
+
+def calculate_max_jump_in_std_history_yearly(ds, **kw):
+    kw.setdefault('field', 'max jump yearly')
+    kw.setdefault('field_pi_control', 'std detrended yearly')
+    return calculate_max_jump_in_std_history(ds, **kw)
+
+
+def calculate_max_jump_in_std_history(
+    ds, field='max jump', field_pi_control='std detrended', **kw
 ):
     ds_hist = get_historical_ds(ds, **kw)
     if ds_hist is None:
@@ -181,13 +196,9 @@ def calculate_max_jump_in_std_vs_history(
     variable = ds.attrs['variable_id']
     ds = ds.mean(_coord)
     ds_hist = ds_hist_masked.mean(_coord)
-    max_jump = float(
-        oet.analyze.tipping_criteria.MaxJumpYearly(variable=variable).calculate(ds)
-    )
-    std_year = float(
-        oet.analyze.tipping_criteria.StdDetrendedYearly(variable=variable).calculate(
-            ds_hist
-        )
-    )
+    crit_scen = _get_tip_criterion(field)
+    crit_hist = _get_tip_criterion(field_pi_control)
+    max_jump = float(crit_scen(variable=variable).calculate(ds))
+    std_year = float(crit_hist(variable=variable).calculate(ds_hist))
 
     return max_jump / std_year if std_year else np.inf
