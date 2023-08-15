@@ -31,7 +31,7 @@ class TimeStatistics:
 
     def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
         """
-        For a given dataset calculate the statistical properties of the dataset based on these 
+        For a given dataset calculate the statistical properties of the dataset based on these
         tests:
             1. The max 10-year jump w.r.t. the standard deviation of the piControl (running means).
             2. Same as 1. but based on yearly means.
