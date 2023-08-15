@@ -22,21 +22,24 @@ class TimeStatistics:
         return dict(
             max_jump=calculate_max_jump_in_std_history,
             max_jump_yearly=calculate_max_jump_in_std_history_yearly,
-            p_skewness=calculate_skewtest,
             p_dip=calculate_dip_test,
+            p_skewness=calculate_skewtest,
             p_symmetry=calculate_symmetry_test,
+            n_breaks=calculate_n_breaks,
             n_std_global=n_times_global_std,
         )
 
     def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
         """
-        For a given dataset calculate the statistical properties of the dataset based on three tests:
-            1. The max 10-year jump w.r.t. the standard deviation of the piControl run. Based on
-                yearly means
-            2. The p-value of the "dip test" [1]
-            3. The p-value of the Skewness test [2]
-            4. The p-value fo the symmetry test [3]
-            5. The fraction of the selected regions standard-deviation w.r.t. to the standard
+        For a given dataset calculate the statistical properties of the dataset based on these 
+        tests:
+            1. The max 10-year jump w.r.t. the standard deviation of the piControl (running means).
+            2. Same as 1. but based on yearly means.
+            3. The p-value of the "dip test" [1]
+            4. The p-value of the Skewness test [2]
+            5. The p-value of the symmetry test [3]
+            6. The number of breaks in the time series [4]
+            7. The fraction of the selected regions standard-deviation w.r.t. to the standard
                 deviation of the global average standard-deviation. Yearly means
 
         Citations:
@@ -59,6 +62,11 @@ class TimeStatistics:
                 https://cran.r-project.org/web/packages/symmetry
                 Code at:
                 https://github.com/JoranAngevaare/rpy_symmetry
+            [4]:
+                C. Truong, L. Oudre, N. Vayatis. Selective review of offline change point detection
+                methods. Signal Processing, 167:107299, 2020.
+                Code from:
+                https://centre-borelli.github.io/ruptures-docs/
 
         Returns:
             ty.Dict[ty.Optional[float]]: Mapping of test to result value
