@@ -1,3 +1,15 @@
+1.2.2 / 2023-08-15
+------------------
+## What's Changed
+* Basic cartopy projection function by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/114
+* Extend square masks on rounded lon/lat by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/115
+* Remove temporary R install from workflow by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/118
+* Average over region before calculating statistics by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/116
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.2.1...v1.2.2
+
+
 1.2.1 / 2023-08-10
 ------------------
 * Fix logic finding by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/112
