@@ -1,3 +1,12 @@
+1.3.1 / 2023-08-16
+------------------
+* Release `v1.3.0` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/120
+* Fix publish using `twine` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/125
+* Config fixes by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/124
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.2.1...v1.3.1
+
 1.3.0 / 2023-08-16
 ------------------
 #### Minor change
