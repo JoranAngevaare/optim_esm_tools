@@ -213,7 +213,7 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
             ]
             shape_incorrect = data_array.shape != data_array.T.shape
             if dim_incorrect and shape_incorrect:  # pragma: no cover
-                message = f'Please make "{k}" lat, lon, now "{data_array.dims}"'
+                message = f'Please make "{k}" {lat_lon}, now "{data_array.dims}"'
                 raise ValueError(message)
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
