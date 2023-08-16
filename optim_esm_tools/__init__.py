@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 __author__ = 'Joran R. Angevaare'
 
 from . import utils
