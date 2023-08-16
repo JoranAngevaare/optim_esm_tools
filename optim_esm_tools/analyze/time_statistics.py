@@ -211,8 +211,6 @@ def calculate_n_breaks(
     else:  # pragma: no cover
         message = 'Not sure how to deal with nans other than omit'
         raise NotImplementedError(message)
-    if len(values) < min_size:
-        return None
 
     penalty = penalty or float(oet.config.config['analyze']['rpt_penalty'])
     min_size = min_size or int(oet.config.config['analyze']['rpt_min_size'])
@@ -220,11 +218,13 @@ def calculate_n_breaks(
     model = model or oet.config.config['analyze']['rpt_model']
     method = method or oet.config.config['analyze']['rpt_method']
 
-    algorithm = getattr(rpt, method)(model=model, min_size=min_size, jump=jump).fit(
-        values
-    )
+    if len(values) < min_size:
+        return None
 
-    return len(algorithm.predict(pen=penalty)) - 1
+    algorithm = getattr(rpt, method)(model=model, min_size=min_size, jump=jump)
+    fit = algorithm.fit(values)
+
+    return len(fit.predict(pen=penalty)) - 1
 
 
 def calculate_max_jump_in_std_history(
