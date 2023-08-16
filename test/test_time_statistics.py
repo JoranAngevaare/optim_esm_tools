@@ -42,6 +42,7 @@ class Work(unittest.TestCase):
         stat = oet.analyze.time_statistics.TimeStatistics(
             ds_masked,
             calculation_kwargs=dict(
+                n_breaks=dict(penalty=1),
                 max_jump=dict(_file_name=hist_file_name),
                 max_jump_yearly=dict(_file_name=hist_file_name),
             ),
