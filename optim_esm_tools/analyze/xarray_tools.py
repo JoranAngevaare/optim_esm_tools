@@ -206,14 +206,15 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
     """Rebuild data_set for each variable that has all masked_dims"""
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
-            # First dim is time?
-            lola = config['analyze']['lon_lat_dim'].split(',')
-            dim_incorrect = data_array.dims not in [('time', *lola), (*lola,)]
+            lat_lon = config['analyze']['lon_lat_dim'].split(',')[::-1]
+            dim_incorrect = tuple(data_array.dims) not in [
+                ('time', *lat_lon),
+                (*lat_lon,),
+            ]
             shape_incorrect = data_array.shape != data_array.T.shape
-            if dim_incorrect and shape_incorrect:
-                raise ValueError(
-                    f'Please make "{k}" lat, lon, now "{data_array.dims}"'
-                )  # pragma: no cover
+            if dim_incorrect and shape_incorrect:  # pragma: no cover
+                message = f'Please make "{k}" lat, lon, now "{data_array.dims}"'
+                raise ValueError(message)
             da = data_set[k].where(da_mask, drop=False)
             da = da.assign_attrs(ds_start[k].attrs)
             data_set[k] = da
