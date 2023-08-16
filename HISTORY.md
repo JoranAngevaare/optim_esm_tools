@@ -1,3 +1,19 @@
+1.3.0 / 2023-08-16
+------------------
+#### Minor change
+* Setup using `pyproject.toml` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/122
+* Ruptures module for breakpoint testing by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/119
+
+#### Patches
+* Basic cartopy projection function by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/114
+* Extend square masks on rounded lon/lat by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/115
+* Remove temporary R install from workflow by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/118
+* Average over region before calculating statistics by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/116
+* Fix error message in `_mask_xr_ds` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/121
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.2.1...v1.3.0
+
 1.2.1 / 2023-08-10
 ------------------
 * Fix logic finding by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/112
@@ -12,7 +28,7 @@
 #### Minor change
 Add `rpy_symmetry` for statistical properties
 * `rpy_symmetry` for symmetry test using Mira (1999) by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/106
-### Patches
+#### Patches
 * Fix format HISTORY.md by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/98
 * Cartopy transform argument by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/99
 * Off by one in find by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/100
