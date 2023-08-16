@@ -1,3 +1,78 @@
+[project]
+name = "optim_esm_tools"
+version = "1.2.1"
+dependencies = [
+    "immutabledict",
+    "intake-esm",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "pandas",
+    "tqdm",
+    "treelib",
+    "xarray",
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Joran R. Angevaare" }]
+maintainers = [{ name = "Joran R. Angevaare" }]
+description = "Tools for OptimESM"
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'Development Status :: 2 - Pre-Alpha',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Intended Audience :: Science/Research',
+    'Programming Language :: Python :: Implementation :: CPython',
+]
+
+# [project.scripts]
+# oet_plot = "optim_esm_tools.bin.oet_plot:main"
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+    "coveralls",
+    "ipython",
+    "matplotlib",
+    "nbmake",
+    "pytest",
+    "tqdm",
+
+]
+
+[tool.setuptools.packages.find]
+where =[ "optim_esm_tools"]
+
+[tool.setuptools.package-data]
+optim_esm_tools = ['data/*', 'optim_esm_tools/*', '*.ini*']
+
+[project.urls]
+homepage = 'https://github.com/JoranAngevaare/optim_esm_tools'
+documentation = 'https://github.com/JoranAngevaare/optim_esm_tools/blob/master/examples/Example.ipynb'
+repository = 'https://github.com/JoranAngevaare/optim_esm_tools'
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
 [tool.black]
 target-version = ['py38']
 skip-string-normalization = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "pragma: no cover",
+    "ignore_errors = True",
+]
+
+[tool.flake8]
+# Set maximum width of the line to 100
+max-line-length = 100
