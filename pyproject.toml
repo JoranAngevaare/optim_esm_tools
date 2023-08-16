@@ -46,11 +46,8 @@ test = [
 ]
 
 [tool.setuptools]
-packages = ["optim_esm_tools",]
-script-files = ['bin/oet_plot', ]
-# [tool.setuptools.packages.find]
-# where = ["optim_esm_tools", ]
-# include = ["optim_esm_tools", ]
+packages = ["optim_esm_tools"]
+script-files = ['bin/oet_plot']
 
 [tool.setuptools.package-data]
 optim_esm_tools = ['data/*', 'optim_esm_tools/*', '*.ini*']
