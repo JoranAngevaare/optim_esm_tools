@@ -16,14 +16,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
       - name: Install dependencies
-        run: pip install wheel
-      - name: Build package
-        run: python setup.py sdist bdist_wheel
+        run: pip install wheel twine build
       # Do the publish
       - name: Publish a Python distribution to PyPI
-        # Might want to add but does not work on workflow_dispatch :
-        # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_password }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.pypi_password }}
+        run: |
+          python -m build .
+          twine upload dist/*
