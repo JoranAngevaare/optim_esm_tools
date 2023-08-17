@@ -77,17 +77,24 @@ class TimeStatistics:
         }
 
 
-def n_times_global_std(ds, average_over=None, citerion='std detrended', **read_kw):
-    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
-        ','
-    )
+def _get_ds_global(ds, **read_kw):
     path = ds.attrs['file']
     if os.path.exists(path):
         ds_global = oet.load_glob(path)
     else:  # pragma: no cover
         ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
+    return ds_global
+
+
+def n_times_global_std(
+    ds, average_over=None, criterion='std detrended', _ds_global=None, **read_kw
+):
+    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
+        ','
+    )
+    ds_global = _ds_global or _get_ds_global(ds, **read_kw)
     variable = ds.attrs['variable_id']
-    crit = _get_tip_criterion(citerion)(variable=variable)
+    crit = _get_tip_criterion(criterion)(variable=variable)
     val = float(crit.calculate(ds.mean(average_over)))
     val_global = float(crit.calculate(ds_global.mean(average_over)))
     return val / val_global if val_global else np.inf
@@ -228,9 +235,9 @@ def calculate_n_breaks(
 
 
 def calculate_max_jump_in_std_history(
-    ds, field='max jump', field_pi_control='std detrended', **kw
+    ds, field='max jump', field_pi_control='std detrended', _ds_hist=None, **kw
 ):
-    ds_hist = get_historical_ds(ds, **kw)
+    ds_hist = _ds_hist or get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None  # pragma: no cover
     mask = get_mask_from_global_mask(ds)
