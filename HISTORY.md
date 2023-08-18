@@ -1,3 +1,11 @@
+1.3.1 / 2023-08-18
+------------------
+* Refactor time statistics by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/126
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.3.1...v1.3.2
+
+
 1.3.1 / 2023-08-16
 ------------------
 * Release `v1.3.0` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/120
