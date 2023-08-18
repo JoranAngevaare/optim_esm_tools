@@ -1,4 +1,4 @@
-1.3.1 / 2023-08-18
+1.3.2 / 2023-08-18
 ------------------
 * Refactor time statistics by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/126
 
