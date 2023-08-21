@@ -98,7 +98,7 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
     return data_set
 
 
-def reverse_name_mask_coords(da_mask, rename_dict=None):
+def reverse_name_mask_coords(da_mask: xr.DataArray, rename_dict=None) -> xr.DataArray:
     rename_dict = rename_dict or {
         v: k for k, v in default_rename_mask_dims_dict().items()
     }
