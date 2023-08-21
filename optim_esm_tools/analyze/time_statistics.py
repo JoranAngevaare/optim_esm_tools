@@ -100,16 +100,6 @@ def n_times_global_std(
     return val / val_global if val_global else np.inf
 
 
-def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
-    """Load the global mask and rename it's dims to the original ones"""
-    mapping = oet.analyze.xarray_tools.default_rename_mask_dims_dict()
-    inverse_mapping = {v: k for k, v in mapping.items()}
-    rename_dict = rename_dict or inverse_mapping
-    mask = ds[mask_key].copy()
-    mask = mask.rename(rename_dict)
-    return mask
-
-
 def get_historical_ds(ds, _file_name=None, **kw):
     find = oet.analyze.find_matches.associate_historical
     find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)
@@ -173,10 +163,9 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     values = get_values_from_data_set(ds, field, add='')
     if nan_policy == 'omit':
         values = values[~np.isnan(values)]
-    else:
-        raise NotImplementedError(
-            'Not sure how to deal with nans other than omit'
-        )  # pragma: no cover
+    else:  # pragma: no cover
+        message = 'Not sure how to deal with nans other than omit'
+        raise NotImplementedError(message)
     return rsym.p_symmetry(values)
 
 
@@ -235,12 +224,18 @@ def calculate_n_breaks(
 
 
 def calculate_max_jump_in_std_history(
-    ds, field='max jump', field_pi_control='std detrended', _ds_hist=None, **kw
+    ds,
+    field='max jump',
+    field_pi_control='std detrended',
+    _ds_hist=None,
+    mask=None,
+    **kw,
 ):
     ds_hist = _ds_hist or get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None  # pragma: no cover
-    mask = get_mask_from_global_mask(ds)
+    _get_mask = oet.analyze.xarray_tools.reverse_name_mask_coords
+    mask = _get_mask(ds['global_mask']) if mask is None else mask
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
     _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
     variable = ds.attrs['variable_id']
