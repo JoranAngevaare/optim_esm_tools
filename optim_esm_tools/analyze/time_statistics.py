@@ -102,6 +102,7 @@ def n_times_global_std(
 
 def get_mask_from_global_mask(ds, mask_key='global_mask', rename_dict=None):
     """Load the global mask and rename it's dims to the original ones"""
+    # TODO replace with reverse_name_mask_coords
     mapping = oet.analyze.xarray_tools.default_rename_mask_dims_dict()
     inverse_mapping = {v: k for k, v in mapping.items()}
     rename_dict = rename_dict or inverse_mapping
@@ -235,12 +236,17 @@ def calculate_n_breaks(
 
 
 def calculate_max_jump_in_std_history(
-    ds, field='max jump', field_pi_control='std detrended', _ds_hist=None, **kw
+    ds,
+    field='max jump',
+    field_pi_control='std detrended',
+    _ds_hist=None,
+    mask=None,
+    **kw,
 ):
     ds_hist = _ds_hist or get_historical_ds(ds, **kw)
     if ds_hist is None:
         return None  # pragma: no cover
-    mask = get_mask_from_global_mask(ds)
+    mask = reverse_name_mask_coords(ds['global_mask']) if mask is None else mask
     ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
     _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
     variable = ds.attrs['variable_id']
