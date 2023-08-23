@@ -33,7 +33,11 @@ class VariableMerger:
         new_ds['data_vars']['global_mask'] = common_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
-            new_ds['data_vars'][var] = _ds[var].where(common_mask).mean(oet.config.config['analyze']['lat_lon_dims'].split(','))
+            new_ds['data_vars'][var] = (
+                _ds[var]
+                .where(common_mask)
+                .mean(oet.config.config['analyze']['lat_lon_dims'].split(','))
+            )
             new_ds['data_vars'][var].attrs = _ds[var].attrs
 
         # Make one copy - just use the last dataset
@@ -133,9 +137,6 @@ def change_plt_table_height():
         )
 
     matplotlib.table.Table._approx_text_height = _approx_text_height
-
-
-
 
 
 def add_table(res_f, tips, ax=None, fontsize=16):
