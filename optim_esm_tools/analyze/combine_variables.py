@@ -1,4 +1,3 @@
-import argparse
 import typing as ty
 import xarray as xr
 import optim_esm_tools as oet
@@ -9,12 +8,10 @@ import os
 import xarray as xr
 import numpy as np
 
-import typing as ty
 import collections
 
 import matplotlib.pyplot as plt
 from immutabledict import immutabledict
-import cartopy.crs as ccrs
 from matplotlib.colors import LogNorm
 from matplotlib.gridspec import GridSpec
 
@@ -143,19 +140,6 @@ class VariableMerger:
 
     def merge_to_common_mask(self):
         pass
-
-
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser(description='make plots')
-#     parser.add_argument('-s', nargs='*', type=str,)
-#     parser.add_argument('-d', type=str,)
-#     parser.add_argument('--shape', nargs=2, type=int,)
-#     parser.add_argument('--titles', nargs='*', type=str,)
-#     args = parser.parse_args()
-#     import optim_esm_tools as oet
-#     assert args.titles is None or len(args.titles) == len(
-#         args.s), f'{args.s} and {args.titles} don\'t match'
-#     main(sources=args.s, dest=args.d, titles=args.titles, shape=args.shape)
 
 
 def change_plt_table_height():
