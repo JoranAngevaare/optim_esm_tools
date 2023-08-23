@@ -26,7 +26,7 @@ import pandas as pd
 from collections import defaultdict
 from collections import Counter
 
-from compute_direct_tipping import default_thresholds
+from optim_esm_tools.analyze.time_statistics import default_thresholds
 
 
 def main():
