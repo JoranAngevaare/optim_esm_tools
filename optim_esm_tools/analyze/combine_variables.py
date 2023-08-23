@@ -57,9 +57,9 @@ class VariableMerger:
             _ds = oet.load_glob(path.replace('v0.4.6', 'v0.4.7'))
             new_ds['data_vars'][var] = _ds[var].where(common_mask).mean(('lat', 'lon'))
             new_ds['data_vars'][var].attrs = _ds[var].attrs
-        else:
-            # Make one copy
-            new_ds['data_vars']['cell_area'] = _ds['cell_area']
+
+        # Make one copy - just use the last dataset
+        new_ds['data_vars']['cell_area'] = _ds['cell_area']
         keys = sorted(list(self.source_files.keys()))
         new_ds['attrs'] = dict(
             variables=keys,
