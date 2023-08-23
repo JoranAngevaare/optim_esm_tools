@@ -8,3 +8,4 @@ from . import xarray_tools
 from . import clustering
 from . import region_finding
 from . import time_statistics
+from . import concise_dataframe

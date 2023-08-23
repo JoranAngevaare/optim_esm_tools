@@ -104,8 +104,8 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     import numpy as np
     import xarray as xr
 
-    lon = np.linspace(0, 360, len_x)[:-1]
-    lat = np.linspace(-90, 90, len_y)[:-1]
+    lon = np.linspace(0, 360, len_x + 1)[:-1]
+    lat = np.linspace(-90, 90, len_y + 1)[:-1]
     time = np.arange(len_time)
     # Totally arbitrary data
     data = (
