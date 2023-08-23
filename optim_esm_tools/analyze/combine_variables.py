@@ -1,28 +1,13 @@
-import typing as ty
-import xarray as xr
-import optim_esm_tools as oet
-from collections import defaultdict
-
-import optim_esm_tools as oet
 import os
-import xarray as xr
-import numpy as np
-
-import collections
+import typing as ty
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
-from immutabledict import immutabledict
-from matplotlib.colors import LogNorm
-from matplotlib.gridspec import GridSpec
-
-from tqdm.notebook import tqdm
-
-import datetime
-import glob
+import numpy as np
 import pandas as pd
-from collections import defaultdict
-from collections import Counter
+import xarray as xr
 
+import optim_esm_tools as oet
 from optim_esm_tools.analyze.time_statistics import default_thresholds
 
 
