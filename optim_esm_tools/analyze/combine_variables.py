@@ -11,10 +11,6 @@ import optim_esm_tools as oet
 from optim_esm_tools.analyze.time_statistics import default_thresholds
 
 
-def main():
-    pass
-
-
 class VariableMerger:
     full_paths = None
     source_files: ty.Mapping
@@ -36,8 +32,8 @@ class VariableMerger:
         new_ds = defaultdict(dict)
         new_ds['data_vars']['global_mask'] = common_mask
         for var, path in self.source_files.items():
-            _ds = oet.load_glob(path.replace('v0.4.6', 'v0.4.7'))
-            new_ds['data_vars'][var] = _ds[var].where(common_mask).mean(('lat', 'lon'))
+            _ds = oet.load_glob(path)
+            new_ds['data_vars'][var] = _ds[var].where(common_mask).mean(oet.config.config['analyze']['lat_lon_dims'].split(','))
             new_ds['data_vars'][var].attrs = _ds[var].attrs
 
         # Make one copy - just use the last dataset
@@ -139,7 +135,7 @@ def change_plt_table_height():
     matplotlib.table.Table._approx_text_height = _approx_text_height
 
 
-change_plt_table_height()
+
 
 
 def add_table(res_f, tips, ax=None, fontsize=16):
@@ -162,7 +158,7 @@ def add_table(res_f, tips, ax=None, fontsize=16):
     table.set_fontsize(fontsize)
 
 
-def result_table(ds):
+def result_table(ds, formats=None):
     res = {
         field: summarize_stats(ds, field, path)
         for field, path in zip(ds.attrs['variables'], ds.attrs['source_files'])
@@ -194,7 +190,7 @@ def result_table(ds):
 
 
 def summarize_stats(ds, field, path):
-    path = path.replace('0.4.6', '0.4.7')
+    path = path
     return {
         'n_breaks': oet.analyze.time_statistics.calculate_n_breaks(ds, field=field),
         'p_symmetry': oet.analyze.time_statistics.calculate_symmetry_test(
@@ -208,3 +204,8 @@ def summarize_stats(ds, field, path):
             ds=oet.load_glob(path).where(ds['global_mask']), mask=ds['global_mask']
         ),
     }
+
+
+if __name__ == '__main__':
+    print('Change default plt.table row height')
+    change_plt_table_height()
