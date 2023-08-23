@@ -47,6 +47,7 @@ def get_plt_colors():
     del my_colors[5]
     return my_colors
 
+
 def default_plt_params():
     return {
         'axes.grid': True,
@@ -72,6 +73,7 @@ def default_plt_params():
         'image.cmap': 'viridis',
         'lines.linewidth': 2,
     }
+
 
 def setup_plt(use_tex=True, register_as='custom_map'):
     """Change the plots to have uniform style defaults"""
