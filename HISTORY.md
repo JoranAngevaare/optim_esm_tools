@@ -1,10 +1,11 @@
 1.4.0 / 2023-08-24
 ------------------
+#### Minor change
 * Add concise dataframe by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/129
 * Combine variables in coherent dataset by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/130
 * Direct tipping masking routine by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/131
 
-# Patches
+#### Patches
 * reverse dict option for masking coords by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/127
 * Refactor global mask plot by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/128
 
