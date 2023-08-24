@@ -11,7 +11,7 @@ class TestCombineVariables(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             # temp_dir = '/home/aangevaare/software/paper_oet/notebooks/'
             kw = dict(len_x=nx, len_y=ny, len_time=20, add_nans=False)
-            names = list('tas tos'.split()[: len(is_match)])
+            names = list('abcefg')[: len(is_match)]
             paths = [os.path.join(temp_dir, f'{x}.nc') for x in names]
             post_path = []
             for name, path in zip(names, paths):
@@ -65,8 +65,10 @@ class TestCombineVariables(TestCase):
             for n, m in zip(names, is_match):
                 if m:
                     assert n in merged.data_vars
-
+            oet.analyze.combine_variables.change_plt_table_height()
             merger.make_fig(merged)
+            return merger
 
     def test_merge_three(self):
-        return self.test_merge_two(is_match=(True, True, False))
+        merger = self.test_merge_two(is_match=(True, True, False))
+        assert merger.other_paths
