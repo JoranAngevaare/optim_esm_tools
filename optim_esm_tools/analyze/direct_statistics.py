@@ -1,16 +1,5 @@
 import optim_esm_tools as oet
 import numpy as np
-import operator
-
-
-def default_thresholds():
-    return dict(
-        max_jump=(operator.ge, 4),
-        p_dip=(operator.le, 0.01),
-        p_symmetry=(operator.le, 0.001),
-        n_breaks=(operator.ge, 1),
-        n_std_global=(operator.ge, 3),
-    )
 
 
 def pass_test(props, thresholds, always_true=('max_jump', 'n_std_global')):
@@ -42,10 +31,10 @@ def change_global_mask(
     return ds
 
 
-def direct_test(ds):
+def direct_test(ds, _ds_global=None, _ds_hist=None):
     ds = ds.copy().load()
-    ds_global = oet.analyze.time_statistics._get_ds_global(ds, load=True)
-    ds_hist = oet.analyze.time_statistics.get_historical_ds(ds, load=True)
+    ds_global = _ds_global or oet.analyze.time_statistics._get_ds_global(ds, load=True)
+    ds_hist = _ds_hist or oet.analyze.time_statistics.get_historical_ds(ds, load=True)
     var = ds.attrs['variable_id']
     index_2d = np.array(
         np.meshgrid(np.arange(len(ds['lat'])), np.arange(len(ds['lon'])))
@@ -85,7 +74,9 @@ def direct_test(ds):
                         masks[k][:] = np.nan
                 masks[k][lat_i, lon_i] = v
             res = pass_test(
-                props, thresholds=default_thresholds(), always_true=('n_std_global',)
+                props,
+                thresholds=oet.analyze.time_statistics.default_thresholds(),
+                always_true=('n_std_global',),
             )
             if res:
                 jump = oet.analyze.time_statistics.calculate_max_jump_in_std_history(
