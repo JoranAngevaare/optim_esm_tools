@@ -451,28 +451,9 @@ def summarize_mask(
 
     if plot is None:
         ds_dummy = ds_sel.copy()
-        ds_dummy['cell_area'] /= 1e6
 
         ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
-        tot_area = float(ds_dummy['cell_area'].sum(skipna=True))
-
-        ds_dummy['cell_area'].values[ds_dummy['cell_area'] > 0] = tot_area
-        ds_dummy['cell_area'].plot(
-            vmin=1,
-            vmax=510100000,
-            norm=LogNorm(),
-            cbar_kwargs={
-                **mm_sel.kw.get('cbar', {}),
-                **dict(extend='neither', label='Sum of area [km$^2$]'),
-            },
-            transform=oet.plotting.plot.get_cartopy_transform(),
-        )
-        ax.coastlines()
-        exponent = int(np.log10(tot_area))
-
-        plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{exponent}$ km$^2$')
-        gl = ax.gridlines(draw_labels=True)
-        gl.top_labels = False
+        overlay_area_mask(ds_dummy=ds_dummy, ax=ax)
     else:
         ax = fig.add_subplot(1, 2, 2, projection=get_cartopy_projection())
         mm_sel.plot_i(label=plot, ax=ax, coastlines=True)
@@ -481,6 +462,34 @@ def summarize_mask(
     # Remove labels of top left axis.
     plt.setp(axes[0].get_xticklabels(), visible=False)
     return axes
+
+
+def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
+    ax = ax or plt.gcf().add_subplot(
+        1, 2, 2, projection=oet.plotting.plot.get_cartopy_projection()
+    )
+
+    if field == 'cell_area':
+        ds_dummy[field] /= 1e6
+        tot_area = float(ds_dummy[field].sum(skipna=True))
+
+    ds_dummy[field].values[ds_dummy[field] > 0] = tot_area
+    ds_dummy[field].plot(
+        vmin=1,
+        vmax=510100000,
+        norm=LogNorm(),
+        cbar_kwargs={
+            **oet.plotting.map_maker.MapMaker(ds_dummy).kw.get('cbar', {}),
+            **dict(extend='neither', label='Sum of area [km$^2$]'),
+        },
+        transform=oet.plotting.plot.get_cartopy_transform(),
+    )
+    ax.coastlines()
+    exponent = int(np.log10(tot_area))
+
+    plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$')
+    gl = ax.gridlines(draw_labels=True)
+    gl.top_labels = False
 
 
 def make_title(ds):
