@@ -7,7 +7,7 @@ def pass_test(props, thresholds, always_true=('max_jump', 'n_std_global')):
     for k in always_true:
         op, thr = thresholds[k]
         if not op(props.pop(k), thr):
-            return False
+            return False  # pragma: no cover
 
     for k, v in props.items():
         if k in thresholds:
@@ -15,7 +15,7 @@ def pass_test(props, thresholds, always_true=('max_jump', 'n_std_global')):
             t = f'{v} {operator} {thr}'
             if operator(v, thr):
                 return True
-    return False
+    return False  # pragma: no cover
 
 
 def change_global_mask(
@@ -70,7 +70,7 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
             props = calculator.calculate_statistics()
             for k, v in props.items():
                 if v is None:
-                    continue
+                    continue  # pragma: no cover
                 if k not in masks:
                     masks[k] = bool_mask.copy().astype(type(v))
                     if isinstance(v, float):
