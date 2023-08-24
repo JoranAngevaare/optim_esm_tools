@@ -52,7 +52,7 @@ class VariableMerger:
         )
         try:
             new_ds = xr.Dataset(**new_ds)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             print(f'Ran into {e} fallback method because of cftime')
             # Stupid cftime can't compare it's own formats
             data_vars = new_ds.pop('data_vars')
