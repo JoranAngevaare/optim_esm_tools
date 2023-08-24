@@ -100,6 +100,31 @@ def get_path_for_ds(data_name, refresh=True):
     return year_path
 
 
+def complete_ds(**kw):
+    import cftime
+    import optim_esm_tools as oet
+
+    ds = oet._test_utils.minimal_xr_ds(**kw)
+    ds['time'] = [cftime.datetime(y + 2000, 1, 1) for y in range(len(ds['time']))]
+    ds['lat'].attrs.update(
+        {
+            'standard_name': 'latitude',
+            'long_name': 'Latitude',
+            'units': 'degrees_north',
+            'axis': 'Y',
+        }
+    )
+    ds['lon'].attrs.update(
+        {
+            'standard_name': 'longitude',
+            'long_name': 'Longitude',
+            'units': 'degrees_east',
+            'axis': 'X',
+        }
+    )
+    return ds
+
+
 def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     import numpy as np
     import xarray as xr

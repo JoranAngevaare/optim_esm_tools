@@ -1,9 +1,7 @@
 import tempfile
 import optim_esm_tools as oet
-import pandas as pd
 import os
 from unittest import TestCase
-import numpy as np
 
 
 class TestCombineVariables(TestCase):
@@ -15,29 +13,8 @@ class TestCombineVariables(TestCase):
             paths = [os.path.join(temp_dir, f'{x}.nc') for x in names]
             post_path = []
             for name, path in zip(names, paths):
-                ds = oet._test_utils.minimal_xr_ds(**kw)
+                ds = oet._test_utils.complete_ds(**kw)
                 ds = ds.rename(dict(var=name))
-                import cftime
-
-                ds['time'] = [
-                    cftime.datetime(y + 2000, 1, 1) for y in range(len(ds['time']))
-                ]
-                ds['lat'].attrs.update(
-                    {
-                        'standard_name': 'latitude',
-                        'long_name': 'Latitude',
-                        'units': 'degrees_north',
-                        'axis': 'Y',
-                    }
-                )
-                ds['lon'].attrs.update(
-                    {
-                        'standard_name': 'longitude',
-                        'long_name': 'Longitude',
-                        'units': 'degrees_east',
-                        'axis': 'X',
-                    }
-                )
                 assert name in ds
 
                 ds.attrs.update(dict(file=path, variable_id=name))
