@@ -13,6 +13,7 @@ def cmip_store():
 
 
 def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
+    # sourcery skip: dict-assign-update-to-union
     dest_folder = os.path.split(
         get_example_data_loc().replace('ssp585', experiment_id)
     )[0]
@@ -142,7 +143,7 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
     if add_nans:
         data[:, :, len(lon) // 2 + 30 : len(lon) // 2 + 50] = np.nan
 
-    ds_dummy = xr.Dataset(
+    return xr.Dataset(
         data_vars=dict(
             var=(
                 ('time', 'lat', 'lon'),
@@ -156,4 +157,3 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
         ),
         attrs=dict(source_id='bla', variable_id='var'),
     )
-    return ds_dummy

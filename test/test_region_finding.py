@@ -22,6 +22,7 @@ class Work(unittest.TestCase):
         return optim_esm_tools._test_utils.get_path_for_ds(data_name, refresh=refresh)
 
     def test_max_region(self, make='MaxRegion', new_opt=None, skip_save=True):
+        # sourcery skip: dict-assign-update-to-union
         cls = getattr(region_finding, make)
         file_path = self.get_path('ssp585', refresh=False)
 

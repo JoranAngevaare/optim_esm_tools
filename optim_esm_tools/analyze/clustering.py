@@ -1,3 +1,5 @@
+import contextlib
+import itertools
 import numpy as np
 from optim_esm_tools.utils import tqdm, timed
 from optim_esm_tools.config import get_logger, config
@@ -30,7 +32,7 @@ def build_clusters(
     Returns:
         ty.List[np.ndarray]: list of clustered points (in radians)
     """
-    cluster_opts = cluster_opts or dict()
+    cluster_opts = cluster_opts or {}
     for class_label, v in dict(algorithm='ball_tree', metric='haversine').items():
         cluster_opts.setdefault(class_label, v)
     cluster_opts['min_samples'] = min_samples
@@ -255,7 +257,7 @@ def calculate_distance_map(lat, lon):
 
 
 @numba.njit
-def _calculate_distance_map(lat, lon):
+def _calculate_distance_map(lat, lon):  # sourcery skip: use-itertools-product
     n_lat = len(lat)
     n_lon = len(lon)
     distances = np.zeros((n_lat, n_lon))
@@ -284,12 +286,10 @@ def _calculate_distance_map(lat, lon):
 def _distance(coords, force_math=False):
     """Wrapper for if geopy is not installed"""
     if not force_math:
-        try:
+        with contextlib.suppress(ImportError):
             from geopy.distance import geodesic
 
             return geodesic(*coords).km
-        except (ImportError, ModuleNotFoundError):  # pragma: no cover
-            pass
     if len(coords) != 4:
         coords = [c for cc in coords for c in cc]
     return _distance_bf_coord(*coords)
@@ -306,6 +306,7 @@ def _distance_bf_coord(lat1, lon1, lat2, lon2):
 
 @numba.njit
 def _distance_bf(lat1, lon1, lat2, lon2):
+    # sourcery skip: inline-immediately-returned-variable
     # https://stackoverflow.com/a/19412565/18280620
 
     # Approximate radius of earth in km

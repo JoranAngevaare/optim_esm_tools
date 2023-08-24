@@ -123,7 +123,7 @@ class StdDetrendedYearly(StdDetrended):
 
     @property
     def long_description(self):
-        return f'Standard deviation. Detrended'
+        return 'Standard deviation. Detrended'
 
     @property
     def use_variable(self):
@@ -390,12 +390,7 @@ def var_to_perc(
     Returns:
         xr.Dataset: Original data_set with one extra colum (dest_var)
     """
-    if source_var is None:
-        # data array
-        source_array = ds
-    else:
-        source_array = ds[source_var]
-
+    source_array = ds if source_var is None else ds[source_var]
     percentiles = rank2d(source_array.values)
 
     if source_var is None:

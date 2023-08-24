@@ -69,10 +69,7 @@ class SyndaViewer:
         return tree
 
     def _add_head(self, directories) -> bool:
-        if not self.concatenate_folders:
-            return True
-        # Only skip if there is exactly ONE subfolder (then we concat)
-        return len(directories) != 1
+        return len(directories) != 1 if self.concatenate_folders else True
 
     def _skip_deep(self, head) -> bool:
         return (

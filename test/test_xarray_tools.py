@@ -1,3 +1,4 @@
+import contextlib
 import optim_esm_tools as oet
 import numpy as np
 
@@ -11,11 +12,8 @@ def test_remove_nan():
     time[:3] = np.nan
     ds['time'] = time
     oet.analyze.xarray_tools._remove_any_none_times(ds['var'], 'time')
-    try:
+    with contextlib.suppress(AssertionError):
         oet.analyze.xarray_tools._remove_any_none_times(ds['var'], 'time', drop=False)
-    except AssertionError:
-        # This one is mentioned in the comment of _remove_any_none_times
-        pass
 
 
 def test_global_mask():

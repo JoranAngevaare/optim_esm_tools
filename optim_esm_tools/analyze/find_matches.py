@@ -60,7 +60,7 @@ def find_matches(
     """
     log = get_logger()
     if grid is not None:  # pragma: no cover
-        log.error(f'grid argument for find_matches is deprecated, use grid_label')
+        log.error('grid argument for find_matches is deprecated, use grid_label')
         grid_label = grid
     if max_versions is None:
         max_versions = int(9e9)  # pragma: no cover
@@ -83,7 +83,7 @@ def find_matches(
         ),
         key=_variant_label_id_and_version,
     )
-    seen = dict()
+    seen = {}
     for candidate in variants:
         folders = candidate.split(os.sep)
         group = folders[-7]
@@ -112,13 +112,12 @@ def find_matches(
         for group in seen.values()
         for members in group.values()
     )
-    result = [
+    return [
         folder
         for group_dict in seen.values()
         for versions in group_dict.values()
         for folder in versions
     ]
-    return result
 
 
 def _get_head(path):
@@ -226,10 +225,9 @@ def associate_historical(
 
     if query_updates is None:
         query_updates = [
-            dict(),
+            {},
             dict(variant_label='*'),
             dict(version='*'),
-            # can lead to funny behavior as grid differences may cause breaking compares
             dict(grid_label='*'),
         ]
 
@@ -238,8 +236,7 @@ def associate_historical(
             message = f'No results after {try_n} try, retying with {update_query}'
             log.info(message)
         search.update(update_query)
-        this_try = find_matches(base, **search)
-        if this_try:
+        if this_try := find_matches(base, **search):
             return this_try
     message = f'Looked for {search}, in {base} found nothing'
     if strict:
