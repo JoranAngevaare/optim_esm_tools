@@ -59,9 +59,7 @@ class MapMaker(object):
             ]
         ]
 
-        self.conditions = {
-            label: condition for label, condition in zip(self.labels, conditions)
-        }
+        self.conditions = dict(zip(self.labels, conditions))
         self.labels = tuple(self.conditions.keys())
 
     def get_normalizations(self, normalizations=None):
@@ -407,7 +405,7 @@ def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
     mean = ds[var].mean(other_dim)
     l = mean.plot(**kw)
     if show_std:
-        std_kw = std_kw or dict()
+        std_kw = std_kw or {}
         for k, v in kw.items():
             std_kw.setdefault(k, v)
         std_kw.setdefault('alpha', 0.4)

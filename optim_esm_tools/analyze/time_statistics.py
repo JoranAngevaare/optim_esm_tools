@@ -11,6 +11,7 @@ class TimeStatistics:
     calculation_kwargs: ty.Mapping = None
 
     def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
+        # sourcery skip: dict-literal
         self.data_set = data_set
         self.calculation_kwargs = calculation_kwargs or dict()
         self.functions = self.default_calculations()
@@ -112,11 +113,11 @@ def default_thresholds(
 
 def _get_ds_global(ds, **read_kw):
     path = ds.attrs['file']
-    if os.path.exists(path):
-        ds_global = oet.load_glob(path)
-    else:  # pragma: no cover
-        ds_global = oet.read_ds(os.path.split(path)[0], **read_kw)
-    return ds_global
+    return (
+        oet.load_glob(path)
+        if os.path.exists(path)
+        else oet.read_ds(os.path.split(path)[0], **read_kw)
+    )
 
 
 def n_times_global_std(
@@ -134,6 +135,7 @@ def n_times_global_std(
 
 
 def get_historical_ds(ds, _file_name=None, **kw):
+    # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
     find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)
     read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)

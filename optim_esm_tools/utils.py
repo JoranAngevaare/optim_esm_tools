@@ -18,7 +18,7 @@ try:
     from git import Repo, InvalidGitRepositoryError
 
     GIT_INSTALLED = True
-except (ImportError, ModuleNotFoundError):  # pragma: no cover
+except ImportError:
     GIT_INSTALLED = False
 
 import sys
@@ -237,16 +237,17 @@ def string_to_mathrm(string):
 
 
 def legend_kw(**kw):
-    options = dict(
-        bbox_to_anchor=(0.0, 1.02, 1, 0.32),
-        loc=3,
-        ncol=3,
-        mode='expand',
-        borderaxespad=0.0,
-        frameon=True,
+    return (
+        dict(
+            bbox_to_anchor=(0.0, 1.02, 1, 0.32),
+            loc=3,
+            ncol=3,
+            mode='expand',
+            borderaxespad=0.0,
+            frameon=True,
+        )
+        | kw
     )
-    options.update(kw)
-    return options
 
 
 def filter_keyword_arguments(
@@ -327,9 +328,7 @@ def add_load_kw(func):
         else:
             add_load = kwargs.get('load', False)
         res = func(*args, **kwargs)
-        if add_load:
-            return res.load()
-        return res
+        return res.load() if add_load else res
 
     return dep_fun
 
@@ -348,9 +347,7 @@ def deprecated(func, message='is deprecated'):
 
 def _chopped_string(string, max_len):
     string = str(string)
-    if len(string) < max_len:
-        return string
-    return string[:max_len] + '...'
+    return string if len(string) < max_len else string[:max_len] + '...'
 
 
 @check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))

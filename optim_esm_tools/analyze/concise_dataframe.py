@@ -22,12 +22,8 @@ class ConciseDataFrame:
         self.df = df.copy().sort_values(
             by=['tips', 'institution_id', 'source_id', 'experiment_id'], ascending=False
         )
-        self.group = group or set(self.df.colums) - set(
-            [
-                'institution_id',
-                'source_id',
-                'experiment_id',
-            ]
+        self.group = group or (
+            set(self.df.colums) - {'institution_id', 'source_id', 'experiment_id'}
         )
         self.match_overlap = match_overlap
         self.tqdm = tqdm
@@ -49,11 +45,8 @@ class ConciseDataFrame:
     def combine_rows(rows: ty.Mapping, delimiter: str) -> ty.Dict[str, str]:
         ret = {}
         for k in rows[0].keys():
-            val = sorted(list(set(r[k] for r in rows)))
-            if len(val) == 1:
-                ret[k] = val[0]
-            else:
-                ret[k] = delimiter.join([str(v) for v in val])
+            val = sorted(list({r[k] for r in rows}))
+            ret[k] = val[0] if len(val) == 1 else delimiter.join([str(v) for v in val])
         return ret
 
     def match_rows(self, rows: ty.Mapping) -> ty.List[ty.Mapping]:

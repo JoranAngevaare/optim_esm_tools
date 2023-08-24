@@ -30,7 +30,7 @@ def test_clustering_double_blob(npoints=100, res_x=3, res_y=3, use_mesh=False):
     ds = ds.isel(time=0)
 
     arr = np.zeros_like(ds['var'])
-    len_lat, len_lon = arr.shape[0:]
+    len_lat, len_lon = arr.shape
     y0, x0, y1, x1 = len_lat // 4, len_lon // 4, len_lat // 2, len_lon - len_lon // 4
 
     for x, y in [x0, y0], [x1, y1]:

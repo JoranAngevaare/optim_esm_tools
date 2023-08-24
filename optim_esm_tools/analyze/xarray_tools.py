@@ -194,11 +194,11 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     some funny bookkeeping of which data vars we can drop with data_set.where.
     """
 
-    dropped = []
-    for k, data_array in data_set.data_vars.items():
-        if not all(dim in list(data_array.dims) for dim in masked_dims):
-            dropped += [k]
-
+    dropped = [
+        k
+        for k, data_array in data_set.data_vars.items()
+        if any(dim not in list(data_array.dims) for dim in masked_dims)
+    ]
     data_set = data_set.drop_vars(dropped)
 
     data_set = data_set.where(da_mask, drop=True)
@@ -233,18 +233,15 @@ def extend_indexes(mask_array, coord, cyclic=False, round_at=5):
     """Temporary fix for making extended region masks rounded at 5 deg. resolution"""
     assert len(mask_array) == len(coord), (len(mask_array), len(coord))
     for i, m in enumerate(mask_array):
-        idx_left = max(i - 1, 0) if not cyclic else np.mod(i - 1, len(coord))
-        idx_right = (
-            min(i + 1, len(coord) - 1) if not cyclic else np.mod(i + 1, len(coord))
-        )
+        idx_left = np.mod(i - 1, len(coord)) if cyclic else max(i - 1, 0)
+        idx_right = np.mod(i + 1, len(coord)) if cyclic else min(i + 1, len(coord) - 1)
         goes_left = m != mask_array[idx_left]
         goes_right = m != mask_array[idx_right]
         if goes_left or goes_right:
             prev_i = i
-            if goes_left:
-                iterator = range(idx_left, 0, -1)
-            else:
-                iterator = range(idx_right, len(coord))
+            iterator = (
+                range(idx_left, 0, -1) if goes_left else range(idx_right, len(coord))
+            )
             for next_i in iterator:
                 n = (
                     np.ceil(coord[prev_i] / round_at)
