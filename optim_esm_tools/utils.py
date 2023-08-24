@@ -48,14 +48,8 @@ def get_plt_colors():
     return my_colors
 
 
-def setup_plt(use_tex=True, register_as='custom_map'):
-    """Change the plots to have uniform style defaults"""
-
-    import matplotlib.pyplot as plt
-    import matplotlib
-    from cycler import cycler
-
-    params = {
+def default_plt_params():
+    return {
         'axes.grid': True,
         'font.size': 18,
         'axes.titlesize': 20,
@@ -79,6 +73,16 @@ def setup_plt(use_tex=True, register_as='custom_map'):
         'image.cmap': 'viridis',
         'lines.linewidth': 2,
     }
+
+
+def setup_plt(use_tex=True, register_as='custom_map'):
+    """Change the plots to have uniform style defaults"""
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from cycler import cycler
+
+    params = default_plt_params()
     if use_tex:
         params.update(
             {
