@@ -53,7 +53,7 @@ class VariableMerger:
         try:
             new_ds = xr.Dataset(**new_ds)
         except TypeError as e:  # pragma: no cover
-            print(f'Ran into {e} fallback method because of cftime')
+            oet.get_logger.warning(f'Ran into {e} fallback method because of cftime')
             # Stupid cftime can't compare it's own formats
             data_vars = new_ds.pop('data_vars')
             new_ds = xr.Dataset(**new_ds)
@@ -75,7 +75,7 @@ class VariableMerger:
             gridspec_kw=dict(width_ratios=[1, 1], wspace=0.1, hspace=0.05),
         )
 
-        fig, axes = plt.subplot_mosaic(**fig_kw)
+        _, axes = plt.subplot_mosaic(**fig_kw)
 
         if len(keys) > 1:
             for k in keys[1:]:
@@ -105,7 +105,7 @@ class VariableMerger:
             source_files[ds.attrs['variable_id']] = ds.attrs['file']
             common_mask = self.combine_masks(common_mask, ds)
         for other_path in self.other_paths:
-            if other_path == '':
+            if other_path == '':  # pragma: no cover
                 continue
             ds = oet.load_glob(other_path)
             # Source files may be non-unique!
@@ -125,11 +125,11 @@ class VariableMerger:
         )
         is_the_first_instance = common_mask is None
         if is_the_first_instance:
-            return other_dataset[field]
+            return other_dataset[field].astype(np.bool_)
         if self.merge_method == 'logical_or':
-            return common_mask.astype(np.bool_) | other_dataset[field].astype(np.bool_)
-        else:
-            raise NotImplementedError
+            return common_mask | other_dataset[field].astype(np.bool_)
+
+        raise NotImplementedError(f'No such method as {self.merge_method}')
 
 
 def change_plt_table_height():
@@ -155,7 +155,7 @@ def change_plt_table_height():
     matplotlib.table.Table._approx_text_height = _approx_text_height
 
 
-def add_table(res_f, tips, ax=None, fontsize=16):
+def add_table(res_f, tips, ax=None, fontsize=16, pass_color=(0.75, 1, 0.75)):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')
     ax.axis('tight')
@@ -165,7 +165,7 @@ def add_table(res_f, tips, ax=None, fontsize=16):
         rowLabels=res_f.index,
         colLabels=res_f.columns,
         cellColours=[
-            [([0.75, 1, 0.75] if v else [1, 1, 1]) for v in row] for row in tips.values
+            [(pass_color if v else [1, 1, 1]) for v in row] for row in tips.values
         ],
         loc='bottom',
         colLoc='center',
@@ -207,7 +207,6 @@ def result_table(ds, formats=None):
 
 
 def summarize_stats(ds, field, path):
-    path = path
     return {
         'n_breaks': oet.analyze.time_statistics.calculate_n_breaks(ds, field=field),
         'p_symmetry': oet.analyze.time_statistics.calculate_symmetry_test(
