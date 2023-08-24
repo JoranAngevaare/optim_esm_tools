@@ -18,7 +18,7 @@ try:
     from git import Repo, InvalidGitRepositoryError
 
     GIT_INSTALLED = True
-except ImportError:
+except ImportError:   # pragma: no cover
     GIT_INSTALLED = False
 
 import sys
