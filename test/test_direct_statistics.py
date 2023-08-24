@@ -44,5 +44,14 @@ class TestDirect(TestCase):
 
             ds_masked = oet.analyze.xarray_tools.mask_to_reduced_dataset(ds, mask)
             oet.analyze.direct_statistics.direct_test(
-                ds_masked, _ds_global=ds, _ds_hist=post_path['picontrol']
+                ds_masked,
+                _ds_global=ds,
+                _ds_hist=oet.load_glob(post_path['picontrol']),
+                over_ride_thresholds=dict(
+                    max_jump=1,
+                    p_dip=1,
+                    p_symmetry=1,
+                    n_breaks=0,
+                    n_std_global=0,
+                ),
             )

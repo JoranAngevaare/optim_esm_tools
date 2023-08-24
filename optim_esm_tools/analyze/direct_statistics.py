@@ -3,9 +3,10 @@ import numpy as np
 
 
 def pass_test(props, thresholds, always_true=('max_jump', 'n_std_global')):
+    thresholds = thresholds.copy()
     for k in always_true:
-        op, jump = thresholds[k]
-        if not op(props.pop(k), jump):
+        op, thr = thresholds[k]
+        if not op(props.pop(k), thr):
             return False
 
     for k, v in props.items():
@@ -31,8 +32,10 @@ def change_global_mask(
     return ds
 
 
-def direct_test(ds, _ds_global=None, _ds_hist=None):
+def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
     ds = ds.copy().load()
+    over_ride_thresholds = over_ride_thresholds or dict()
+    thresholds = oet.analyze.time_statistics.default_thresholds(**over_ride_thresholds)
     ds_global = _ds_global or oet.analyze.time_statistics._get_ds_global(ds, load=True)
     ds_hist = _ds_hist or oet.analyze.time_statistics.get_historical_ds(ds, load=True)
     var = ds.attrs['variable_id']
@@ -60,7 +63,7 @@ def direct_test(ds, _ds_global=None, _ds_hist=None):
                 ),
             )
             calculator.functions = {
-                k: oet.utils.timed(v, seconds=1, _report='print')
+                k: oet.utils.timed(v)
                 for k, v in calculator.functions.items()
                 if k not in ['max_jump', 'max_jump_yearly', 'p_skewness']
             }
@@ -73,18 +76,15 @@ def direct_test(ds, _ds_global=None, _ds_hist=None):
                     if isinstance(v, float):
                         masks[k][:] = np.nan
                 masks[k][lat_i, lon_i] = v
-            res = pass_test(
-                props,
-                thresholds=oet.analyze.time_statistics.default_thresholds(),
-                always_true=('n_std_global',),
-            )
+
+            res = pass_test(props, thresholds=thresholds, always_true=('n_std_global',))
             if res:
                 jump = oet.analyze.time_statistics.calculate_max_jump_in_std_history(
                     ds=ds, _ds_hist=ds_hist
                 )
-                res = jump > 4
-                if res:
-                    masks['direct_test'][lat_i, lon_i] = res
+                operator, thr = thresholds['max_jump']
+                res = operator(jump, thr)
+                masks['direct_test'][lat_i, lon_i] = res
 
     for k, mask in masks.items():
         ds[k] = (('lat', 'lon'), mask)
