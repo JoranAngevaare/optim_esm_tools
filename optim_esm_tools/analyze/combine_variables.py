@@ -16,8 +16,8 @@ class VariableMerger:
     source_files: ty.Mapping
     common_mask: xr.DataArray
 
-    def __init__(self, mask_paths, other_paths=None, merge_method='logical_or'):
-        self.mask_paths = mask_paths
+    def __init__(self, paths, other_paths=None, merge_method='logical_or'):
+        self.mask_paths = paths
         self.other_paths = other_paths or []
         self.merge_method = merge_method
         source_files, common_mask = self.process_masks()
@@ -36,7 +36,7 @@ class VariableMerger:
             new_ds['data_vars'][var] = (
                 _ds[var]
                 .where(common_mask)
-                .mean(oet.config.config['analyze']['lat_lon_dims'].split(','))
+                .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
             )
             new_ds['data_vars'][var].attrs = _ds[var].attrs
 
@@ -101,7 +101,7 @@ class VariableMerger:
             ds = oet.load_glob(path)
             # Source files may be non-unique!
             source_files[ds.attrs['variable_id']] = ds.attrs['file']
-            common_mask = self.combine_masks(common_mask, ds['global_mask'])
+            common_mask = self.combine_masks(common_mask, ds)
         for other_path in self.other_paths:
             if other_path == '':
                 continue
@@ -113,23 +113,37 @@ class VariableMerger:
         return source_files, common_mask
 
     def combine_masks(
-        self, common_mask: ty.Optional[xr.DataArray], other_mask: xr.DataArray
+        self,
+        common_mask: ty.Optional[xr.DataArray],
+        other_dataset: xr.Dataset,
+        field: ty.Optional[str] = None,
     ) -> xr.DataArray:
+        field = field or (
+            'global_mask' if 'global_mask' in other_dataset else 'cell_area'
+        )
         is_the_first_instance = common_mask is None
         if is_the_first_instance:
-            return other_mask
+            return other_dataset[field]
         if self.merge_method == 'logical_or':
-            return common_mask | other_mask
+            return common_mask | other_dataset[field]
         else:
             raise NotImplementedError
 
-    def merge_to_common_mask(self):
-        pass
-
 
 def change_plt_table_height():
-    """Increase the height"""
+    """Increase the height of rows in plt.table
+
+    Unfortunately, the options that you can pass to plt.table are insufficient to render a table
+    that has rows with sufficient heights that work with a font that is not the default. From the
+    plt.table implementation, I figured I could change these (rather patchy) lines in the source
+    code:
+    https://github.com/matplotlib/matplotlib/blob/b7dfdc5c97510733770429f38870a623426d0cdc/lib/matplotlib/table.py#L391
+
+    Matplotlib version matplotlib==3.7.2
+    """
     import matplotlib
+
+    print('Change default plt.table row height')
 
     def _approx_text_height(self):
         return 1.5 * (
@@ -175,7 +189,7 @@ def result_table(ds, formats=None):
         }
     ).T
 
-    formats = dict(
+    formats = formats or dict(
         n_breaks='.0f',
         p_symmetry='.3f',
         p_dip='.3f',
@@ -208,5 +222,4 @@ def summarize_stats(ds, field, path):
 
 
 if __name__ == '__main__':
-    print('Change default plt.table row height')
     change_plt_table_height()
