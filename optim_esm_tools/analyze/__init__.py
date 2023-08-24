@@ -9,3 +9,4 @@ from . import clustering
 from . import region_finding
 from . import time_statistics
 from . import concise_dataframe
+from . import combine_variables
