@@ -25,8 +25,10 @@ class VariableMerger:
         self.common_mask = common_mask
 
     def squash_sources(self) -> xr.Dataset:
-        common_mask = oet.analyze.xarray_tools.reverse_name_mask_coords(
+        common_mask = (
             self.common_mask
+            if self.common_mask.dims == ('lat', 'lon')
+            else oet.analyze.xarray_tools.reverse_name_mask_coords(self.common_mask)
         )
 
         new_ds = defaultdict(dict)
@@ -125,7 +127,7 @@ class VariableMerger:
         if is_the_first_instance:
             return other_dataset[field]
         if self.merge_method == 'logical_or':
-            return common_mask | other_dataset[field]
+            return common_mask.astype(np.bool_) | other_dataset[field].astype(np.bool_)
         else:
             raise NotImplementedError
 

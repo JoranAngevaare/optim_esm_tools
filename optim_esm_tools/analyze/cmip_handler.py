@@ -83,6 +83,7 @@ def read_ds(
     _ma_window: ty.Optional[int] = None,
     _cache: bool = True,
     _file_name: str = None,
+    _skip_folder_info: bool = False,
     **kwargs,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
@@ -105,6 +106,8 @@ def read_ds(
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster
             (re)loading. Defaults to True.
         _file_name (str, optional): name to match. Defaults to configs settings.
+        _skip_folder_info (bool, optional): if set to True, do not infer the properties from the
+            (synda) path of the file
 
     kwargs:
         any kwargs are passed onto transform_ds.
@@ -173,7 +176,11 @@ def read_ds(
     folders = base.split(os.sep)
 
     # start with -1 (for i==0)
-    metadata = {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
+    metadata = (
+        {}
+        if _skip_folder_info
+        else {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
+    )
     metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))
 
     data_set.attrs.update(metadata)

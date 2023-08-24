@@ -4,6 +4,7 @@ import xarray as xr
 import typing as ty
 from functools import partial
 import os
+import operator
 
 
 class TimeStatistics:
