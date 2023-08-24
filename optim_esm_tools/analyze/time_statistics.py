@@ -4,6 +4,7 @@ import xarray as xr
 import typing as ty
 from functools import partial
 import os
+import operator
 
 
 class TimeStatistics:
@@ -75,6 +76,38 @@ class TimeStatistics:
             k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
             for k, f in self.functions.items()
         }
+
+
+def default_thresholds(
+    max_jump=None,
+    p_dip=None,
+    p_symmetry=None,
+    n_breaks=None,
+    n_std_global=None,
+):
+    return dict(
+        max_jump=(
+            operator.ge,
+            max_jump or float(oet.config.config['tipping_thresholds']['max_jump']),
+        ),
+        p_dip=(
+            operator.le,
+            p_dip or float(oet.config.config['tipping_thresholds']['p_dip']),
+        ),
+        p_symmetry=(
+            operator.le,
+            p_symmetry or float(oet.config.config['tipping_thresholds']['p_symmetry']),
+        ),
+        n_breaks=(
+            operator.ge,
+            n_breaks or float(oet.config.config['tipping_thresholds']['n_breaks']),
+        ),
+        n_std_global=(
+            operator.ge,
+            n_std_global
+            or float(oet.config.config['tipping_thresholds']['n_std_global']),
+        ),
+    )
 
 
 def _get_ds_global(ds, **read_kw):

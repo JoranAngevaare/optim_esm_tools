@@ -10,3 +10,4 @@ from . import region_finding
 from . import time_statistics
 from . import direct_statistics
 from . import concise_dataframe
+from . import combine_variables
