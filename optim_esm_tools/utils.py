@@ -237,17 +237,16 @@ def string_to_mathrm(string):
 
 
 def legend_kw(**kw):
-    return (
-        dict(
-            bbox_to_anchor=(0.0, 1.02, 1, 0.32),
-            loc=3,
-            ncol=3,
-            mode='expand',
-            borderaxespad=0.0,
-            frameon=True,
-        )
-        | kw
+    options = dict(
+        bbox_to_anchor=(0.0, 1.02, 1, 0.32),
+        loc=3,
+        ncol=3,
+        mode='expand',
+        borderaxespad=0.0,
+        frameon=True,
     )
+    options.update(kw)
+    return options
 
 
 def filter_keyword_arguments(
