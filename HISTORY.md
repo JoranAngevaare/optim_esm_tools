@@ -1,3 +1,14 @@
+1.4.1 / 2023-08-28
+------------------
+* Sourcery refactor suggestions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/132
+* Fix singularly valued merged datasets by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/133
+* Loading with historical dataset by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/134
+* All sub vars to merged dataset by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/135
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.4.0...1.4.1
+
+
 1.4.0 / 2023-08-24
 ------------------
 #### Minor change
