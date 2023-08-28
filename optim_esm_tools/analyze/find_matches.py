@@ -171,7 +171,7 @@ def _variant_label_id_and_version(full_path):
     return -grid_version, run_variant_number
 
 
-def folder_to_dict(path):
+def folder_to_dict(path, strict=True):
     path = _get_head(path)
     folders = path.split(os.sep)
     if folders[-1][0] == 'v' and len(folders[-1]) == len('v20190731'):
@@ -180,9 +180,10 @@ def folder_to_dict(path):
             for i, k in enumerate(config['CMIP_files']['folder_fmt'].split()[::-1])
         }
         # great
-    raise NotImplementedError(
-        f'folder {path} does not end with a version'
-    )  # pragma: no cover
+    if strict:
+        raise NotImplementedError(
+            f'folder {path} does not end with a version'
+        )  # pragma: no cover
 
 
 def base_from_path(path, look_back_extra=0):
@@ -212,7 +213,10 @@ def associate_historical(
     log = get_logger()
     path = path or data_set.attrs['path']
     base = base_from_path(path, look_back_extra=look_back_extra)
-    search = folder_to_dict(path)
+    search = folder_to_dict(path, strict=strict)
+    if search is None and not strict:
+        log.warning('No search, but not breaking because strict is False')
+        return
     search['activity_id'] = activity_id
     if search['experiment_id'] == match_to:  # pragma: no cover
         message = f'Cannot match {match_to} to itself!'

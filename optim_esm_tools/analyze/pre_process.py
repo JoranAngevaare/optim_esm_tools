@@ -33,6 +33,7 @@ def get_preprocessed_ds(source, **kw):
 @timed
 def pre_process(
     source: str,
+    historical_path: str = None,
     target_grid: str = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
@@ -51,6 +52,7 @@ def pre_process(
 
     Args:
         source (str): path of file to parse
+        historical_path (str, None): if specified, first merge this file to the source.
         target_grid (str, optional): Grid specification (like n64, n90 etc.). Defaults to None and
             is taken from config.
         max_time (ty.Optional[ty.Tuple[int, int, int]], optional): Defines time range in which to
@@ -71,6 +73,8 @@ def pre_process(
     import cdo
 
     _remove_bad_vars(source)
+    if historical_path is not None:
+        _remove_bad_vars(historical_path)
     variable_id = variable_id or _read_variable_id(source)
     max_time = max_time or (9999, 12, 30)  # unreasonably far away
     min_time = min_time or (0, 1, 1)  # unreasonably long ago
@@ -106,7 +110,9 @@ def pre_process(
         if os.path.exists(p):  # pragma: no cover
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
-
+    if historical_path:
+        cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
+        source = f_tmp
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
     cdo_int.seldate(time_range, input=source, output=f_time)
 

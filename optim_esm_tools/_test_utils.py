@@ -101,12 +101,12 @@ def get_path_for_ds(data_name, refresh=True):
     return year_path
 
 
-def complete_ds(**kw):
+def complete_ds(start_year=2000, **kw):
     import cftime
     import optim_esm_tools as oet
 
     ds = oet._test_utils.minimal_xr_ds(**kw)
-    ds['time'] = [cftime.datetime(y + 2000, 1, 1) for y in range(len(ds['time']))]
+    ds['time'] = [cftime.datetime(y + start_year, 1, 1) for y in range(len(ds['time']))]
     ds['lat'].attrs.update(
         {
             'standard_name': 'latitude',
