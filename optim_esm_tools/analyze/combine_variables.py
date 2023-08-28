@@ -35,16 +35,16 @@ class VariableMerger:
         new_ds['data_vars']['global_mask'] = common_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
-            for sub_variable in list(_ds.data_vars):
-                if var not in sub_variable:
+            for _var in list(_ds.data_vars):
+                if _var not in var:
                     continue
 
-                new_ds['data_vars'][sub_variable] = (
-                    _ds[sub_variable]
+                new_ds['data_vars'][_var] = (
+                    _ds[var]
                     .where(common_mask)
                     .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
                 )
-                new_ds['data_vars'][sub_variable].attrs = _ds[sub_variable].attrs
+                new_ds['data_vars'][_var].attrs = _ds[_var].attrs
 
         # Make one copy - just use the last dataset
         new_ds['data_vars']['cell_area'] = _ds['cell_area']
@@ -57,7 +57,7 @@ class VariableMerger:
         try:
             new_ds = xr.Dataset(**new_ds)
         except TypeError as e:  # pragma: no cover
-            oet.get_logger.warning(f'Ran into {e} fallback method because of cftime')
+            oet.get_logger().warning(f'Ran into {e} fallback method because of cftime')
             # Stupid cftime can't compare it's own formats
             data_vars = new_ds.pop('data_vars')
             new_ds = xr.Dataset(**new_ds)
@@ -69,7 +69,7 @@ class VariableMerger:
 
     def make_fig(self, new_ds=None, fig_kw=None):
         new_ds = new_ds or self.squash_sources()
-        variables = list(new_ds.attrs['variables'])
+        variables = list(oet.utils.to_str_tuple(new_ds.attrs['variables']))
         mapping = {str(i): v for i, v in enumerate(variables)}
         keys = list(mapping.keys()) + ['t']
 
@@ -99,6 +99,8 @@ class VariableMerger:
         )
         res_f, tips = result_table(new_ds)
         add_table(res_f=res_f, tips=tips, ax=axes['t'])
+        axes['global_map'] = ax
+        return axes
 
     def process_masks(self) -> ty.Tuple[dict, xr.DataArray]:
         source_files = {}
@@ -182,9 +184,13 @@ def add_table(res_f, tips, ax=None, fontsize=16, pass_color=(0.75, 1, 0.75)):
 def result_table(ds, formats=None):
     res = {
         field: summarize_stats(ds, field, path)
-        for field, path in zip(ds.attrs['variables'], ds.attrs['source_files'])
+        for field, path in zip(
+            oet.utils.to_str_tuple(ds.attrs['variables']),
+            oet.utils.to_str_tuple(ds.attrs['source_files']),
+        )
     }
     thrs = default_thresholds()
+    thrs['p_bhi'] = 0.01
     is_tip = pd.DataFrame(
         {
             k: {
@@ -197,8 +203,8 @@ def result_table(ds, formats=None):
 
     formats = formats or dict(
         n_breaks='.0f',
-        p_symmetry='.3f',
-        p_dip='.3f',
+        p_symmetry='.2%',
+        p_dip='.1%',
         max_jump='.1f',
         n_std_global='.1f',
     )
