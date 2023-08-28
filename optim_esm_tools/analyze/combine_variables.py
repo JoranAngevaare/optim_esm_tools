@@ -35,7 +35,7 @@ class VariableMerger:
         new_ds['data_vars']['global_mask'] = common_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
-            for _var in list(ds_source.data_vars):
+            for _var in list(_ds.data_vars):
                 if _var not in var:
                     continue
 
