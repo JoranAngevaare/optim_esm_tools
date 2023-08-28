@@ -80,10 +80,12 @@ def read_ds(
     pre_process: bool = True,
     strict: bool = True,
     load: bool = None,
+    add_history: bool = False,
     _ma_window: ty.Optional[int] = None,
     _cache: bool = True,
     _file_name: str = None,
     _skip_folder_info: bool = False,
+    _historical_path: str = None,
     **kwargs,
 ) -> xr.Dataset:
     """Read a dataset from a folder called "base".
@@ -102,12 +104,14 @@ def read_ds(
         area_query_kwargs (ty.Mapping, optional): additionally keyword arguments for searching.
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
+        add_history (bool, optional): start by merging historical dataset to the dataset.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to alow faster
             (re)loading. Defaults to True.
         _file_name (str, optional): name to match. Defaults to configs settings.
         _skip_folder_info (bool, optional): if set to True, do not infer the properties from the
             (synda) path of the file
+        _historical_path (str, optional): If add_history is True, load from this (full) path
 
     kwargs:
         any kwargs are passed onto transform_ds.
@@ -122,6 +126,7 @@ def read_ds(
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
     )
+    _historical_path = _historical_file(add_history, base, _file_name, _historical_path)
 
     if not isinstance(variable_of_interest, str):
         raise ValueError('Only single vars supported')  # pragma: no cover
@@ -139,6 +144,7 @@ def read_ds(
         min_time,
         max_time,
         _ma_window,
+        is_historical=_historical_path is not None,
     )
 
     if os.path.exists(res_file) and _cache:
@@ -154,6 +160,7 @@ def read_ds(
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
             source=data_path,
+            historical_path=_historical_path,
             max_time=max_time,
             min_time=min_time,
             _ma_window=_ma_window,
@@ -192,12 +199,36 @@ def read_ds(
     return data_set
 
 
+def _historical_file(
+    add_history, base, _file_name, _historical_path
+) -> ty.Optional[str]:
+    if add_history:
+        historical_heads = oet.analyze.find_matches.associate_historical(
+            path=base, match_to='historical', strict=False
+        )
+        if not historical_heads and not _historical_path:
+            raise FileNotFoundError(f'No historical matches for {base}')
+        _historical_path = _historical_path or os.path.join(
+            historical_heads[0], _file_name
+        )
+        if not os.path.exists(_historical_path):
+            raise ValueError(
+                f'{_historical_path} not found, (check {historical_heads}?)'
+            )
+    elif _historical_path:
+        raise ValueError(
+            f'Wrong input _historical_path is {_historical_path} but add_history is False'
+        )
+    return _historical_path
+
+
 def _name_cache_file(
     base,
     variable_of_interest,
     min_time,
     max_time,
     _ma_window,
+    is_historical,
     version=None,
 ):
     """Get a file name that identifies the settings"""
@@ -209,7 +240,8 @@ def _name_cache_file(
         f'_s{tuple(min_time) if min_time else ""}'
         f'_e{tuple(max_time) if max_time else ""}'
         f'_ma{_ma_window}'
-        f'_optimesm_v{version}.nc',
+        + ('_hist' if is_historical else '')
+        + f'_optimesm_v{version}.nc',
     )
     normalized_path = (
         path.replace('(', '')

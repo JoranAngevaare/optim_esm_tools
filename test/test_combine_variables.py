@@ -7,7 +7,6 @@ from unittest import TestCase
 class TestCombineVariables(TestCase):
     def test_merge_two(self, nx=5, ny=20, is_match=(True, True)):
         with tempfile.TemporaryDirectory() as temp_dir:
-            # temp_dir = '/home/aangevaare/software/paper_oet/notebooks/'
             kw = dict(len_x=nx, len_y=ny, len_time=20, add_nans=False)
             names = list('abcefg')[: len(is_match)]
             paths = [os.path.join(temp_dir, f'{x}.nc') for x in names]

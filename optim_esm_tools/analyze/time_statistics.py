@@ -192,7 +192,9 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
     return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
+def calculate_symmetry_test(
+    ds, field=None, nan_policy='omit', test_statistic='MI', **kw
+):
     import rpy_symmetry as rsym
 
     values = get_values_from_data_set(ds, field, add='')
@@ -201,7 +203,7 @@ def calculate_symmetry_test(ds, field=None, nan_policy='omit'):
     else:  # pragma: no cover
         message = 'Not sure how to deal with nans other than omit'
         raise NotImplementedError(message)
-    return rsym.p_symmetry(values)
+    return rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
 
 
 def _get_tip_criterion(short_description):
