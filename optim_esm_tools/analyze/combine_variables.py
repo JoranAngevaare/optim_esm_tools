@@ -35,12 +35,16 @@ class VariableMerger:
         new_ds['data_vars']['global_mask'] = common_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
-            new_ds['data_vars'][var] = (
-                _ds[var]
-                .where(common_mask)
-                .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
-            )
-            new_ds['data_vars'][var].attrs = _ds[var].attrs
+            for _var in list(ds_source.data_vars):
+                if _var not in var:
+                    continue
+
+                new_ds['data_vars'][_var] = (
+                    _ds[var]
+                    .where(common_mask)
+                    .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
+                )
+                new_ds['data_vars'][_var].attrs = _ds[_var].attrs
 
         # Make one copy - just use the last dataset
         new_ds['data_vars']['cell_area'] = _ds['cell_area']
