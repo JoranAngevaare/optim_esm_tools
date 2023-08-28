@@ -239,9 +239,9 @@ def _name_cache_file(
         f'{variable_of_interest}'
         f'_s{tuple(min_time) if min_time else ""}'
         f'_e{tuple(max_time) if max_time else ""}'
-        f'_ma{_ma_window}' + '_hist'
-        if is_historical
-        else '' + f'_optimesm_v{version}.nc',
+        f'_ma{_ma_window}'
+        + ('_hist' if is_historical else '')
+        + f'_optimesm_v{version}.nc',
     )
     normalized_path = (
         path.replace('(', '')
