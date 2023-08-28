@@ -192,7 +192,9 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
     return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_symmetry_test(ds, field=None, nan_policy='omit', test_statistic='MI', **kw):
+def calculate_symmetry_test(
+    ds, field=None, nan_policy='omit', test_statistic='MI', **kw
+):
     import rpy_symmetry as rsym
 
     values = get_values_from_data_set(ds, field, add='')

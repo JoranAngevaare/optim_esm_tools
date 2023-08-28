@@ -180,8 +180,10 @@ def add_table(res_f, tips, ax=None, fontsize=16, pass_color=(0.75, 1, 0.75)):
 def result_table(ds, formats=None):
     res = {
         field: summarize_stats(ds, field, path)
-        for field, path in zip(oet.utils.to_str_tuple(ds.attrs['variables']),
-                               oet.utils.to_str_tuple(ds.attrs['source_files']))
+        for field, path in zip(
+            oet.utils.to_str_tuple(ds.attrs['variables']),
+            oet.utils.to_str_tuple(ds.attrs['source_files']),
+        )
     }
     thrs = default_thresholds()
     thrs['p_bhi'] = 0.01
