@@ -340,7 +340,9 @@ def max_derivative(
     var_name = naming.format(variable=variable, running_mean=running_mean)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
-    result = np.abs(data_array.differentiate(time_var)).max(dim=time_var) * _SECONDS_TO_YEAR
+    result = (
+        np.abs(data_array.differentiate(time_var)).max(dim=time_var) * _SECONDS_TO_YEAR
+    )
 
     var_unit = data_array.attrs.get('units', '{units}').replace('%', '\%')
     name = data_array.attrs.get(rename_to, variable)
