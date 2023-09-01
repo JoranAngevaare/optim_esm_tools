@@ -399,7 +399,16 @@ class HistoricalMapMaker(MapMaker):
         return self.__getattribute__(item)
 
 
-def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
+def plot_simple(
+    ds,
+    var,
+    other_dim=None,
+    show_std=False,
+    std_kw=None,
+    add_label=True,
+    set_y_lim=True,
+    **kw,
+):
     if other_dim is None:
         other_dim = set(ds[var].dims) - {'time'}
     mean = ds[var].mean(other_dim)
@@ -414,10 +423,12 @@ def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
         (mean - std).plot(color=l[0]._color, **std_kw)
         (mean + std).plot(color=l[0]._color, **std_kw)
 
-    set_y_lim_var(var)
-    plt.ylabel(
-        f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
-    )
+    if set_y_lim:
+        set_y_lim_var(var)
+    if add_label:
+        plt.ylabel(
+            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
+        )
     plt.title('')
 
 

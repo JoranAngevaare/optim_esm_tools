@@ -12,10 +12,10 @@ from optim_esm_tools.analyze import tipping_criteria
 
 def add_conditions_to_ds(
     ds: xr.Dataset,
-    calculate_conditions: ty.Tuple[tipping_criteria._Condition] = None,
-    condition_kwargs: ty.Mapping = None,
+    calculate_conditions: ty.Optional[ty.Tuple[tipping_criteria._Condition]] = None,
+    condition_kwargs: ty.Optional[ty.Mapping] = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
-    _ma_window: int = None,
+    _ma_window: ty.Optional[int] = None,
 ) -> xr.Dataset:
     """Transform the dataset to get it ready for handling in optim_esm_tools
 
@@ -189,6 +189,8 @@ def read_ds(
         else {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
     )
     metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))
+    if _historical_path:
+        metadata.update(dict(historical_file=_historical_path))
 
     data_set.attrs.update(metadata)
 

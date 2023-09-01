@@ -62,8 +62,12 @@ def set_y_lim_var(var):
     )
 
 
+def get_unit_da(da):
+    return da.attrs.get('units', '?').replace('%', '\%')
+
+
 def get_unit(ds, var):
-    return ds[var].attrs.get('units', '?').replace('%', '\%')
+    return get_unit_da(ds[var])
 
 
 def get_cartopy_projection(projection=None, _field='projection', **projection_kwargs):
