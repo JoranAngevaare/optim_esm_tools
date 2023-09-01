@@ -44,14 +44,14 @@ class VariableMerger:
         self.tipping_thresholds = tipping_thresholds
         self.table_formats = table_formats
         if data_set:
-            return
+            return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
         self.common_mask = common_mask
 
     def squash_sources(self) -> xr.Dataset:
         if self.data_set:
-            return self.data_set
+            return self.data_set  # pragma: no cover
         new_ds = self._squash_variables()
         new_ds = self._merge_squash(new_ds)
         return new_ds

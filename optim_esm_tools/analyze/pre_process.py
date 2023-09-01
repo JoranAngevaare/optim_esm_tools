@@ -113,7 +113,7 @@ def pre_process(
     if historical_path:
         try:
             cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
-        except cdo.CDOException as e:
+        except cdo.CDOException as e:  # pragma: no cover
             get_logger().error(f'Ran into {e}, let\'s regrid first and retry')
             cdo_int.remapbil(
                 target_grid,
