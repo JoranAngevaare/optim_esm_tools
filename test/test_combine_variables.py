@@ -5,14 +5,14 @@ from unittest import TestCase
 
 
 class TestCombineVariables(TestCase):
-    def test_merge_two(self, nx=5, ny=20, is_match=(True, True)):
+    def test_merge_two(self, nx=5, ny=20, is_match=(True, True), **plot_kw):
         with tempfile.TemporaryDirectory() as temp_dir:
-            kw = dict(len_x=nx, len_y=ny, len_time=20, add_nans=False)
+            setup_kw = dict(len_x=nx, len_y=ny, len_time=20, add_nans=False)
             names = list('abcefg')[: len(is_match)]
             paths = [os.path.join(temp_dir, f'{x}.nc') for x in names]
             post_path = []
             for name, path in zip(names, paths):
-                ds = oet._test_utils.complete_ds(**kw)
+                ds = oet._test_utils.complete_ds(**setup_kw)
                 ds = ds.rename(dict(var=name))
                 assert name in ds
 
@@ -32,9 +32,12 @@ class TestCombineVariables(TestCase):
                 if m:
                     assert n in merged.data_vars
             oet.analyze.combine_variables.change_plt_table_height()
-            merger.make_fig(merged)
+            merger.make_fig(merged, **plot_kw)
             return merger
 
     def test_merge_three(self):
         merger = self.test_merge_two(is_match=(True, True, False))
         assert merger.other_paths
+
+    def test_merge_w_hist(self):
+        self.test_merge_two(add_histograms=True)
