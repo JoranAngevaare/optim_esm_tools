@@ -26,23 +26,23 @@ def get_preprocessed_ds(source, **kw):
             kw.setdefault(k, v)
         intermediate_file = pre_process(**kw)
         # After with close this "with", we lose the file, so load it just to be sure we have all we need
-        ds = load_glob(intermediate_file).load()
+        ds = load_glob(intermediate_file).load()  # type: ignore
     return ds
 
 
 @timed
 def pre_process(
     source: str,
-    historical_path: str = None,
-    target_grid: str = None,
+    historical_path: ty.Optional[str] = None,
+    target_grid: ty.Optional[str] = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
-    save_as: str = None,
+    save_as: ty.Optional[str] = None,
     clean_up: bool = True,
-    _ma_window: int = None,
-    variable_id: str = None,
-    working_dir: str = None,
-) -> str:
+    _ma_window: ty.Union[int, str, None] = None,
+    variable_id: ty.Optional[str] = None,
+    working_dir: ty.Optional[str] = None,
+) -> str:  # type: ignore
     """Apply several preprocessing steps to the file located at <source>:
       - Slice the data to desired time range
       - regrid to simple grid
@@ -70,6 +70,7 @@ def pre_process(
     Returns:
         str: path of the dest file (same provided, if any)
     """
+
     import cdo
 
     _remove_bad_vars(source)
@@ -116,16 +117,16 @@ def pre_process(
         )
         source = f_tmp
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
-    cdo_int.seldate(time_range, input=source, output=f_time)
+    cdo_int.seldate(time_range, input=source, output=f_time)  # type: ignore
 
-    cdo_int.remapbil(target_grid, input=f_time, output=f_regrid)
-    cdo_int.gridarea(input=f_regrid, output=f_area)
+    cdo_int.remapbil(target_grid, input=f_time, output=f_regrid)  # type: ignore
+    cdo_int.gridarea(input=f_regrid, output=f_area)  # type: ignore
 
-    cdo_int.detrend(input=f_regrid, output=f_tmp)
-    cdo_int.chname(f'{var},{var_det}', input=f_tmp, output=f_det)
+    cdo_int.detrend(input=f_regrid, output=f_tmp)  # type: ignore
+    cdo_int.chname(f'{var},{var_det}', input=f_tmp, output=f_det)  # type: ignore
     os.remove(f_tmp)
 
-    cdo_int.runmean(_ma_window, input=f_regrid, output=f_tmp)
+    cdo_int.runmean(_ma_window, input=f_regrid, output=f_tmp)  # type: ignore
     _run_mean_patch(
         f_start=f_regrid,
         f_rm=f_tmp,
@@ -136,12 +137,12 @@ def pre_process(
     )
     os.remove(f_tmp)
 
-    cdo_int.detrend(input=f_rm, output=f_tmp)
-    cdo_int.chname(f'{var_rm},{var_det_rm}', input=f_tmp, output=f_det_rm)
+    cdo_int.detrend(input=f_rm, output=f_tmp)  # type: ignore
+    cdo_int.chname(f'{var_rm},{var_det_rm}', input=f_tmp, output=f_det_rm)  # type: ignore
     # remove in cleanup
 
     input_files = ' '.join([f_regrid, f_det, f_det_rm, f_rm, f_area])
-    cdo_int.merge(input=input_files, output=save_as)
+    cdo_int.merge(input=input_files, output=save_as)  # type: ignore
 
     if clean_up:  # pragma: no cover
         for p in files:
