@@ -111,7 +111,22 @@ def pre_process(
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
     if historical_path:
-        cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
+        try:
+            cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
+        except cdo.CDOException as e:
+            get_logger().error(f'Ran into {e}, let\'s regrid first and retry')
+            cdo_int.remapbil(
+                target_grid,
+                input=historical_path,
+                output=(_a := os.path.join(working_dir, '_a.nc')),
+            )
+            cdo_int.remapbil(
+                target_grid,
+                input=source,
+                output=(_b := os.path.join(working_dir, '_b.nc')),
+            )
+            cdo_int.mergetime(input=[_a, _b], output=f_tmp)
+
         source = f_tmp
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
     cdo_int.seldate(time_range, input=source, output=f_time)
