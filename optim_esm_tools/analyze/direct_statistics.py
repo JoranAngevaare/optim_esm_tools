@@ -34,7 +34,7 @@ def change_global_mask(
 
 def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
     ds = ds.copy().load()
-    over_ride_thresholds = over_ride_thresholds or dict()
+    over_ride_thresholds = over_ride_thresholds or {}
     thresholds = oet.analyze.time_statistics.default_thresholds(**over_ride_thresholds)
     ds_global = _ds_global or oet.analyze.time_statistics._get_ds_global(ds, load=True)
     ds_hist = _ds_hist or oet.analyze.time_statistics.get_historical_ds(ds, load=True)
@@ -43,9 +43,8 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
         np.meshgrid(np.arange(len(ds['lat'])), np.arange(len(ds['lon'])))
     ).T
     index_2d = index_2d.reshape(np.prod(index_2d.shape) // 2, 2)
-    masks = {}
     bool_mask = np.zeros((len(ds['lat']), len(ds['lon'])), dtype=np.bool_)
-    masks['direct_test'] = bool_mask.copy()
+    masks = {'direct_test': bool_mask.copy()}
     for lat_i, lon_i in oet.utils.tqdm(index_2d):
         ds_sel = change_global_mask(
             ds,
@@ -77,8 +76,9 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
                         masks[k][:] = np.nan
                 masks[k][lat_i, lon_i] = v
 
-            res = pass_test(props, thresholds=thresholds, always_true=('n_std_global',))
-            if res:
+            if res := pass_test(
+                props, thresholds=thresholds, always_true=('n_std_global',)
+            ):
                 jump = oet.analyze.time_statistics.calculate_max_jump_in_std_history(
                     ds=ds, _ds_hist=ds_hist
                 )

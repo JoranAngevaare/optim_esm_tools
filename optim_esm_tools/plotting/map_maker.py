@@ -423,7 +423,12 @@ def plot_simple(ds, var, other_dim=None, show_std=False, std_kw=None, **kw):
 
 @oet.utils.check_accepts(accepts=dict(plot=('i', 'ii', 'iii', 'iv', 'v', None)))
 def summarize_mask(
-    data_set, one_mask, plot_kw=None, other_dim=None, plot='v', fig_kw=None
+    data_set,
+    one_mask,
+    plot_kw=None,
+    other_dim=None,
+    plot: ty.Optional[str] = 'v',
+    fig_kw=None,
 ):
     plot_kw = plot_kw or dict(show_std=True)
     other_dim = other_dim or oet.config.config['analyze']['lon_lat_dim'].split(',')
@@ -433,7 +438,7 @@ def summarize_mask(
         gridspec_kw=dict(width_ratios=[1, 1], wspace=0.1, hspace=0.05),
     )
 
-    ds_sel = oet.analyze.region_finding.mask_xr_ds(data_set.copy(), one_mask)
+    ds_sel = oet.analyze.xarray_tools.mask_xr_ds(data_set.copy(), one_mask)
     mm_sel = MapMaker(ds_sel)
     fig, axes = plt.subplot_mosaic(**fig_kw)
 
