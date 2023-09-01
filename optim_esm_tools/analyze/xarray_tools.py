@@ -201,7 +201,7 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     ]
     data_set = data_set.drop_vars(dropped)
 
-    data_set = data_set.where(da_mask, drop=True)
+    data_set = data_set.where(da_mask.compute(), drop=True)
 
     # Restore ignored variables and attributes
     for k in dropped:
