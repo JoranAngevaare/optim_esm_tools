@@ -1,26 +1,26 @@
-from ._base import (
-    RegionExtractor,
-    _two_sigma_percent,
-    apply_options,
-    plt_show,
-    _mask_cluster_type,
-)
-import optim_esm_tools as oet
+import typing as ty
 
-from optim_esm_tools.plotting.map_maker import MapMaker
+import immutabledict
+import matplotlib.pyplot as plt
+import numpy as np
+import optim_esm_tools as oet
+from optim_esm_tools.analyze import tipping_criteria
 from optim_esm_tools.analyze.clustering import (
     build_cluster_mask,
     build_weighted_cluster,
 )
-from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.plotting.plot import setup_map, _show
 from optim_esm_tools.analyze.xarray_tools import mask_xr_ds
-import numpy as np
-import matplotlib.pyplot as plt
-import xarray as xr
-import typing as ty
-import immutabledict
-import os
+from optim_esm_tools.plotting.map_maker import MapMaker
+from optim_esm_tools.plotting.plot import _show, setup_map
+from optim_esm_tools.utils import check_accepts
+
+from ._base import (
+    RegionExtractor,
+    _mask_cluster_type,
+    _two_sigma_percent,
+    apply_options,
+    plt_show,
+)
 
 
 class Percentiles(RegionExtractor):
@@ -37,42 +37,21 @@ class Percentiles(RegionExtractor):
             self.check_shape(masks[0])
         return masks, clusters
 
-    @apply_options
-    def _get_masks_weighted(
-        self,
-        min_weight=0.95,
-        lon_lat_dim=('lon', 'lat'),
-    ):
+    @check_accepts(
+        accepts=dict(method=('sum_rank', '_all_pass_percentile', 'product_rank'))
+    )
+    def _build_combined_mask(self, method: str, **kw) -> np.ndarray:
         labels = [crit.short_description for crit in self.criteria]
-
-        sums = []
-        for lab in labels:
-            vals = self.data_set[lab].values
-            vals = tipping_criteria.rank2d(vals)
-            vals[np.isnan(vals)] = 0
-            sums.append(vals)
-
-        tot_sum = np.zeros_like(sums[0])
-        for s in sums:
-            tot_sum += s
-        tot_sum /= len(sums)
-
-        self.check_shape(tot_sum)
-
-        masks, clusters = build_weighted_cluster(
-            weights=tot_sum,
-            lon_coord=self.data_set[lon_lat_dim[0]].values,
-            lat_coord=self.data_set[lon_lat_dim[1]].values,
-            threshold=min_weight,
+        function = dict(
+            sum_rank=self._sum_rank,
+            all_pass_percentile=self._all_pass_percentile,
+            product_rank=self._product_rank,
         )
-        return masks, clusters
+        result = function[method](labels, **kw)
+        self.check_shape(result)
+        return result
 
-    @apply_options
-    def _get_masks_masked(
-        self,
-        percentiles=_two_sigma_percent,
-        lon_lat_dim=('lon', 'lat'),
-    ):
+    def _all_pass_percentile(self, labels, percentiles):
         labels = [crit.short_description for crit in self.criteria]
         masks = []
 
@@ -85,9 +64,53 @@ class Percentiles(RegionExtractor):
         all_mask = np.ones_like(masks[0])
         for m in masks:
             all_mask &= m
+        return all_mask
 
-        self.check_shape(all_mask)
+    def _sum_rank(self, labels):
+        sums = []
+        for lab in labels:
+            vals = self.data_set[lab].values
+            vals = tipping_criteria.rank2d(vals)
+            vals[np.isnan(vals)] = 0
+            sums.append(vals)
 
+        tot_sum = np.zeros_like(sums[0])
+        for s in sums:
+            tot_sum += s
+        tot_sum /= len(sums)
+        return tot_sum
+
+    def _product_rank(self, labels):
+        ds = self.data_set.copy()
+        combined_score = np.ones_like(ds[labels[0]].values)
+
+        for label in labels:
+            combined_score *= tipping_criteria.rank2d(ds[label].values)
+        return combined_score
+
+    @apply_options
+    def _get_masks_weighted(
+        self, min_weight=0.95, lon_lat_dim=('lon', 'lat'), _mask_method='sum_rank'
+    ):
+        tot_sum = self._build_combined_mask(method=_mask_method)
+        masks, clusters = build_weighted_cluster(
+            weights=tot_sum,
+            lon_coord=self.data_set[lon_lat_dim[0]].values,
+            lat_coord=self.data_set[lon_lat_dim[1]].values,
+            threshold=min_weight,
+        )
+        return masks, clusters
+
+    @apply_options
+    def _get_masks_masked(
+        self,
+        lon_lat_dim=('lon', 'lat'),
+        percentiles=_two_sigma_percent,
+        _mask_method='all_pass_percentile',
+    ):
+        all_mask = self._build_combined_mask(
+            method=_mask_method, percentiles=percentiles
+        )
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,

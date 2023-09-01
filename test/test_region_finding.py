@@ -94,3 +94,24 @@ class Work(unittest.TestCase):
         region = cls(data_set=ds)
         with self.assertRaises(ValueError):
             region.check_shape(ds['cell_area'].T)
+
+    def test_iter_product_percentiles(self):
+        self.test_max_region('IterProductPercentiles')
+
+    def test_iter_local_history(self):
+        self.test_max_region('IterLocalHistory')
+
+    def test_iter_percentiles(self):
+        self.test_max_region('IterPercentiles')
+
+    def test_iter_raises(self):
+        with self.assertRaises(NotImplementedError):
+            self.test_max_region(
+                'IterProductPercentiles', new_opt=dict(cluster_method='weighted')
+            )
+        # with self.assertRaises(NotImplementedError):
+        #     self.test_max_region('IterLocalHistory', new_opt=dict(cluster_method='weighted'))
+        with self.assertRaises(NotImplementedError):
+            self.test_max_region(
+                'IterPercentiles', new_opt=dict(cluster_method='weighted')
+            )

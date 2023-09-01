@@ -1,25 +1,20 @@
-import optim_esm_tools as oet
-from optim_esm_tools.plotting.map_maker import MapMaker, HistoricalMapMaker
-from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.analyze.globals import _CMIP_HANDLER_VERSION
-from optim_esm_tools.analyze.cmip_handler import read_ds
-from optim_esm_tools.analyze.clustering import build_cluster_mask
-from optim_esm_tools.analyze.clustering import build_weighted_cluster
-from optim_esm_tools.analyze.xarray_tools import mask_xr_ds, mask_to_reduced_dataset
-from optim_esm_tools.analyze.time_statistics import TimeStatistics
-from optim_esm_tools.plotting.plot import setup_map, _show
-
-import numpy as np
-import matplotlib.pyplot as plt
+import inspect
 import logging
-import xarray as xr
-
+import os
 import typing as ty
 from functools import wraps
-import inspect
+
 import matplotlib.pyplot as plt
-import immutabledict
-import os
+import numpy as np
+import optim_esm_tools as oet
+import xarray as xr
+from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.cmip_handler import read_ds
+from optim_esm_tools.analyze.globals import _CMIP_HANDLER_VERSION
+from optim_esm_tools.analyze.time_statistics import TimeStatistics
+from optim_esm_tools.analyze.xarray_tools import mask_to_reduced_dataset
+from optim_esm_tools.plotting.map_maker import MapMaker
+from optim_esm_tools.plotting.plot import _show
 
 _mask_cluster_type = ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]
 

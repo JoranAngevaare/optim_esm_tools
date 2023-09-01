@@ -1,15 +1,10 @@
-from ._base import RegionExtractor, apply_options, plt_show, _mask_cluster_type
+import matplotlib.pyplot as plt
+import numpy as np
 import optim_esm_tools as oet
 from optim_esm_tools.plotting.map_maker import MapMaker
-from optim_esm_tools.plotting.plot import setup_map, _show
-from optim_esm_tools.analyze.clustering import build_cluster_mask
-import numpy as np
-import matplotlib.pyplot as plt
-import xarray as xr
-import abc
-import typing as ty
-import immutabledict
-import os
+from optim_esm_tools.plotting.plot import _show
+
+from ._base import RegionExtractor, _mask_cluster_type, apply_options, plt_show
 
 
 class MaxRegion(RegionExtractor):

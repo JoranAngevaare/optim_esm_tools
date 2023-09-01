@@ -1,21 +1,15 @@
-from ._base import (
-    RegionExtractor,
-    _two_sigma_percent,
-    apply_options,
-    _mask_cluster_type,
-)
-import optim_esm_tools as oet
-from optim_esm_tools.region_finding.percentiles import Percentiles
-from optim_esm_tools.plotting.map_maker import HistoricalMapMaker, MapMaker
-from optim_esm_tools.analyze.clustering import build_cluster_mask
-from optim_esm_tools.utils import deprecated
-import numpy as np
-import matplotlib.pyplot as plt
-import xarray as xr
 import abc
 import typing as ty
-import immutabledict
-import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import optim_esm_tools as oet
+import xarray as xr
+from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.plotting.map_maker import HistoricalMapMaker, MapMaker
+from optim_esm_tools.region_finding.percentiles import Percentiles
+
+from ._base import _mask_cluster_type, apply_options
 
 
 class _HistroricalLookup(abc.ABC):
