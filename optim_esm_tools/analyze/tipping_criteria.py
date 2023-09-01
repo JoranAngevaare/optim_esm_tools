@@ -305,7 +305,7 @@ def max_change_xyr(
     # Keep the metadata (and time stamps of the to_min_x_yr)
     result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
 
-    result = result.max(dim=time_var).copy()
+    result = np.abs(result.max(dim=time_var)).copy()
     var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', '\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
@@ -340,7 +340,9 @@ def max_derivative(
     var_name = naming.format(variable=variable, running_mean=running_mean)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
-    result = data_array.differentiate(time_var).max(dim=time_var) * _SECONDS_TO_YEAR
+    result = (
+        np.abs(data_array.differentiate(time_var)).max(dim=time_var) * _SECONDS_TO_YEAR
+    )
 
     var_unit = data_array.attrs.get('units', '{units}').replace('%', '\%')
     name = data_array.attrs.get(rename_to, variable)
