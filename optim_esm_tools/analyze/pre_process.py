@@ -158,6 +158,32 @@ def _remap_and_merge(
     working_dir: str,
     f_tmp: str,
 ) -> None:  # pragma: no cover
+    """
+    The function `_remap_and_merge` merges two input files, `historical_path` and `source`, and if an
+    exception occurs, it regrids the files and tries again.
+
+    :param cdo_int: The `cdo_int` parameter is an instance of the `cdo` module, which is used for
+    executing CDO commands in Python
+    :param cdo: The `cdo` parameter is an instance of the `cdo.Cdo` class. It is used to interact with
+    the Climate Data Operators (CDO) library, which provides a collection of command-line tools for
+    working with climate and weather data
+    :param historical_path: The `historical_path` parameter is a string that represents the path to a
+    file containing historical data
+    :type historical_path: str
+    :param source: The `source` parameter is a string that represents the path to the source file that
+    needs to be merged with the `historical_path` file
+    :type source: str
+    :param target_grid: The `target_grid` parameter is a string that specifies the path to the target
+    grid file. It is used in the `remapbil` function to regrid the input data to the target grid before
+    merging
+    :type target_grid: str
+    :param working_dir: The `working_dir` parameter is a string that represents the directory where
+    temporary files will be stored during the execution of the `_remap_and_merge` function
+    :type working_dir: str
+    :param f_tmp: The `f_tmp` parameter is a string that represents the path to the output file where
+    the merged data will be saved
+    :type f_tmp: str
+    """
     try:
         cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
     except cdo.CDOException as e:  # pragma: no cover
@@ -174,6 +200,13 @@ def _remap_and_merge(
 
 
 def _remove_bad_vars(path):
+    """
+    The function `_remove_bad_vars` removes specified variables from a dataset and replaces the original
+    file with the modified dataset.
+
+    :param path: The `path` parameter is a string that represents the file path to the dataset that
+    needs to be processed
+    """
     log = get_logger()
     to_delete = config['analyze']['remove_vars'].split()
     ds = load_glob(path)
@@ -193,6 +226,21 @@ def _remove_bad_vars(path):
 
 
 def _check_time_range(path, max_time, min_time, ma_window):
+    """
+    The function `_check_time_range` checks if the time stamps in a dataset fall within a specified time
+    range and raises an error if the number of time stamps is less than a specified moving average
+    window size.
+
+    :param path: The `path` parameter is the file path or file pattern that specifies the location of
+    the data files to be loaded
+    :param max_time: The maximum time value to consider in the time range
+    :param min_time: The `min_time` parameter represents the minimum time or date range for the data. It
+    is a tuple with three elements representing the year, month, and day respectively
+    :param ma_window: The `ma_window` parameter represents the moving average window size. It is used to
+    determine the minimum number of time stamps required within the specified time range (`[min_time,
+    max_time]`) in order to proceed with the calculation of the moving average. If the number of time
+    stamps within the time
+    """
     ds = load_glob(path)
     times = ds['time'].values
     time_mask = times < _native_date_fmt(times, max_time)
@@ -235,15 +283,30 @@ class NoDataInTimeRangeError(Exception):
 
 
 def _fmt_date(date: tuple) -> str:
+    """
+    The function `_fmt_date` takes a tuple representing a date and returns a formatted string in the
+    format 'YYYY-MM-DD'.
+
+    :param date: The `date` parameter is a tuple containing three elements: year, month, and day
+    :type date: tuple
+    :return: a formatted string representing the date in the format "YYYY-MM-DD".
+    """
     assert len(date) == 3
     y, m, d = date
     return f'{y:04}-{m:02}-{d:02}'
 
 
 def _read_variable_id(path):
+    """
+    The function `_read_variable_id` reads the variable ID from a given path and raises an error if the
+    information is not available.
+
+    :param path: The `path` parameter is a string that represents the file path from which the variable
+    ID needs to be read
+    :return: the value of the 'variable_id' attribute from the file located at the given path.
+    """
     try:
         return load_glob(path).attrs['variable_id']
     except KeyError as e:  # pragma: no cover
-        raise KeyError(
-            f'When reading the variable_id from {path}, it appears no such information is available'
-        ) from e
+        message = f'When reading the variable_id from {path}, it appears no such information is available'
+        raise KeyError(message) from e
