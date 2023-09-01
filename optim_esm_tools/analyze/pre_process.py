@@ -111,13 +111,9 @@ def pre_process(
             get_logger().warning(f'Removing {p}!')
             os.remove(p)
     if historical_path:
-        try:
-            cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
-        except cdo.CDOException as e:  # pragma: no cover
-            get_logger().error(f'Ran into {e}, let\'s regrid first and retry')
-            _remap_and_merge(
-                cdo_int, historical_path, source, target_grid, working_dir, f_tmp
-            )
+        _remap_and_merge(
+            cdo_int, cdo, historical_path, source, target_grid, working_dir, f_tmp
+        )
         source = f_tmp
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
     cdo_int.seldate(time_range, input=source, output=f_time)
@@ -155,19 +151,26 @@ def pre_process(
 
 def _remap_and_merge(
     cdo_int,
-    input_one: str,
-    input_two: str,
-    remap_opt: str,
+    cdo,
+    historical_path: str,
+    source: str,
+    target_grid: str,
     working_dir: str,
-    destination: str,
+    f_tmp: str,
 ) -> None:  # pragma: no cover
-    cdo_int.remapbil(
-        remap_opt, input=input_one, output=(_a := os.path.join(working_dir, '_a.nc'))
-    )
-    cdo_int.remapbil(
-        remap_opt, input=input_two, output=(_b := os.path.join(working_dir, '_b.nc'))
-    )
-    cdo_int.mergetime(input=[_a, _b], output=destination)
+    try:
+        cdo_int.mergetime(input=[historical_path, source], output=f_tmp)
+    except cdo.CDOException as e:  # pragma: no cover
+        get_logger().error(f'Ran into {e}, let\'s regrid first and retry')
+        cdo_int.remapbil(
+            target_grid,
+            input=historical_path,
+            output=(_a := os.path.join(working_dir, '_a.nc')),
+        )
+        cdo_int.remapbil(
+            target_grid, input=source, output=(_b := os.path.join(working_dir, '_b.nc'))
+        )
+        cdo_int.mergetime(input=[_a, _b], output=f_tmp)
 
 
 def _remove_bad_vars(path):
