@@ -15,7 +15,7 @@ def add_conditions_to_ds(
     calculate_conditions: ty.Optional[ty.Tuple[tipping_criteria._Condition]] = None,
     condition_kwargs: ty.Optional[ty.Mapping] = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
-    _ma_window: ty.Optional[int] = None,
+    _ma_window: ty.Optional[ty.Union[int, str]] = None,
 ) -> xr.Dataset:
     """Transform the dataset to get it ready for handling in optim_esm_tools.
 
@@ -34,7 +34,7 @@ def add_conditions_to_ds(
     Returns:
         xr.Dataset: The fully initialized dataset
     """
-    _ma_window = int(_ma_window or oet.config.config['analyze']['moving_average_years'])
+    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     if calculate_conditions is None:
         calculate_conditions = (
             tipping_criteria.StartEndDifference,
@@ -82,7 +82,7 @@ def read_ds(
     strict: bool = True,
     load: ty.Optional[bool] = None,
     add_history: bool = False,
-    _ma_window: ty.Optional[int] = None,
+    _ma_window: ty.Optional[ty.Union[int, str]] = None,
     _cache: bool = True,
     _file_name: ty.Optional[str] = None,
     _skip_folder_info: bool = False,
@@ -122,7 +122,7 @@ def read_ds(
     """
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
-    _ma_window = int(_ma_window or oet.config.config['analyze']['moving_average_years'])
+    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     data_path = os.path.join(base, _file_name)
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)

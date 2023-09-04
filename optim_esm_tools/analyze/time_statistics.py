@@ -115,11 +115,12 @@ def default_thresholds(
 
 def _get_ds_global(ds, **read_kw):
     path = ds.attrs['file']
-    return (
-        oet.load_glob(path)
-        if os.path.exists(path)
-        else oet.read_ds(os.path.split(path)[0], **read_kw)
-    )
+    if os.path.exists(path):
+        result = oet.load_glob(path)
+        assert result is not None, path
+        return result
+    oet.get_logger().warning(f'fallback for {path}')
+    return oet.read_ds(os.path.split(path)[0], **read_kw)
 
 
 def n_times_global_std(
@@ -136,8 +137,11 @@ def n_times_global_std(
     variable = ds.attrs['variable_id']
     crit = _get_tip_criterion(criterion)(variable=variable)
     val = float(crit.calculate(ds.mean(average_over)))
-    assert isinstance(_ds_global, xr.Dataset)
-    val_global = float(crit.calculate(ds_global.mean(average_over)))  # type: ignore
+    assert isinstance(
+        ds_global,
+        xr.Dataset,
+    ), f'Got type {type(_ds_global)} expected xr.Dataset. ({read_kw})'
+    val_global = float(crit.calculate(ds_global.mean(average_over)))
     return val / val_global if val_global else np.inf
 
 

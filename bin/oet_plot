@@ -14,7 +14,7 @@ def write_error(err_file, message):
 def parse_args():
     parser = argparse.ArgumentParser(description='make plots')
     parser.add_argument('--path', type=str,)
-    parser.add_argument('--methods', nargs='*', default='Percentiles ProductPercentiles LocalHistory'.split(), type=list,)
+    parser.add_argument('--methods', nargs='*', default='Percentiles ProductPercentiles LocalHistory'.split())
     parser.add_argument('--variable', type=str,)
     parser.add_argument('--save_in', type=str,)
     parser.add_argument('--err_file', type=str, default='errors.txt',)
@@ -35,7 +35,7 @@ def make_plot(variable, log, path, save_in, show, read_ds_kw, extra_opt, methods
     from optim_esm_tools.analyze.pre_process import NoDataInTimeRangeError
     constructors = [getattr(optim_esm_tools.analyze.region_finding, meth, 'not found') for meth in methods]
     if any(c=='not found' for c in constructors):
-        raise ValueError(f'One or more non-existing methods {methods}')
+        raise ValueError(f'One or more non-existing methods {methods} ({constructors})')
 
     from optim_esm_tools.analyze.cmip_handler import read_ds
 
