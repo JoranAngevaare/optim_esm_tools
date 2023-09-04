@@ -92,8 +92,8 @@ def build_clusters(
 @timed()
 def build_cluster_mask(
     global_mask: np.ndarray,
-    lat_coord: np.array,
-    lon_coord: np.array,
+    lat_coord: np.ndarray,
+    lon_coord: np.ndarray,
     show_tqdm: bool = False,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
