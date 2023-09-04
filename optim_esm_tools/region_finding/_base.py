@@ -76,6 +76,7 @@ class RegionExtractor:
     extra_opt: ty.Mapping
     save_kw: ty.Mapping
     save_statistics: bool = True
+    data_set: xr.Dataset
 
     def __init__(
         self,
@@ -107,7 +108,7 @@ class RegionExtractor:
         if path is None and data_set:
             self.data_set = data_set
         elif path:
-            self.data_set = read_ds(path, **read_ds_kw)
+            self.data_set = read_ds(path, **read_ds_kw)  # type: ignore
         else:
             raise ValueError('Both path and data_set are None?!')  # pragma: no cover
 
@@ -124,7 +125,7 @@ class RegionExtractor:
         extra_opt.update(dict(read_ds_kw=read_ds_kw))  # type: ignore
         self.extra_opt = extra_opt
         self.save_kw = save_kw
-        self.variable = variable or self.data_set.attrs.get('variable_id', 'NO_VAR_ID!')
+        self.variable = variable or self.data_set.attrs.get('variable_id', 'NO_VAR_ID!')  # type: ignore
 
     @property
     def read_ds_kw(self) -> ty.Mapping:

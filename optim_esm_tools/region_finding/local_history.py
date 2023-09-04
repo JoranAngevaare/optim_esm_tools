@@ -3,6 +3,7 @@ import typing as ty
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 
 import optim_esm_tools as oet
@@ -49,10 +50,9 @@ class _HistroricalLookup(abc.ABC):
         historical_path = self.find_historical(**kw)
         if historical_path is None:
             raise ValueError('No match found')
-        return oet.read_ds(historical_path[0], **read_ds_kw)
-
-
-import numpy.typing as npt
+        res = oet.read_ds(historical_path[0], **read_ds_kw)
+        assert isinstance(res, xr.Dataset)
+        return res
 
 
 class LocalHistory(Percentiles, _HistroricalLookup):

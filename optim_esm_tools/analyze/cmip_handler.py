@@ -34,7 +34,7 @@ def add_conditions_to_ds(
     Returns:
         xr.Dataset: The fully initialized dataset
     """
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = int(_ma_window or oet.config.config['analyze']['moving_average_years'])
     if calculate_conditions is None:
         calculate_conditions = (
             tipping_criteria.StartEndDifference,
@@ -44,9 +44,9 @@ def add_conditions_to_ds(
             tipping_criteria.MaxJumpYearly,
             tipping_criteria.MaxDerivitive,
             tipping_criteria.MaxJumpAndStd,
-        )
-    if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
-        calculate_conditions,
+        )  # type: ignore
+    if len(set(desc := (c.short_description for c in calculate_conditions))) != len(  # type: ignore
+        calculate_conditions,  # type: ignore
     ):
         raise ValueError(
             f'One or more non unique descriptions {desc}',
@@ -55,8 +55,9 @@ def add_conditions_to_ds(
         condition_kwargs = {}
 
     for variable in oet.utils.to_str_tuple(variable_of_interest):
+        assert calculate_conditions is not None
         for cls in calculate_conditions:
-            condition = cls(**condition_kwargs, variable=variable)
+            condition = cls(**condition_kwargs, variable=variable)  # type: ignore
             condition_array = condition.calculate(ds)
             condition_array = condition_array.assign_attrs(
                 dict(
@@ -73,21 +74,21 @@ def add_conditions_to_ds(
 @oet.utils.timed()
 def read_ds(
     base: str,
-    variable_of_interest: ty.Tuple[str] = None,
+    variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
     pre_process: bool = True,
     strict: bool = True,
-    load: bool = None,
+    load: ty.Optional[bool] = None,
     add_history: bool = False,
     _ma_window: ty.Optional[int] = None,
     _cache: bool = True,
-    _file_name: str = None,
+    _file_name: ty.Optional[str] = None,
     _skip_folder_info: bool = False,
-    _historical_path: str = None,
+    _historical_path: ty.Optional[str] = None,
     **kwargs,
-) -> xr.Dataset:
+) -> ty.Optional[xr.Dataset]:
     """Read a dataset from a folder called "base".
 
     Args:
@@ -121,7 +122,7 @@ def read_ds(
     """
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = int(_ma_window or oet.config.config['analyze']['moving_average_years'])
     data_path = os.path.join(base, _file_name)
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
@@ -155,7 +156,7 @@ def read_ds(
         if strict:
             raise FileNotFoundError(message)
         log.warning(message)
-        return None
+        return
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
@@ -188,7 +189,7 @@ def read_ds(
         if _skip_folder_info
         else {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
     )
-    metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))
+    metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))  # type: ignore
     if _historical_path:
         metadata.update(dict(historical_file=_historical_path))
 
@@ -215,6 +216,7 @@ def _historical_file(
         )
         if not historical_heads and not _historical_path:
             raise FileNotFoundError(f'No historical matches for {base}')
+        assert historical_heads is not None
         _historical_path = _historical_path or os.path.join(
             historical_heads[0],
             _file_name,

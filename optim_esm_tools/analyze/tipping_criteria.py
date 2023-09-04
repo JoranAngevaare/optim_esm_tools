@@ -48,13 +48,12 @@ class StartEndDifference(_Condition):
     def calculate(self, data_set):
         return running_mean_diff(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming='{variable}_run_mean_{running_mean}',
-            running_mean=self.running_mean,
-            # Pass kw arguments on? I think not
-            _t_0_date=None,
-            _t_1_date=None,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming='{variable}_run_mean_{running_mean}',  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
+            _t_0_date=None,  # type: ignore
+            _t_1_date=None,  # type: ignore
             **self.defaults,
         )
 
@@ -73,10 +72,10 @@ class StdDetrended(_Condition):
     def calculate(self, data_set):
         return running_mean_std(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming=self.use_variable,
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming=self.use_variable,  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
@@ -99,11 +98,11 @@ class MaxJump(_Condition):
     def calculate(self, data_set):
         return max_change_xyr(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming=self.use_variable,
-            x_yr=self.number_of_years,
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming=self.use_variable,  # type: ignore
+            x_yr=self.number_of_years,  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
@@ -143,10 +142,10 @@ class MaxDerivitive(_Condition):
     def calculate(self, data_set):
         return max_derivative(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming='{variable}_run_mean_{running_mean}',
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming='{variable}_run_mean_{running_mean}',  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
@@ -214,7 +213,7 @@ def running_mean_diff(
     apply_abs: bool = True,
     _t_0_date: ty.Optional[tuple] = None,
     _t_1_date: ty.Optional[tuple] = None,
-) -> xr.Dataset:
+) -> xr.DataArray:  # type: ignore
     """Return difference in running mean of data set.
 
     Args:
@@ -244,13 +243,13 @@ def running_mean_diff(
     data_var = _remove_any_none_times(data_set[var_name], time_var)
 
     if _t_0_date is not None:
-        t_0 = _native_date_fmt(_time_values, _t_0_date)
+        t_0 = _native_date_fmt(_time_values, _t_0_date)  # type: ignore
         data_t_0 = data_var.sel(time=t_0, method='nearest')
     else:
         data_t_0 = data_var.isel(time=0)
 
     if _t_0_date is not None:
-        t_1 = _native_date_fmt(_time_values, _t_1_date)
+        t_1 = _native_date_fmt(_time_values, _t_1_date)  # type: ignore
         data_t_1 = data_var.sel(time=t_1, method='nearest')
     else:
         data_t_1 = data_var.isel(time=-1)
@@ -288,7 +287,7 @@ def running_mean_std(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
     result = result.copy()
@@ -323,7 +322,7 @@ def max_change_xyr(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
     to_min_x_yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
@@ -336,18 +335,18 @@ def max_change_xyr(
     name = data_set[data_var].attrs.get(rename_to, variable)
 
     if unit == 'absolute':
-        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'
-        return result
+        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'  # type: ignore
+        return result  # type: ignore
 
     if unit == 'relative':
         result = 100 * result / to_min_x_yr.mean(dim=time_var)
-        result.name = fr'{x_yr} yr diff. {name} [$\%$]'
-        return result
+        result.name = fr'{x_yr} yr diff. {name} [$\%$]'  # type: ignore
+        return result  # type: ignore
 
     if unit == 'std':
         result = result / result.std()
-        result.name = fr'{x_yr} yr diff. {name} [$\sigma$]'
-        return result
+        result.name = fr'{x_yr} yr diff. {name} [$\sigma$]'  # type: ignore
+        return result  # type: ignore
 
 
 @timed
@@ -362,7 +361,7 @@ def max_derivative(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.Dataset:  # type: ignore
     var_name = naming.format(variable=variable, running_mean=running_mean)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
@@ -428,4 +427,4 @@ def var_to_perc(
         return percentiles
 
     ds[dest_var] = (source_array.dims, percentiles)
-    return ds
+    return ds  # type: ignore

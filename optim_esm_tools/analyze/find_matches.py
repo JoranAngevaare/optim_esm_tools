@@ -214,21 +214,21 @@ def associate_historical(
             'No dataset, no path, can\'t match if I don\'t know what I\'m looking for',
         )  # pragma: no cover
     log = get_logger()
-    path = path or data_set.attrs['path']
+    path = path or data_set.attrs['path']  # type: ignore
     base = base_from_path(path, look_back_extra=look_back_extra)
     search = folder_to_dict(path, strict=strict)
     if search is None and not strict:
         log.warning('No search, but not breaking because strict is False')
         return
-    search['activity_id'] = activity_id
-    if search['experiment_id'] == match_to:  # pragma: no cover
+    search['activity_id'] = activity_id  # type: ignore
+    if search['experiment_id'] == match_to:  # pragma: no cover  # type: ignore
         message = f'Cannot match {match_to} to itself!'
         if strict:
             raise NotImplementedError(message)
         log.warning(message)
-    search['experiment_id'] = match_to
+    search['experiment_id'] = match_to  # type: ignore
     if search_kw:
-        search.update(search_kw)
+        search.update(search_kw)  # type: ignore
 
     if query_updates is None:
         query_updates = [
@@ -242,8 +242,8 @@ def associate_historical(
         if try_n:
             message = f'No results after {try_n} try, retrying with {update_query}'
             log.info(message)
-        search.update(update_query)
-        if this_try := find_matches(base, **search):
+        search.update(update_query)  # type: ignore
+        if this_try := find_matches(base, **search):  # type: ignore
             return this_try
     message = f'Looked for {search}, in {base} found nothing'
     if strict:

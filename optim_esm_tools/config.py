@@ -37,7 +37,7 @@ def get_logger(name='oet'):
     return _logger[name]
 
 
-if _warn_later:
+if _warn_later:  # type: ignore
     get_logger().info(
         f'Using {config_path}-config. Overwrite by setting "OPTIM_ESM_CONFIG" '
         f'as an environment variable',

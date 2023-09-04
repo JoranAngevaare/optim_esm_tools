@@ -70,9 +70,9 @@ class MapMaker:
 
         if normalizations is None:
             normalizations = {i: [None, None] for i in self.conditions.keys()}
-        elif isinstance(normalizations, collections.abc.Mapping):
+        elif isinstance(normalizations, collections.abc.Mapping):  # type: ignore
             normalizations = normalizations
-        elif isinstance(normalizations, collections.abc.Iterable):
+        elif isinstance(normalizations, collections.abc.Iterable):  # type: ignore
             normalizations = {
                 i: normalizations[j] for j, i in enumerate(self.conditions.keys())
             }
@@ -80,10 +80,10 @@ class MapMaker:
         def _incorrect_format():
             return (
                 any(
-                    not isinstance(v, collections.abc.Iterable)
-                    for v in normalizations.values()
+                    not isinstance(v, collections.abc.Iterable)  # type: ignore
+                    for v in normalizations.values()  # type: ignore
                 )
-                or any(len(v) != 2 for v in normalizations.values())
+                or any(len(v) != 2 for v in normalizations.values())  # type: ignore
                 or any(k not in normalizations for k in self.conditions)
             )
 
@@ -145,7 +145,7 @@ class MapMaker:
 
         prop = getattr(self, label)
 
-        cmap = plt.get_cmap('viridis').copy()
+        cmap = plt.get_cmap('viridis').copy()  # type: ignore
         cmap.set_extremes(under='cyan', over='orange')
         x_label = prop.attrs.get('name', label)
         c_kw = self.kw['cbar'].copy()
@@ -297,7 +297,7 @@ class MapMaker:
             _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
-        self._ts(**plot_kw)
+        self._ts(**plot_kw)  # type: ignore
 
         plt.sca(axes[1])
         self._det_ts(**plot_kw)
@@ -363,7 +363,7 @@ class HistoricalMapMaker(MapMaker):
         low, high = current_norm.get(item, [None, None])
         if high is None:
             oet.config.get_logger().debug(f'Update max val for {item} to {max_val}')
-            current_norm.update({item: [low, max_val]})
+            current_norm.update({item: [low, max_val]})  # type: ignore
         self.set_normalizations(current_norm)
 
     @staticmethod
@@ -451,15 +451,15 @@ def summarize_mask(
 
     ds_sel = oet.analyze.xarray_tools.mask_xr_ds(data_set.copy(), one_mask)
     mm_sel = MapMaker(ds_sel)
-    fig, axes = plt.subplot_mosaic(**fig_kw)
+    fig, axes = plt.subplot_mosaic(**fig_kw)  # type: ignore
 
-    axes['b'].sharex(axes['a'])
+    axes['b'].sharex(axes['a'])  # type: ignore
 
-    plt.sca(axes['a'])
+    plt.sca(axes['a'])  # type: ignore
     var = mm_sel.variable
     plot_simple(ds_sel, var, **plot_kw)
 
-    plt.sca(axes['b'])
+    plt.sca(axes['b'])  # type: ignore
     var = f'{mm_sel.variable}_detrend'
     plot_simple(ds_sel, var, **plot_kw)
 
@@ -485,15 +485,7 @@ def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
         2,
         projection=oet.plotting.plot.get_cartopy_projection(),
     )
-
-    if field == 'cell_area':
-        ds_dummy[field] /= 1e6
-        tot_area = float(ds_dummy[field].sum(skipna=True))
-
-    ds_dummy[field].values[ds_dummy[field] > 0] = tot_area
-    ds_dummy[field].plot(
-        vmin=1,
-        vmax=510100000,
+    kw = dict(
         norm=LogNorm(),
         cbar_kwargs={
             **oet.plotting.map_maker.MapMaker(ds_dummy).kw.get('cbar', {}),
@@ -501,10 +493,22 @@ def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
         },
         transform=oet.plotting.plot.get_cartopy_transform(),
     )
+    if field == 'cell_area':
+        ds_dummy[field] /= 1e6
+        tot_area = float(ds_dummy[field].sum(skipna=True))
+        ds_dummy[field].values[ds_dummy[field] > 0] = tot_area
+        kw.update(
+            dict(
+                vmin=1,
+                vmax=510100000,
+            ),  # type: ignore
+        )
+    ds_dummy[field].plot(**kw)
     ax.coastlines()
-    exponent = int(np.log10(tot_area))
+    if field == 'cell_area':
+        exponent = int(np.log10(tot_area))  # type: ignore
 
-    plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$')
+        plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$')  # type: ignore
     gl = ax.gridlines(draw_labels=True)
     gl.top_labels = False
 

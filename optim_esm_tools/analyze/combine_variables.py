@@ -1,4 +1,3 @@
-import os
 import string
 import typing as ty
 from collections import defaultdict
@@ -77,12 +76,12 @@ class VariableMerger:
                 new_ds['data_vars'][sub_variable].attrs = _ds[sub_variable].attrs
 
         # Make one copy - just use the last dataset
-        new_ds['data_vars']['cell_area'] = _ds['cell_area']
+        new_ds['data_vars']['cell_area'] = _ds['cell_area']  # type: ignore
         keys = sorted(list(self.source_files.keys()))
         new_ds['attrs'] = dict(
             variables=keys,
             source_files=[self.source_files[k] for k in keys],
-            mask_files=sorted(self.mask_paths),
+            mask_files=sorted(self.mask_paths),  # type: ignore
             paths=self.mask_paths,
             other_paths=self.other_paths,
         )
@@ -145,10 +144,10 @@ class VariableMerger:
 
         if len(var_keys := list(mapping.keys())) > 1:
             for k in var_keys[1:]:
-                axes[k].sharex(axes[var_keys[0]])
+                axes[k].sharex(axes[var_keys[0]])  # type: ignore
 
         for key, var in mapping.items():
-            plt.sca(axes[key])
+            plt.sca(axes[key])  # type: ignore
             plot_kw = dict(label=var)
             rm_kw = {
                 k: v
@@ -164,10 +163,10 @@ class VariableMerger:
                 + oet.config.config['analyze']['moving_average_years']
             )
             oet.plotting.map_maker.plot_simple(ds, var_rm, **rm_kw)
-            oet.plotting.map_maker.plot_simple(ds, var, **plot_kw)
+            oet.plotting.map_maker.plot_simple(ds, var, **plot_kw)  # type: ignore
             plt.legend(loc='center left')
             if add_histograms:
-                plt.sca(axes[key.upper()])
+                plt.sca(axes[key.upper()])  # type: ignore
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
@@ -190,10 +189,10 @@ class VariableMerger:
         self.add_table(
             res_f=res_f,
             tips=tips,
-            ax=axes['t'],
+            ax=axes['t'],  # type: ignore
             ha='center' if add_histograms else 'bottom',
         )
-        axes['global_map'] = ax
+        axes['global_map'] = ax  # type: ignore
         return axes
 
     @staticmethod
@@ -224,7 +223,7 @@ class VariableMerger:
     def process_masks(self) -> ty.Tuple[dict, xr.DataArray]:
         source_files = {}
         common_mask = None
-        for path in self.mask_paths:
+        for path in self.mask_paths:  # type: ignore
             ds = oet.load_glob(path)
             # Source files may be non-unique!
             source_files[ds.attrs['variable_id']] = ds.attrs['file']
@@ -286,7 +285,7 @@ def change_plt_table_height(increase_by=1.5):
             self.FONTSIZE / 72.0 * self.figure.dpi / self._axes.bbox.height * 1.2
         )
 
-    matplotlib.table.Table._approx_text_height = _approx_text_height
+    matplotlib.table.Table._approx_text_height = _approx_text_height  # type: ignore
 
 
 def add_table(

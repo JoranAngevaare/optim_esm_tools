@@ -7,7 +7,7 @@ import xarray as xr
 from optim_esm_tools.config import config
 
 
-def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
+def _native_date_fmt(time_array: np.ndarray, date: ty.Tuple[int, int, int]):
     """Create date object using the date formatting from the time-array."""
 
     if isinstance(time_array, xr.DataArray):  # pragma: no cover
@@ -82,7 +82,9 @@ def _remove_any_none_times(da, time_dim, drop=True):
             from optim_esm_tools.config import get_logger
 
             get_logger().error(e)
-            return alt_calc
+            if 'alt_calc' in locals():
+                return alt_calc  # type: ignore
+            raise e
     return data_var
 
 
@@ -108,7 +110,7 @@ def reverse_name_mask_coords(da_mask: xr.DataArray, rename_dict=None) -> xr.Data
 
 def rename_mask_coords(
     da_mask: xr.DataArray,
-    rename_dict: ty.Mapping = None,
+    rename_dict: ty.Optional[ty.Mapping] = None,
 ) -> xr.DataArray:
     """Get a boolean DataArray with renamed dimensionality. For some
     applications, we want to prune a dataset of nan values along a given

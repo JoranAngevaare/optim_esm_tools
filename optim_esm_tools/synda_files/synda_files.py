@@ -40,10 +40,12 @@ class SyndaViewer:
             if self._skip_deep(head):
                 continue
             split = self.chopped_path(head)
+            look_back = None
             for look_back in range(len(split) - 1):
                 last_head = os.sep.join(split[:-look_back])
                 if last_head in tree.nodes.keys():
                     break
+            assert look_back is not None
             if last_head in ['', '/']:
                 print(
                     head,
@@ -75,7 +77,7 @@ class SyndaViewer:
         return (
             self.max_depth
             and self.count_depth(head) - self.count_depth(self.base) > self.max_depth
-        )
+        )  # type: ignore
 
     @staticmethod
     def chopped_path(path) -> list:

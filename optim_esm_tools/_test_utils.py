@@ -8,7 +8,7 @@ def cmip_store():
 
     return intake.open_esm_datastore(
         'https://storage.googleapis.com/cmip6/pangeo-cmip6.json',
-    )
+    )  # type: ignore
 
 
 def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
@@ -31,10 +31,10 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
         experiment_id=experiment_id,
     )
     if experiment_id in ['historical', 'ssp585']:
-        query.update(dict(member_id=['r3i1p2f1']))
+        query.update(dict(member_id=['r3i1p2f1']))  # type: ignore
     else:
-        query.update(dict(member_id=['r1i1p1f1']))
-    search = col.search(**query)
+        query.update(dict(member_id=['r1i1p1f1']))  # type: ignore
+    search = col.search(**query)  # type: ignore
 
     ddict = search.to_dataset_dict(
         xarray_open_kwargs={'use_cftime': True},

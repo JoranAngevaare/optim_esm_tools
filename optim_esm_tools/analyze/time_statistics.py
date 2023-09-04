@@ -10,7 +10,7 @@ import optim_esm_tools as oet
 
 
 class TimeStatistics:
-    calculation_kwargs: ty.Mapping = None
+    calculation_kwargs: ty.Optional[ty.Mapping] = None
 
     def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
         # sourcery skip: dict-literal
@@ -76,7 +76,7 @@ class TimeStatistics:
             ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
         return {
-            k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
+            k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)  # type: ignore
             for k, f in self.functions.items()
         }
 
@@ -136,15 +136,16 @@ def n_times_global_std(
     variable = ds.attrs['variable_id']
     crit = _get_tip_criterion(criterion)(variable=variable)
     val = float(crit.calculate(ds.mean(average_over)))
-    val_global = float(crit.calculate(ds_global.mean(average_over)))
+    assert isinstance(_ds_global, xr.Dataset)
+    val_global = float(crit.calculate(ds_global.mean(average_over)))  # type: ignore
     return val / val_global if val_global else np.inf
 
 
 def get_historical_ds(ds, _file_name=None, **kw):
     # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
-    find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)
-    read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)
+    find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)  # type: ignore
+    read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)  # type: ignore
     if _file_name is not None:
         find_kw['search_kw'] = dict(required_file=_file_name)
         read_kw['_file_name'] = _file_name
@@ -158,7 +159,7 @@ def get_historical_ds(ds, _file_name=None, **kw):
         return
     read_kw.setdefault('max_time', None)
     read_kw.setdefault('min_time', None)
-    hist_ds = oet.read_ds(hist_path[0], **read_kw)
+    hist_ds = oet.read_ds(hist_path[0], **read_kw)  # type: ignore
     return hist_ds
 
 
@@ -218,10 +219,10 @@ def calculate_symmetry_test(
 
 
 def _get_tip_criterion(short_description):
-    for mod in oet.analyze.tipping_criteria.__dict__.values():
+    for mod in oet.analyze.tipping_criteria.__dict__.values():  # type: ignore
         if not isinstance(mod, type):
             continue
-        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):
+        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):  # type: ignore
             continue
         if getattr(mod, 'short_description', None) == short_description:
             return mod

@@ -14,7 +14,7 @@ class ConciseDataFrame:
     def __init__(
         self,
         df: pd.DataFrame,
-        group: ty.Iterable = None,
+        group: ty.Optional[ty.Iterable] = None,
         tqdm: bool = False,
         match_overlap: bool = True,
         min_frac_overlap: float = 0.33,
@@ -34,7 +34,7 @@ class ConciseDataFrame:
 
     def concise(self) -> pd.DataFrame:
         rows = [row.to_dict() for _, row in self.df.iterrows()]
-        matched_rows = self.match_rows(rows)
+        matched_rows = self.match_rows(rows)  # type: ignore
         combined_rows = [self.combine_rows(r, self.delimiter) for r in matched_rows]
         df_ret = pd.DataFrame(combined_rows)
         return self.rename_columns_with_plural(df_ret)

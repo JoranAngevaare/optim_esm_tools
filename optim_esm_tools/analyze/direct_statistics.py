@@ -87,7 +87,7 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
                     _ds_hist=ds_hist,
                 )
                 operator, thr = thresholds['max_jump']
-                res = operator(jump, thr)
+                res = operator(jump, thr)  # type: ignore
                 masks['direct_test'][lat_i, lon_i] = res
 
     for k, mask in masks.items():

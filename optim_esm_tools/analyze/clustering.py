@@ -1,5 +1,4 @@
 import contextlib
-import itertools
 import typing as ty
 from math import atan2
 from math import cos
@@ -142,8 +141,8 @@ def build_cluster_mask(
 @timed()
 def build_weighted_cluster(
     weights: np.ndarray,
-    lat_coord: np.array,
-    lon_coord: np.array,
+    lat_coord: np.ndarray,
+    lon_coord: np.ndarray,
     show_tqdm: bool = False,
     threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
@@ -228,7 +227,7 @@ def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
 def infer_max_step_size(
     lat: np.ndarray,
     lon: np.ndarray,
-    off_by_factor: float = None,
+    off_by_factor: ty.Optional[float] = None,
 ) -> float:
     """Infer the max. distance between two points to be considered as belonging
     to the same cluster.
@@ -247,7 +246,7 @@ def infer_max_step_size(
     if off_by_factor is None:
         off_by_factor = float(config['analyze']['clustering_fudge_factor'])
     if len(lat.shape) == 1:
-        return off_by_factor * np.max(calculate_distance_map(lat, lon))
+        return off_by_factor * np.max(calculate_distance_map(lat, lon))  # type: ignore
 
     get_logger().info(
         '(Irregular) grid, max_step_size based on first points above equator',
