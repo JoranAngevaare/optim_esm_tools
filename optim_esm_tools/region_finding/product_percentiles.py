@@ -31,12 +31,12 @@ class ProductPercentiles(Percentiles):
         self,
         product_percentiles=_two_sigma_percent,
         lon_lat_dim=('lon', 'lat'),
-        _mask_method='product_rank',
+        _mask_method='product_rank_past_threshold',
     ) -> _mask_cluster_type:
         """Get mask for max of ii and iii and a box around that"""
-        combined_score = self._build_combined_mask(method=_mask_method)
-        # Combined score is fraction, not percent!
-        all_mask = combined_score > (product_percentiles / 100)
+        all_mask = self._build_combined_mask(
+            method=_mask_method, product_percentiles=product_percentiles
+        )
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,

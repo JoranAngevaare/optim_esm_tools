@@ -13,7 +13,7 @@ class TimeStatistics:
     def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
         # sourcery skip: dict-literal
         self.data_set = data_set
-        self.calculation_kwargs = calculation_kwargs or dict()
+        self.calculation_kwargs = calculation_kwargs or {}
         self.functions = self.default_calculations()
         if any(k not in self.functions for k in self.calculation_kwargs):
             bad = set(self.calculation_kwargs.keys()) - set(self.functions.keys())

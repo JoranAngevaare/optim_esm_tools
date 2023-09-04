@@ -52,7 +52,7 @@ def add_conditions_to_ds(
             f'One or more non unique descriptions {desc}'
         )  # pragma: no cover
     if condition_kwargs is None:
-        condition_kwargs = dict()
+        condition_kwargs = {}
 
     for variable in oet.utils.to_str_tuple(variable_of_interest):
         for cls in calculate_conditions:
