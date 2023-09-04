@@ -50,10 +50,10 @@ class _ThresholdIterator:
         already_seen = None
         masks, clusters = [], []
         iter_key, iter_values = list(iterable_range.items())[0]
-        pbar = oet.utils.tqdm(iter_values, display=self._tqmd)
+        pbar = oet.utils.tqdm(iter_values, disable=not self._tqmd)
         for value in pbar:
             pbar.desc = f'{iter_key} = {value:.1g}'
-            pbar.display()
+
             all_mask = self._build_combined_mask(  # type: ignore
                 method=_mask_method,
                 **{iter_key: value},

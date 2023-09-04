@@ -186,12 +186,6 @@ class MaxJumpAndStd(_Condition):
             super_1.short_description,
             super_2.short_description,
         )
-        print(
-            (
-                super_1.short_description,
-                super_2.short_description,
-            ),
-        )
         return {super_1: da_1, super_2: da_2}
 
     def calculate(self, data_set):
