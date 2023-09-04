@@ -1,27 +1,24 @@
-# -*- coding: utf-8 -*-
-import optim_esm_tools as oet
-import xarray as xr
-import numpy as np
-
-import typing as ty
 import collections
+import typing as ty
 from warnings import warn
 
 import matplotlib.pyplot as plt
-
+import numpy as np
+import xarray as xr
 from immutabledict import immutabledict
-from .plot import *
 from matplotlib.colors import LogNorm
 
-from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
+import optim_esm_tools as oet
+from .plot import *
 from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
 
 
-class MapMaker(object):
+class MapMaker:
     data_set: xr.Dataset
     labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
-    contitions: ty.Mapping
+    conditions: ty.Mapping
     normalizations: ty.Optional[ty.Mapping] = None
     _cache: bool = False
 
@@ -94,7 +91,7 @@ class MapMaker(object):
             raise TypeError(
                 f'Normalizations should be mapping from'
                 f'{self.conditions.keys()} to vmin, vmax, '
-                f'got {normalizations} (from {normalizations_start})'
+                f'got {normalizations} (from {normalizations_start})',
             )  # pragma: no cover
         return normalizations
 
@@ -217,7 +214,7 @@ class MapMaker(object):
         labels = labels or [None] * len(variables)
         if not len(variables) == len(labels):
             raise ValueError(
-                f'Inconsistent number of vars and labels {variables, labels}'
+                f'Inconsistent number of vars and labels {variables, labels}',
             )  # pragma: no cover
         plot_kw.setdefault('ds', self.data_set)
         assert 'ds' in plot_kw
@@ -268,7 +265,7 @@ class MapMaker(object):
         )
 
         plt.ylim(ds[f'dt_{var_rm}'].min() / 1.05, ds[f'dt_{var_rm}'].max() * 1.05)
-        ylab = f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        ylab = fr'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
         plt.ylabel(ylab)
         plt.legend()
         plt.title('')
@@ -352,7 +349,7 @@ class HistoricalMapMaker(MapMaker):
         if len(ret_array) == 0:
             raise ValueError(
                 f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
-                f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
+                f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}',
             )  # pragma: no cover
         max_val = np.nanmax(ret_array)
 
@@ -373,13 +370,13 @@ class HistoricalMapMaker(MapMaker):
     def add_meta_to_da(result, name, short, long):
         name = '$\\frac{\\mathrm{scenario}}{\\mathrm{picontrol}}$' + f' of {name}'
         result = result.assign_attrs(
-            dict(short_description=short, long_description=long, name=name)
+            dict(short_description=short, long_description=long, name=name),
         )
         result.name = name
         return result
 
     def get_compare(self, item):
-        """Get the ratio of historical and the current data set"""
+        """Get the ratio of historical and the current data set."""
         condition = self.conditions[item]
 
         da = self.data_set[condition.short_description]
@@ -389,7 +386,10 @@ class HistoricalMapMaker(MapMaker):
         self.set_norm_for_item(item, max_val)
 
         result = self.add_meta_to_da(
-            result, da.name, condition.short_description, condition.long_description
+            result,
+            da.name,
+            condition.short_description,
+            condition.long_description,
         )
         return result
 
@@ -427,7 +427,7 @@ def plot_simple(
         set_y_lim_var(var)
     if add_label:
         plt.ylabel(
-            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
+            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]',
         )
     plt.title('')
 
@@ -480,7 +480,10 @@ def summarize_mask(
 
 def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
     ax = ax or plt.gcf().add_subplot(
-        1, 2, 2, projection=oet.plotting.plot.get_cartopy_projection()
+        1,
+        2,
+        2,
+        projection=oet.plotting.plot.get_cartopy_projection(),
     )
 
     if field == 'cell_area':
@@ -508,5 +511,5 @@ def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
 
 def make_title(ds):
     return '{institution_id} {source_id} {experiment_id} {variant_label} {variable_id} {version}'.format(
-        **ds.attrs
+        **ds.attrs,
     )

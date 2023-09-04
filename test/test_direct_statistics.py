@@ -1,8 +1,10 @@
-import tempfile
-import optim_esm_tools as oet
 import os
+import tempfile
 from unittest import TestCase
+
 import numpy as np
+
+import optim_esm_tools as oet
 
 
 class TestDirect(TestCase):
@@ -38,7 +40,9 @@ class TestDirect(TestCase):
             ds_masked = ds.copy()
             l_time, l_lat, l_lon = ds_masked['var'].shape
             ds_masked['var'].data = np.repeat(
-                [np.arange(l_lat * l_lon).reshape(l_lat, l_lon)], l_time, axis=0
+                [np.arange(l_lat * l_lon).reshape(l_lat, l_lon)],
+                l_time,
+                axis=0,
             )
             mask = ds_masked['var'].isel(time=0) > 0.25 * l_lat * l_lon
 

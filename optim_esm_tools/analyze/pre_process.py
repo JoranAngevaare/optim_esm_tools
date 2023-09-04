@@ -1,16 +1,20 @@
-from optim_esm_tools.utils import timed
-from optim_esm_tools.config import config, get_logger
-from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
-from optim_esm_tools.analyze.io import load_glob
-from optim_esm_tools.analyze.globals import _DEFAULT_MAX_TIME
-import numpy as np
 import os
-import typing as ty
 import tempfile
+import typing as ty
+
+import numpy as np
+
+from optim_esm_tools.analyze.globals import _DEFAULT_MAX_TIME
+from optim_esm_tools.analyze.io import load_glob
+from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
+from optim_esm_tools.config import config
+from optim_esm_tools.config import get_logger
+from optim_esm_tools.utils import timed
 
 
 def get_preprocessed_ds(source, **kw):
-    """Create a temporary working directory for pre-process and delete all intermediate files"""
+    """Create a temporary working directory for pre-process and delete all
+    intermediate files."""
     if 'working_dir' in kw:  # pragma: no cover
         message = (
             f'Calling get_preprocessed_ds with working_dir={kw.get("working_dir")} is not '
@@ -20,7 +24,10 @@ def get_preprocessed_ds(source, **kw):
         get_logger().warning(message)
     with tempfile.TemporaryDirectory() as temp_dir:
         defaults = dict(
-            source=source, working_dir=temp_dir, clean_up=False, save_as=None
+            source=source,
+            working_dir=temp_dir,
+            clean_up=False,
+            save_as=None,
         )
         for k, v in defaults.items():
             kw.setdefault(k, v)
@@ -44,6 +51,7 @@ def pre_process(
     working_dir: ty.Optional[str] = None,
 ) -> str:  # type: ignore
     """Apply several preprocessing steps to the file located at <source>:
+
       - Slice the data to desired time range
       - regrid to simple grid
       - calculate corresponding area
@@ -113,7 +121,13 @@ def pre_process(
             os.remove(p)
     if historical_path:
         _remap_and_merge(
-            cdo_int, cdo, historical_path, source, target_grid, working_dir, f_tmp
+            cdo_int,
+            cdo,
+            historical_path,
+            source,
+            target_grid,
+            working_dir,
+            f_tmp,
         )
         source = f_tmp
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
@@ -159,9 +173,9 @@ def _remap_and_merge(
     working_dir: str,
     f_tmp: str,
 ) -> None:  # pragma: no cover
-    """
-    The function `_remap_and_merge` merges two input files, `historical_path` and `source`, and if an
-    exception occurs, it regrids the files and tries again.
+    """The function `_remap_and_merge` merges two input files,
+    `historical_path` and `source`, and if an exception occurs, it regrids the
+    files and tries again.
 
     :param cdo_int: The `cdo_int` parameter is an instance of the `cdo` module, which is used for
     executing CDO commands in Python
@@ -195,15 +209,16 @@ def _remap_and_merge(
             output=(_a := os.path.join(working_dir, '_a.nc')),
         )
         cdo_int.remapbil(
-            target_grid, input=source, output=(_b := os.path.join(working_dir, '_b.nc'))
+            target_grid,
+            input=source,
+            output=(_b := os.path.join(working_dir, '_b.nc')),
         )
         cdo_int.mergetime(input=[_a, _b], output=f_tmp)
 
 
 def _remove_bad_vars(path):
-    """
-    The function `_remove_bad_vars` removes specified variables from a dataset and replaces the original
-    file with the modified dataset.
+    """The function `_remove_bad_vars` removes specified variables from a
+    dataset and replaces the original file with the modified dataset.
 
     :param path: The `path` parameter is a string that represents the file path to the dataset that
     needs to be processed
@@ -227,10 +242,9 @@ def _remove_bad_vars(path):
 
 
 def _check_time_range(path, max_time, min_time, ma_window):
-    """
-    The function `_check_time_range` checks if the time stamps in a dataset fall within a specified time
-    range and raises an error if the number of time stamps is less than a specified moving average
-    window size.
+    """The function `_check_time_range` checks if the time stamps in a dataset
+    fall within a specified time range and raises an error if the number of
+    time stamps is less than a specified moving average window size.
 
     :param path: The `path` parameter is the file path or file pattern that specifies the location of
     the data files to be loaded
@@ -254,13 +268,14 @@ def _check_time_range(path, max_time, min_time, ma_window):
 
 
 def _run_mean_patch(f_start, f_rm, f_out, ma_window, var_name, var_rm_name):
-    """
-    Patch running mean file, since cdo decreases the length of the file by the ma_window, merging
-    two files of different durations results in bad data.
+    """Patch running mean file, since cdo decreases the length of the file by
+    the ma_window, merging two files of different durations results in bad
+    data.
 
-    As a solution, we take the original file (f_start) and use it's shape (like the number of
-    timestamps) and fill those timestamps where the value of the running mean is defined.
-    Everything else is set to zero.
+    As a solution, we take the original file (f_start) and use it's
+    shape (like the number of timestamps) and fill those timestamps
+    where the value of the running mean is defined. Everything else is
+    set to zero.
     """
     ds_base = load_glob(f_start)
     ds_rm = load_glob(f_rm)
@@ -284,9 +299,8 @@ class NoDataInTimeRangeError(Exception):
 
 
 def _fmt_date(date: tuple) -> str:
-    """
-    The function `_fmt_date` takes a tuple representing a date and returns a formatted string in the
-    format 'YYYY-MM-DD'.
+    """The function `_fmt_date` takes a tuple representing a date and returns a
+    formatted string in the format 'YYYY-MM-DD'.
 
     :param date: The `date` parameter is a tuple containing three elements: year, month, and day
     :type date: tuple
@@ -298,9 +312,8 @@ def _fmt_date(date: tuple) -> str:
 
 
 def _read_variable_id(path):
-    """
-    The function `_read_variable_id` reads the variable ID from a given path and raises an error if the
-    information is not available.
+    """The function `_read_variable_id` reads the variable ID from a given path
+    and raises an error if the information is not available.
 
     :param path: The `path` parameter is a string that represents the file path from which the variable
     ID needs to be read

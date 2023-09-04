@@ -1,15 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
 import optim_esm_tools as oet
+from ._base import _mask_cluster_type
+from ._base import apply_options
+from ._base import plt_show
+from ._base import RegionExtractor
 from optim_esm_tools.plotting.map_maker import MapMaker
 from optim_esm_tools.plotting.plot import _show
-
-from ._base import RegionExtractor, _mask_cluster_type, apply_options, plt_show
 
 
 class MaxRegion(RegionExtractor):
     def get_masks(self) -> _mask_cluster_type:
-        """Get mask for max of ii and iii and a box around that"""
+        """Get mask for max of ii and iii and a box around that."""
 
         def _val(label):
             return self.data_set[label].values
@@ -22,7 +25,7 @@ class MaxRegion(RegionExtractor):
 
     @apply_options
     def filter_masks_and_clusters(self, masks_and_clusters, min_area_km_sq=0):
-        """Wrap filter to work on dicts"""
+        """Wrap filter to work on dicts."""
         if min_area_km_sq:  # pragma: no cover
             message = f'Calling {self.__class__.__name__}.filter_masks_and_clusters is nonsensical as masks are single grid cells'
             self.log.warning(message)
@@ -93,7 +96,10 @@ class MaxRegion(RegionExtractor):
         _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
         masks = masks_and_clusters[0]
         legend_kw = oet.utils.legend_kw(
-            loc='upper left', bbox_to_anchor=None, mode=None, ncol=2
+            loc='upper left',
+            bbox_to_anchor=None,
+            mode=None,
+            ncol=2,
         )
         for label, mask_2d in zip(self._labels, masks):
             x, y = self._mask_to_coord(mask_2d)

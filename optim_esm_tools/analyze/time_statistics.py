@@ -1,10 +1,12 @@
-import optim_esm_tools as oet
-import numpy as np
-import xarray as xr
+import operator
+import os
 import typing as ty
 from functools import partial
-import os
-import operator
+
+import numpy as np
+import xarray as xr
+
+import optim_esm_tools as oet
 
 
 class TimeStatistics:
@@ -121,10 +123,14 @@ def _get_ds_global(ds, **read_kw):
 
 
 def n_times_global_std(
-    ds, average_over=None, criterion='std detrended', _ds_global=None, **read_kw
+    ds,
+    average_over=None,
+    criterion='std detrended',
+    _ds_global=None,
+    **read_kw,
 ):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
-        ','
+        ',',
     )
     ds_global = _ds_global or _get_ds_global(ds, **read_kw)
     variable = ds.attrs['variable_id']
@@ -144,7 +150,8 @@ def get_historical_ds(ds, _file_name=None, **kw):
         read_kw['_file_name'] = _file_name
     try:
         hist_path = oet.analyze.find_matches.associate_historical(
-            path=ds.attrs['path'], **find_kw
+            path=ds.attrs['path'],
+            **find_kw,
         )
     except RuntimeError as e:  # pragma: no cover
         print(e)
@@ -171,7 +178,7 @@ def calculate_dip_test(ds, field=None, nan_policy='omit'):
         values = values[~np.isnan(values)]
     else:
         raise NotImplementedError(
-            'Not sure how to deal with nans other than omit'
+            'Not sure how to deal with nans other than omit',
         )  # pragma: no cover
     if len(values) < 3:  # pragma: no cover
         # At least 3 samples are needed
@@ -193,7 +200,11 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
 
 
 def calculate_symmetry_test(
-    ds, field=None, nan_policy='omit', test_statistic='MI', **kw
+    ds,
+    field=None,
+    nan_policy='omit',
+    test_statistic='MI',
+    **kw,
 ):
     import rpy_symmetry as rsym
 
@@ -215,7 +226,7 @@ def _get_tip_criterion(short_description):
         if getattr(mod, 'short_description', None) == short_description:
             return mod
     raise ValueError(
-        f'No tipping criterion associated to {short_description}'
+        f'No tipping criterion associated to {short_description}',
     )  # pragma: no cover
 
 

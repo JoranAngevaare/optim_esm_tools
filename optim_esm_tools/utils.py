@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
+import inspect
 import os
 import socket
 import sys
+import time
 import typing as ty
+import warnings
 from collections import defaultdict
+from functools import wraps
 from importlib import import_module
 from platform import python_version
-from functools import wraps
-from immutabledict import immutabledict
-import warnings
-import time
+
 import numpy as np
 import pandas as pd
-import inspect
+from immutabledict import immutabledict
 
 try:
     from git import Repo, InvalidGitRepositoryError
@@ -38,7 +38,7 @@ root_folder = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 
 def get_plt_colors():
-    """Get matplotlib colors"""
+    """Get matplotlib colors."""
     import matplotlib.pyplot as plt
     import matplotlib
 
@@ -76,7 +76,7 @@ def default_plt_params():
 
 
 def setup_plt(use_tex=True, register_as='custom_map'):
-    """Change the plots to have uniform style defaults"""
+    """Change the plots to have uniform style defaults."""
 
     import matplotlib.pyplot as plt
     import matplotlib
@@ -87,7 +87,7 @@ def setup_plt(use_tex=True, register_as='custom_map'):
         params.update(
             {
                 'font.family': 'Times New Roman',
-            }
+            },
         )
     plt.rcParams.update(params)
 
@@ -121,7 +121,7 @@ def save_fig(
     skip=False,
     **kwargs,
 ):
-    """Save a figure in the figures dir"""
+    """Save a figure in the figures dir."""
     import matplotlib.pyplot as plt
 
     kwargs.setdefault('dpi', 150)
@@ -146,15 +146,14 @@ def print_versions(
     return_string=False,
     include_git=True,
 ):
-    """
-    Print versions of modules installed.
+    """Print versions of modules installed.
 
     :param modules: Modules to print, should be str, tuple or list. E.g.
         print_versions(modules=('numpy', 'optim_esm_tools',))
     :param return_string: optional. Instead of printing the message,
         return a string
-    :param include_git: Include the current branch and latest
-        commit hash
+    :param include_git: Include the current branch and latest commit
+        hash
     :return: optional, the message that would have been printed
     """
     versions = defaultdict(list)
@@ -211,7 +210,7 @@ def _version_info_for_module(module_name, include_git):
 
 
 def to_str_tuple(
-    x: ty.Union[str, bytes, list, tuple, pd.Series, np.ndarray]
+    x: ty.Union[str, bytes, list, tuple, pd.Series, np.ndarray],
 ) -> ty.Tuple[str]:
     """
     Convert any sensible instance to a tuple of strings
@@ -231,9 +230,9 @@ def mathrm(string):
 
 
 def string_to_mathrm(string):
-    """wrap a string in mathrm mode for latex labels"""
-    string = string.replace(' ', '\ ')
-    return f'$\mathrm{{{string}}}$'
+    """Wrap a string in mathrm mode for latex labels."""
+    string = string.replace(' ', r'\ ')
+    return fr'$\mathrm{{{string}}}$'
 
 
 def legend_kw(**kw):
@@ -250,9 +249,11 @@ def legend_kw(**kw):
 
 
 def filter_keyword_arguments(
-    kw: ty.Mapping, func: type, allow_varkw: bool = False
+    kw: ty.Mapping,
+    func: type,
+    allow_varkw: bool = False,
 ) -> dict:
-    """Only pass accepted keyword arguments (from kw) into function "func"
+    """Only pass accepted keyword arguments (from kw) into function "func".
 
     Args:
         kw (ty.Mapping): kwargs that could go into function func
@@ -273,7 +274,8 @@ def check_accepts(
     accepts: ty.Mapping[str, ty.Iterable] = immutabledict(unit=('absolute', 'std')),
     do_raise: bool = True,
 ):
-    """Wrapper for function if certain kwargs are from a defined list of variables.
+    """Wrapper for function if certain kwargs are from a defined list of
+    variables.
 
     Example:
         ```
@@ -318,7 +320,7 @@ def check_accepts(
 
 
 def add_load_kw(func):
-    """Add apply `.load` method to the dataset returned by wrapped function"""
+    """Add apply `.load` method to the dataset returned by wrapped function."""
 
     @wraps(func)
     def dep_fun(*args, **kwargs):
@@ -351,14 +353,18 @@ def _chopped_string(string, max_len):
 
 @check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))
 def timed(
-    *a, seconds: int = None, _report: str = None, _args_max: int = 20, _fmt: str = '.2g'
+    *a,
+    seconds: int = None,
+    _report: str = None,
+    _args_max: int = 20,
+    _fmt: str = '.2g',
 ):
     """Time a function and print if it takes more than <seconds>
 
     Args:
         seconds (int, optional): Defaults to 5.
         _report (str, optional): Method of reporting, either print or use the global logger. Defaults to 'print'.
-        _args_max (int, optional): Max number of chracters in the message for the args and kwars of the function. Defaults to 10.
+        _args_max (int, optional): Max number of characters in the message for the args and kwars of the function. Defaults to 10.
         _fmt (str, optional): time format specification. Defaults to '.2g'.
     """
     if seconds is None or _report is None:

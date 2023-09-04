@@ -1,7 +1,7 @@
 import os
+import string
 import typing as ty
 from collections import defaultdict
-import string
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,10 +13,8 @@ from optim_esm_tools.analyze.time_statistics import default_thresholds
 
 
 class VariableMerger:
-    """
-    The `VariableMerger` class is used to merge and process variables from multiple datasets, applying
-    masks and generating visualizations.
-    """
+    """The `VariableMerger` class is used to merge and process variables from
+    multiple datasets, applying masks and generating visualizations."""
 
     full_paths = None
     source_files: ty.Mapping
@@ -174,14 +172,20 @@ class VariableMerger:
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
         ax = plt.gcf().add_subplot(
-            1, 2, 2, projection=oet.plotting.plot.get_cartopy_projection()
+            1,
+            2,
+            2,
+            projection=oet.plotting.plot.get_cartopy_projection(),
         )
         oet.plotting.map_maker.overlay_area_mask(
-            ds.where(ds['global_mask']).copy(), ax=ax
+            ds.where(ds['global_mask']).copy(),
+            ax=ax,
         )
         summary = self.summarize_stats(ds)
         res_f, tips = result_table(
-            summary, thresholds=self.tipping_thresholds, formats=self.table_formats
+            summary,
+            thresholds=self.tipping_thresholds,
+            formats=self.table_formats,
         )
         self.add_table(
             res_f=res_f,
@@ -196,7 +200,8 @@ class VariableMerger:
     def simple_hist(ds, var, hist_kw=None, add_label=True, **plot_kw):
         da = ds[var]
         hist_kw = hist_kw or dict(
-            bins=25, range=[np.nanmin(da.values), np.nanmax(da.values)]
+            bins=25,
+            range=[np.nanmin(da.values), np.nanmax(da.values)],
         )
         x, y, _ = histogram(da, **hist_kw)
         for k, v in dict(ls='-', drawstyle='steps-mid').items():
@@ -204,7 +209,7 @@ class VariableMerger:
         plt.errorbar(x, y, **plot_kw)
         if add_label:
             plt.xlabel(
-                f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{oet.plotting.plot.get_unit_da(da)}]'
+                f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{oet.plotting.plot.get_unit_da(da)}]',
             )
 
     def summarize_stats(self, ds):
@@ -262,7 +267,7 @@ def histogram(d, **kw):
 
 
 def change_plt_table_height(increase_by=1.5):
-    """Increase the height of rows in plt.table
+    """Increase the height of rows in plt.table.
 
     Unfortunately, the options that you can pass to plt.table are insufficient to render a table
     that has rows with sufficient heights that work with a font that is not the default. From the
@@ -285,7 +290,12 @@ def change_plt_table_height(increase_by=1.5):
 
 
 def add_table(
-    res_f, tips, ax=None, fontsize=16, pass_color=(0.75, 1, 0.75), ha='bottom'
+    res_f,
+    tips,
+    ax=None,
+    fontsize=16,
+    pass_color=(0.75, 1, 0.75),
+    ha='bottom',
 ):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')
@@ -315,7 +325,7 @@ def result_table(res, thresholds=None, formats=None):
                 for t, v in d.items()
             }
             for k, d in res.items()
-        }
+        },
     ).T
 
     formats = formats or dict(
@@ -337,14 +347,16 @@ def summarize_stats(ds, field, path):
     return {
         'n_breaks': oet.analyze.time_statistics.calculate_n_breaks(ds, field=field),
         'p_symmetry': oet.analyze.time_statistics.calculate_symmetry_test(
-            ds, field=field
+            ds,
+            field=field,
         ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
         'n_std_global': oet.analyze.time_statistics.n_times_global_std(
-            ds=oet.load_glob(path).where(ds['global_mask'])
+            ds=oet.load_glob(path).where(ds['global_mask']),
         ),
         'max_jump': oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-            ds=oet.load_glob(path).where(ds['global_mask']), mask=ds['global_mask']
+            ds=oet.load_glob(path).where(ds['global_mask']),
+            mask=ds['global_mask'],
         ),
     }
 

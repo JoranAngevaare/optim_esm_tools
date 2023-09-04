@@ -1,8 +1,10 @@
-from tqdm.notebook import tqdm
-import pandas as pd
-import numpy as np
-import optim_esm_tools as oet
 import typing as ty
+
+import numpy as np
+import pandas as pd
+from tqdm.notebook import tqdm
+
+import optim_esm_tools as oet
 
 
 class ConciseDataFrame:
@@ -20,10 +22,11 @@ class ConciseDataFrame:
         # important to sort by tips == True first! As in match_rows there is a line that assumes
         # that all tipping rows are already merged!
         self.df = df.copy().sort_values(
-            by=['tips', 'institution_id', 'source_id', 'experiment_id'], ascending=False
+            by=['tips', 'institution_id', 'source_id', 'experiment_id'],
+            ascending=False,
         )
         self.group = group or (
-            set(self.df.colums) - {'institution_id', 'source_id', 'experiment_id'}
+            set(self.df.columns) - {'institution_id', 'source_id', 'experiment_id'}
         )
         self.match_overlap = match_overlap
         self.tqdm = tqdm
@@ -37,7 +40,7 @@ class ConciseDataFrame:
         return self.rename_columns_with_plural(df_ret)
 
     def rename_columns_with_plural(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add postfix to columns from the dataframe"""
+        """Add postfix to columns from the dataframe."""
         rename_dict = {k: f'{k}{self.merge_postfix}' for k in self.group}
         return df.rename(columns=rename_dict)
 

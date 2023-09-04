@@ -1,9 +1,11 @@
-import tempfile
-import optim_esm_tools as oet
-import pandas as pd
 import os
+import tempfile
 from unittest import TestCase
+
 import numpy as np
+import pandas as pd
+
+import optim_esm_tools as oet
 
 
 class TestConsiseDataFrame(TestCase):
@@ -30,10 +32,11 @@ class TestConsiseDataFrame(TestCase):
                     source_id=_same,
                     experiment_id=_same,
                     is_match=is_match,
-                )
+                ),
             )
             concise_df = oet.analyze.concise_dataframe.ConciseDataFrame(
-                data_frame, group=('path', 'names')
+                data_frame,
+                group=('path', 'names'),
             ).concise()
             assert len(concise_df) == len(np.unique(is_match))
 

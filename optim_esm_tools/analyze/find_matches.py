@@ -1,8 +1,11 @@
-import os
 import glob
-from optim_esm_tools.utils import check_accepts, timed
-from optim_esm_tools.config import config, get_logger
+import os
 from collections import defaultdict
+
+from optim_esm_tools.config import config
+from optim_esm_tools.config import get_logger
+from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import timed
 
 
 @timed
@@ -19,7 +22,7 @@ from collections import defaultdict
             'ssp585',
             '*',
         ),
-    )
+    ),
 )
 def find_matches(
     base: str,
@@ -38,7 +41,7 @@ def find_matches(
     # Deprecated arg
     grid=None,
 ) -> list:
-    """Follow synda folder format to find matches
+    """Follow synda folder format to find matches.
 
     Args:
         base (str): where start looking for matches
@@ -51,8 +54,8 @@ def find_matches(
         variable_id (str, optional): As synda convention. Defaults to 'tas'.
         grid_label (str, optional): As synda convention. Defaults to '*'.
         version (str, optional): As synda convention. Defaults to '*'.
-        max_versions (int, optional): Max mumber of different versions that match. Defaults to 1.
-        max_members (int, optional): Max mumber of different members that match. Defaults to 1.
+        max_versions (int, optional): Max number of different versions that match. Defaults to 1.
+        max_members (int, optional): Max number of different members that match. Defaults to 1.
         required_file (str, optional): Filename to match. Defaults to 'merged.nc'.
 
     Returns:
@@ -79,7 +82,7 @@ def find_matches(
                 variable_id,
                 grid_label,
                 version,
-            )
+            ),
         ),
         key=_variant_label_id_and_version,
     )
@@ -94,11 +97,11 @@ def find_matches(
         seen_members = seen[group]
 
         if (len(seen_members) == max_versions and version not in seen_members) or len(
-            seen_members.get(version, [])
+            seen_members.get(version, []),
         ) == max_members:
             continue  # pragma: no cover
         if required_file and required_file not in os.listdir(
-            candidate
+            candidate,
         ):  # pragma: no cover
             log.warning(f'{required_file} not in {candidate}')
             continue
@@ -166,7 +169,7 @@ def _variant_label_id_and_version(full_path):
                 grid_version = int(folder[1:])
     if run_variant_number is None or grid_version is None:
         raise ValueError(
-            f'could not find run and version from {full_path} {run_variant_number} {grid_version}'
+            f'could not find run and version from {full_path} {run_variant_number} {grid_version}',
         )  # pragma: no cover
     return -grid_version, run_variant_number
 
@@ -182,7 +185,7 @@ def folder_to_dict(path, strict=True):
         # great
     if strict:
         raise NotImplementedError(
-            f'folder {path} does not end with a version'
+            f'folder {path} does not end with a version',
         )  # pragma: no cover
 
 
@@ -208,7 +211,7 @@ def associate_historical(
 ):
     if data_set is None and path is None:
         raise ValueError(
-            'No dataset, no path, can\'t match if I don\'t know what I\'m looking for'
+            'No dataset, no path, can\'t match if I don\'t know what I\'m looking for',
         )  # pragma: no cover
     log = get_logger()
     path = path or data_set.attrs['path']
@@ -237,7 +240,7 @@ def associate_historical(
 
     for try_n, update_query in enumerate(query_updates):
         if try_n:
-            message = f'No results after {try_n} try, retying with {update_query}'
+            message = f'No results after {try_n} try, retrying with {update_query}'
             log.info(message)
         search.update(update_query)
         if this_try := find_matches(base, **search):
