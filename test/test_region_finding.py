@@ -34,6 +34,7 @@ class Work(unittest.TestCase):
             percentiles=50,
             search_kw=dict(required_file=tail),
         )
+        # sourcery skip: no-conditionals-in-tests
         if new_opt:
             extra_opt.update(new_opt)
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -96,7 +97,7 @@ class Work(unittest.TestCase):
         )
         region = cls(data_set=ds)
         with self.assertRaises(ValueError):
-            region.check_shape(ds['cell_area'].T)
+            region.check_shape(ds['cell_area'].T)  # type: ignore
 
     def test_iter_product_percentiles(self):
         self.test_max_region('IterProductPercentiles')
