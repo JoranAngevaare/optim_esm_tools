@@ -12,6 +12,7 @@ from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.plotting.map_maker import HistoricalMapMaker
 from optim_esm_tools.plotting.map_maker import MapMaker
 from optim_esm_tools.region_finding.percentiles import Percentiles
+from optim_esm_tools.utils import check_accepts
 
 
 class _HistroricalLookup(abc.ABC):
@@ -51,20 +52,22 @@ class _HistroricalLookup(abc.ABC):
         return oet.read_ds(historical_path[0], **read_ds_kw)
 
 
+import numpy.typing as npt
+
+
 class LocalHistory(Percentiles, _HistroricalLookup):
-    @apply_options
-    def get_masks(
+    def _all_pass_historical(
         self,
-        n_times_historical: ty.Union[int, float] = 4,
+        labels: ty.List[str],
+        n_times_historical: ty.Union[float, int],
         read_ds_kw: ty.Optional[ty.Mapping] = None,
-        lon_lat_dim: ty.Tuple[str, str] = ('lon', 'lat'),
-    ) -> _mask_cluster_type:
+    ) -> npt.NDArray[np.bool_]:
         read_ds_kw = read_ds_kw or {}
         for k, v in dict(min_time=None, max_time=None).items():
             read_ds_kw.setdefault(k, v)  # type: ignore
 
         historical_ds = self.get_historical_ds(read_ds_kw=read_ds_kw)
-        labels = [crit.short_description for crit in self.criteria]
+
         masks = []
 
         for lab in labels:
@@ -84,9 +87,20 @@ class LocalHistory(Percentiles, _HistroricalLookup):
         all_mask = np.ones_like(masks[0])
         for m in masks:
             all_mask &= m
+        return all_mask
 
-        self.check_shape(all_mask)
-
+    @apply_options
+    def get_masks(
+        self,
+        n_times_historical: ty.Union[int, float] = 4,
+        read_ds_kw: ty.Optional[ty.Mapping] = None,
+        lon_lat_dim: ty.Tuple[str, str] = ('lon', 'lat'),
+    ) -> _mask_cluster_type:
+        all_mask = self._build_combined_mask(
+            method='all_pass_historical',
+            n_times_historical=n_times_historical,
+            read_ds_kw=read_ds_kw,
+        )
         masks, clusters = build_cluster_mask(
             all_mask,
             lon_coord=self.data_set[lon_lat_dim[0]].values,

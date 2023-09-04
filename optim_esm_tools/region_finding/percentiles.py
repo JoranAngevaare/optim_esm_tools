@@ -110,6 +110,7 @@ class Percentiles(RegionExtractor):
                 'all_pass_percentile',
                 'product_rank',
                 'product_rank_past_threshold',
+                'all_pass_historical',
             ),
         ),
     )
@@ -121,15 +122,21 @@ class Percentiles(RegionExtractor):
         :param method: The "method" parameter is a string that specifies
             the method to be used for building the combined mask. The
             available methods are:
+                - all_pass_percentile
+                - all_pass_historical
+                - product_rank
+                - product_rank_past_threshold
+                - sum_rank
         :type method: str
         :return: a numpy array.
         """
         labels = [crit.short_description for crit in self.criteria]
         function = dict(
-            sum_rank=self._sum_rank,
             all_pass_percentile=self._all_pass_percentile,
+            all_pass_historical=self._all_pass_historical,
             product_rank=self._product_rank,
             product_rank_past_threshold=self._product_rank_past_threshold,
+            sum_rank=self._sum_rank,
         )
         result = function[method](labels, **kw)
         self.check_shape(result)
@@ -165,6 +172,11 @@ class Percentiles(RegionExtractor):
         for m in masks:
             all_mask &= m
         return all_mask
+
+    def _all_pass_historical(self, *a, **kw):
+        raise NotImplementedError(
+            f'{self.__class__.__name__} has not method all_pass_historical',
+        )  # pragma no cover
 
     def _sum_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
         """The `_sum_rank` function calculates the average rank of values in a

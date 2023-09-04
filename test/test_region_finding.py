@@ -101,8 +101,8 @@ class Work(unittest.TestCase):
     def test_iter_product_percentiles(self):
         self.test_max_region('IterProductPercentiles')
 
-    # def test_iter_local_history(self):
-    #     self.test_max_region('IterLocalHistory')
+    def test_iter_local_history(self):
+        self.test_max_region('IterLocalHistory')
 
     def test_iter_percentiles(self):
         self.test_max_region('IterPercentiles')
@@ -113,8 +113,6 @@ class Work(unittest.TestCase):
                 'IterProductPercentiles',
                 new_opt=dict(cluster_method='weighted'),
             )
-        # with self.assertRaises(NotImplementedError):
-        #     self.test_max_region('IterLocalHistory', new_opt=dict(cluster_method='weighted'))
         with self.assertRaises(NotImplementedError):
             self.test_max_region(
                 'IterPercentiles',
