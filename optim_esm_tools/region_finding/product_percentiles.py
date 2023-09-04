@@ -20,7 +20,7 @@ class ProductPercentiles(Percentiles):
         self,
         min_weight=0.95,
         lon_lat_dim=('lon', 'lat'),
-        _mask_method='all_pass_percentile',
+        _mask_method='product_rank',
     ):
         return super()._get_masks_weighted(
             min_weight=min_weight, lon_lat_dim=lon_lat_dim, _mask_method=_mask_method

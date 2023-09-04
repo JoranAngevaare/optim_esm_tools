@@ -3,6 +3,7 @@ import typing as ty
 import immutabledict
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import optim_esm_tools as oet
 from optim_esm_tools.analyze import tipping_criteria
 from optim_esm_tools.analyze.clustering import (
@@ -51,8 +52,9 @@ class Percentiles(RegionExtractor):
         self.check_shape(result)
         return result
 
-    def _all_pass_percentile(self, labels, percentiles):
-        labels = [crit.short_description for crit in self.criteria]
+    def _all_pass_percentile(
+        self, labels: ty.List[str], percentiles: ty.Union[float, int]
+    ) -> npt.NDArray[np.bool_]:
         masks = []
 
         for lab in labels:
@@ -66,7 +68,7 @@ class Percentiles(RegionExtractor):
             all_mask &= m
         return all_mask
 
-    def _sum_rank(self, labels):
+    def _sum_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
         sums = []
         for lab in labels:
             vals = self.data_set[lab].values
@@ -74,15 +76,15 @@ class Percentiles(RegionExtractor):
             vals[np.isnan(vals)] = 0
             sums.append(vals)
 
-        tot_sum = np.zeros_like(sums[0])
+        tot_sum = np.zeros_like(sums[0], dtype=np.float64)
         for s in sums:
             tot_sum += s
         tot_sum /= len(sums)
         return tot_sum
 
-    def _product_rank(self, labels):
+    def _product_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
         ds = self.data_set.copy()
-        combined_score = np.ones_like(ds[labels[0]].values)
+        combined_score = np.ones_like(ds[labels[0]].values, dtype=np.float64)
 
         for label in labels:
             combined_score *= tipping_criteria.rank2d(ds[label].values)
