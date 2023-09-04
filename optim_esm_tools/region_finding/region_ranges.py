@@ -16,6 +16,7 @@ from optim_esm_tools.region_finding._base import _mask_cluster_type
 
 class _ThresholdIterator:
     data_set: xr.Dataset
+    _tqmd: bool = False
 
     def _get_masks_weighted(self, *a):
         raise NotImplementedError
@@ -49,7 +50,7 @@ class _ThresholdIterator:
         already_seen = None
         masks, clusters = [], []
         iter_key, iter_values = list(iterable_range.items())[0]
-        pbar = oet.utils.tqdm(iter_values)
+        pbar = oet.utils.tqdm(iter_values, display=self._tqmd)
         for value in pbar:
             pbar.desc = f'{iter_key} = {value:.1g}'
             pbar.display()
@@ -81,7 +82,7 @@ class IterProductPercentiles(_ThresholdIterator, ProductPercentiles):
     @apply_options
     def _get_masks_masked(
         self,
-        iterable_range=dict(percentiles=(99.5, 97.5, 90)),
+        iterable_range=dict(product_percentiles=(99.5, 97.5, 90)),
         lon_lat_dim=('lon', 'lat'),
         iter_mask_min_area=1e12,
     ) -> _mask_cluster_type:
@@ -89,7 +90,7 @@ class IterProductPercentiles(_ThresholdIterator, ProductPercentiles):
             iterable_range=iterable_range,
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
-            _mask_method='all_pass_percentile',
+            _mask_method='product_rank_past_threshold',
         )
 
 

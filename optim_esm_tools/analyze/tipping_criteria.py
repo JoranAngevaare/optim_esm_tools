@@ -151,31 +151,59 @@ class MaxDerivitive(_Condition):
         )
 
 
-class MaxJumpAndStd(MaxJump, StdDetrended):
+class MaxJumpAndStd(_Condition):
     short_description: str = 'percentile score std and max jump'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.number_of_years = 10
 
+    @staticmethod
+    def parents():
+        return MaxJump, StdDetrended
+
     @property
     def long_description(self):
-        return f'Product of {super(MaxJumpAndStd, self).short_description} and {super(MaxJump, self).short_description}'
+        p1, p2 = self.parents()
+        return f'Product of {p1.short_description} and {p2.short_description}'
 
-    def calculate(self, data_set):
-        super_1 = super(MaxJump, self)
-        super_2 = super()
+    def get_parents_init(self):
+        return [
+            p(
+                variable=self.variable,
+                running_mean=self.running_mean,
+                time_var=self.time_var,
+                **self.defaults,
+            )
+            for p in self.parents()
+        ]
+
+    def get_parent_results(self, data_set):
+        super_1, super_2 = self.get_parents_init()
         da_1 = super_1.calculate(data_set)
         da_2 = super_2.calculate(data_set)
+        assert super_1.short_description != super_2.short_description, (
+            super_1.short_description,
+            super_2.short_description,
+        )
+        print(
+            (
+                super_1.short_description,
+                super_2.short_description,
+            ),
+        )
+        return {super_1: da_1, super_2: da_2}
 
-        combined_score = np.ones_like(da_1.values)
-        for da, label in zip(
-            [da_1, da_2],
-            [super_1.short_description, super_2.short_description],
-        ):
-            _name = f'percentile {label}'
-            combined_score *= var_to_perc(da, _name, None)
-        return xr.DataArray(combined_score, dims=da_1.dims, name=self.short_description)
+    def calculate(self, data_set):
+        da_1, da_2 = self.get_parent_results(data_set).values()
+        combined_score = np.ones_like(da_1.values, dtype=np.float64)
+        for da in [da_1, da_2]:
+            combined_score *= rank2d(da.values)
+        return xr.DataArray(
+            combined_score,
+            coords=da_1.coords,
+            name=self.short_description,
+        )
 
 
 @timed
