@@ -1,2 +1,2 @@
-from . import plot
 from . import map_maker
+from . import plot

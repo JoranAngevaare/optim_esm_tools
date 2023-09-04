@@ -3,13 +3,15 @@ import typing as ty
 
 import matplotlib.pyplot as plt
 import numpy as np
-import optim_esm_tools as oet
 import xarray as xr
-from optim_esm_tools.analyze.clustering import build_cluster_mask
-from optim_esm_tools.plotting.map_maker import HistoricalMapMaker, MapMaker
-from optim_esm_tools.region_finding.percentiles import Percentiles
 
-from ._base import _mask_cluster_type, apply_options
+import optim_esm_tools as oet
+from ._base import _mask_cluster_type
+from ._base import apply_options
+from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.plotting.map_maker import HistoricalMapMaker
+from optim_esm_tools.plotting.map_maker import MapMaker
+from optim_esm_tools.region_finding.percentiles import Percentiles
 
 
 class _HistroricalLookup(abc.ABC):
@@ -35,7 +37,9 @@ class _HistroricalLookup(abc.ABC):
 
     @apply_options
     def get_historical_ds(
-        self, read_ds_kw: ty.Optional[ty.Mapping] = None, **kw
+        self,
+        read_ds_kw: ty.Optional[ty.Mapping] = None,
+        **kw,
     ) -> xr.Dataset:
         read_ds_kw = read_ds_kw or {}
 
@@ -92,7 +96,9 @@ class LocalHistory(Percentiles, _HistroricalLookup):
 
     @apply_options
     def _plot_basic_map(
-        self, historical_normalizations=None, read_ds_kw: ty.Optional[ty.Mapping] = None
+        self,
+        historical_normalizations=None,
+        read_ds_kw: ty.Optional[ty.Mapping] = None,
     ) -> MapMaker:
         read_ds_kw = read_ds_kw or {}
         for k, v in dict(min_time=None, max_time=None).items():

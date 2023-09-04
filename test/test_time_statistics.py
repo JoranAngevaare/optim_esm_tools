@@ -1,19 +1,21 @@
-# -*- coding: utf-8 -*-
-import unittest
-import optim_esm_tools._test_utils
-import optim_esm_tools as oet
-from optim_esm_tools._test_utils import get_path_for_ds
-from optim_esm_tools.analyze import region_finding
-from optim_esm_tools.analyze.cmip_handler import read_ds
-import tempfile
 import os
+import tempfile
+import unittest
+
 import numpy as np
 import xarray as xr
 
+import optim_esm_tools as oet
+import optim_esm_tools._test_utils
+from optim_esm_tools._test_utils import get_path_for_ds
+from optim_esm_tools.analyze import region_finding
+from optim_esm_tools.analyze.cmip_handler import read_ds
+
 
 class Work(unittest.TestCase):
-    """
-    Note of caution! cache=True can lead to funky behavior!
+    """Note of caution!
+
+    cache=True can lead to funky behavior!
     """
 
     @classmethod
@@ -27,7 +29,8 @@ class Work(unittest.TestCase):
     def test_raises(self):
         with self.assertRaises(ValueError):
             oet.analyze.time_statistics.TimeStatistics(
-                self.data_set, calculation_kwargs=dict(bad=True)
+                self.data_set,
+                calculation_kwargs=dict(bad=True),
             )
 
     def test_get_statistics(self, use_field_for_mask='cell_area'):

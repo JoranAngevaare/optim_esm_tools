@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
-import xarray as xr
 import os
+
+import xarray as xr
+
 from optim_esm_tools.utils import add_load_kw
 
 
@@ -9,7 +10,7 @@ def load_glob(
     pattern: str,
     **kw,
 ) -> xr.Dataset:
-    """Load cmip dataset from provided pattern
+    """Load cmip dataset from provided pattern.
 
     Args:
         pattern (str): Path where to load the data from

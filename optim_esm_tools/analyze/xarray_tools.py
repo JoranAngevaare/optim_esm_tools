@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
-import numpy as np
 import typing as ty
-import xarray as xr
 from functools import wraps
+
+import numpy as np
+import xarray as xr
+
 from optim_esm_tools.config import config
 
 
 def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
-    """Create date object using the date formatting from the time-array"""
+    """Create date object using the date formatting from the time-array."""
 
     if isinstance(time_array, xr.DataArray):  # pragma: no cover
         return _native_date_fmt(time_array=time_array.values, date=date)
@@ -21,8 +22,8 @@ def _native_date_fmt(time_array: np.array, date: ty.Tuple[int, int, int]):
 
 
 def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
-    """Apply np.max() to output of function (if apply=True)
-    Disable in the function kwargs by using the _disable_kw argument
+    """Apply np.max() to output of function (if apply=True) Disable in the
+    function kwargs by using the _disable_kw argument.
 
     Example:
         ```
@@ -64,7 +65,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
         # 10 years we will run into issues here because a the window is longer than the
         # array. Perhaps we should raise higher up.
         raise ValueError(
-            f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?'
+            f'This array only has NaN values, perhaps array too short ({len(time_null)} < 10)?',
         )  # pragma: no cover
 
     if np.any(time_null):
@@ -106,16 +107,17 @@ def reverse_name_mask_coords(da_mask: xr.DataArray, rename_dict=None) -> xr.Data
 
 
 def rename_mask_coords(
-    da_mask: xr.DataArray, rename_dict: ty.Mapping = None
+    da_mask: xr.DataArray,
+    rename_dict: ty.Mapping = None,
 ) -> xr.DataArray:
-    """
-    Get a boolean DataArray with renamed dimensionality.
-    For some applications, we want to prune a dataset of nan values along a given lon/lat mask.
-    Removing data along a given mask can greatly reduce file-size and speed up data-set handling.
-    This however makes it somewhat cumbersome to later re-apply said mask (to other data) since
-    it's shape will be inconsistent with other (non-masked) data. To this end, we want to store
-    the mask separately in a dataset. To avoid dimension clashes between masked data and the masked
-    information, we rename the dimensions of the mask.
+    """Get a boolean DataArray with renamed dimensionality. For some
+    applications, we want to prune a dataset of nan values along a given
+    lon/lat mask. Removing data along a given mask can greatly reduce file-size
+    and speed up data-set handling. This however makes it somewhat cumbersome
+    to later re-apply said mask (to other data) since it's shape will be
+    inconsistent with other (non-masked) data. To this end, we want to store
+    the mask separately in a dataset. To avoid dimension clashes between masked
+    data and the masked information, we rename the dimensions of the mask.
 
     Args:
         da_mask (xr.DataArray): Mask to be renamed.
@@ -127,7 +129,7 @@ def rename_mask_coords(
     rename_dict = rename_dict or default_rename_mask_dims_dict()
     if any(dim not in da_mask.dims for dim in rename_dict.keys()):
         raise KeyError(
-            f'Trying to rename {rename_dict}, but this DataArray has {da_mask.dims}'
+            f'Trying to rename {rename_dict}, but this DataArray has {da_mask.dims}',
         )  # pragma: no cover
     mask = da_mask.copy().rename(rename_dict)
     message = (
@@ -143,10 +145,9 @@ def mask_to_reduced_dataset(
     mask: ty.Union[xr.DataArray, np.ndarray],
     add_global_mask: bool = True,
 ) -> xr.Dataset:
-    """
-    Reduce data_set by dropping all data where mask is False.
-    This greatly reduces the size (which is absolutely required for exporting time series from
-    global data).
+    """Reduce data_set by dropping all data where mask is False. This greatly
+    reduces the size (which is absolutely required for exporting time series
+    from global data).
 
     Args:
         data_set (xr.Dataset): data set to mask by mask
@@ -164,7 +165,7 @@ def mask_to_reduced_dataset(
         mask = mask.values
     if mask.shape != (expected := data_set['cell_area'].shape):
         raise ValueError(
-            f'Inconsistent dimensionality, expected {expected}, got {mask.shape}'
+            f'Inconsistent dimensionality, expected {expected}, got {mask.shape}',
         )  # pragma: no cover
 
     # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
@@ -189,9 +190,11 @@ def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):
 
 def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     """Drop values with masked_dims dimensions.
-    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to bad results,
-    for example for time_bnds (time, bnds) being dropped by (lon, lat). So we have to do
-    some funny bookkeeping of which data vars we can drop with data_set.where.
+
+    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
+    bad results, for example for time_bnds (time, bnds) being dropped by
+    (lon, lat). So we have to do some funny bookkeeping of which data
+    vars we can drop with data_set.where.
     """
 
     dropped = [
@@ -210,7 +213,7 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
 
 
 def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
-    """Rebuild data_set for each variable that has all masked_dims"""
+    """Rebuild data_set for each variable that has all masked_dims."""
     for k, data_array in data_set.data_vars.items():
         if all(dim in list(data_array.dims) for dim in masked_dims):
             lat_lon = config['analyze']['lon_lat_dim'].split(',')[::-1]
@@ -230,7 +233,10 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
 
 
 def extend_indexes(mask_array, coord, cyclic=False, round_at=5):
-    """Temporary fix for making extended region masks rounded at 5 deg. resolution"""
+    """Temporary fix for making extended region masks rounded at 5 deg.
+
+    resolution
+    """
     assert len(mask_array) == len(coord), (len(mask_array), len(coord))
     for i, m in enumerate(mask_array):
         idx_left = np.mod(i - 1, len(coord)) if cyclic else max(i - 1, 0)

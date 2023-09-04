@@ -29,7 +29,7 @@ done
 
 
 if [[ -f "$example_file" ]]; then
-    echo "$example_file exists on your filesystem. Succes"
+    echo "$example_file exists on your filesystem. Success"
 else
     # Did not find anything in the downloaded folder
     echo "perhaphs anything in the logs?"

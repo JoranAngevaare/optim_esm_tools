@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Most basic tests, like imports etc.
-"""
+"""Most basic tests, like imports etc."""
 
 
 def test_import():

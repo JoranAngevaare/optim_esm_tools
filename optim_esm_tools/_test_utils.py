@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 
 EXMPLE_DATA_SET = 'CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r3i1p2f1/Amon/tas/gn/v20190429/tas_Amon_CanESM5_ssp585_r3i1p2f1_gn_201501-210012.nc'
@@ -8,14 +7,14 @@ def cmip_store():
     import intake
 
     return intake.open_esm_datastore(
-        'https://storage.googleapis.com/cmip6/pangeo-cmip6.json'
+        'https://storage.googleapis.com/cmip6/pangeo-cmip6.json',
     )
 
 
 def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
     # sourcery skip: dict-assign-update-to-union
     dest_folder = os.path.split(
-        get_example_data_loc().replace('ssp585', experiment_id)
+        get_example_data_loc().replace('ssp585', experiment_id),
     )[0]
     if experiment_id in ['piControl', 'historical']:
         dest_folder = dest_folder.replace('ScenarioMIP', 'CMIP')
@@ -45,7 +44,7 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
     data = data.mean(set(data.dims) - {'x', 'y', 'lat', 'lon', 'time'})
     if query['variable_id'] != 'tas':
         raise ValueError(
-            'Only tas for now as only areacella is hardcoded (see line below)'
+            'Only tas for now as only areacella is hardcoded (see line below)',
         )
     data.attrs.update(dict(external_variables='areacella', variable_id='tas'))
     os.makedirs(dest_folder, exist_ok=True)
@@ -78,7 +77,8 @@ def year_means(path, refresh=True):
 
 def get_synda_loc():
     return os.path.join(
-        os.environ.get('ST_HOME', os.path.join(os.path.abspath('.'), 'cmip')), 'data'
+        os.environ.get('ST_HOME', os.path.join(os.path.abspath('.'), 'cmip')),
+        'data',
     )
 
 
@@ -87,9 +87,9 @@ def get_example_data_loc():
 
 
 def synda_test_available():
-    """Check if we can run a synda-dependent test"""
+    """Check if we can run a synda-dependent test."""
     return os.environ.get('ST_HOME') is not None and os.path.exists(
-        get_example_data_loc()
+        get_example_data_loc(),
     )
 
 
@@ -113,7 +113,7 @@ def complete_ds(start_year=2000, **kw):
             'long_name': 'Latitude',
             'units': 'degrees_north',
             'axis': 'Y',
-        }
+        },
     )
     ds['lon'].attrs.update(
         {
@@ -121,7 +121,7 @@ def complete_ds(start_year=2000, **kw):
             'long_name': 'Longitude',
             'units': 'degrees_east',
             'axis': 'X',
-        }
+        },
     )
     return ds
 
@@ -148,7 +148,7 @@ def minimal_xr_ds(len_x=513, len_y=181, len_time=10, add_nans=True):
             var=(
                 ('time', 'lat', 'lon'),
                 data,
-            )
+            ),
         ),
         coords=dict(
             time=time,

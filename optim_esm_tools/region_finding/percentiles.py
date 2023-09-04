@@ -4,34 +4,31 @@ import immutabledict
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+
 import optim_esm_tools as oet
+from ._base import _mask_cluster_type
+from ._base import _two_sigma_percent
+from ._base import apply_options
+from ._base import plt_show
+from ._base import RegionExtractor
 from optim_esm_tools.analyze import tipping_criteria
-from optim_esm_tools.analyze.clustering import (
-    build_cluster_mask,
-    build_weighted_cluster,
-)
+from optim_esm_tools.analyze.clustering import build_cluster_mask
+from optim_esm_tools.analyze.clustering import build_weighted_cluster
 from optim_esm_tools.analyze.xarray_tools import mask_xr_ds
 from optim_esm_tools.plotting.map_maker import MapMaker
-from optim_esm_tools.plotting.plot import _show, setup_map
+from optim_esm_tools.plotting.plot import _show
+from optim_esm_tools.plotting.plot import setup_map
 from optim_esm_tools.utils import check_accepts
-
-from ._base import (
-    RegionExtractor,
-    _mask_cluster_type,
-    _two_sigma_percent,
-    apply_options,
-    plt_show,
-)
 
 
 class Percentiles(RegionExtractor):
     @oet.utils.check_accepts(
-        accepts=immutabledict.immutabledict(cluster_method=('weighted', 'masked'))
+        accepts=immutabledict.immutabledict(cluster_method=('weighted', 'masked')),
     )
     @apply_options
     def get_masks(self, cluster_method='masked') -> _mask_cluster_type:
-        """
-        The function `get_masks` returns masks and clusters based on the specified cluster method.
+        """The function `get_masks` returns masks and clusters based on the
+        specified cluster method.
 
         :param cluster_method: The `cluster_method` parameter is a string that determines the method used to
         generate masks. It can have two possible values:, defaults to masked (optional)
@@ -47,11 +44,13 @@ class Percentiles(RegionExtractor):
 
     @apply_options
     def _get_masks_weighted(
-        self, min_weight=0.95, lon_lat_dim=('lon', 'lat'), _mask_method='sum_rank'
+        self,
+        min_weight=0.95,
+        lon_lat_dim=('lon', 'lat'),
+        _mask_method='sum_rank',
     ):
-        """
-        The function `_get_masks_weighted` calculates weighted masks and clusters based on a minimum weight
-        threshold.
+        """The function `_get_masks_weighted` calculates weighted masks and
+        clusters based on a minimum weight threshold.
 
         :param min_weight: The min_weight parameter is the minimum weight threshold for including a mask in
         the output. Masks with weights below this threshold will be excluded
@@ -79,9 +78,9 @@ class Percentiles(RegionExtractor):
         percentiles=_two_sigma_percent,
         _mask_method='all_pass_percentile',
     ):
-        """
-        The function `_get_masks_masked` builds a combined mask using a specified method and percentiles,
-        and then builds cluster masks based on the combined mask and lon/lat coordinates.
+        """The function `_get_masks_masked` builds a combined mask using a
+        specified method and percentiles, and then builds cluster masks based
+        on the combined mask and lon/lat coordinates.
 
         :param lon_lat_dim: A tuple specifying the names of the longitude and latitude dimensions in the
         dataset
@@ -94,7 +93,8 @@ class Percentiles(RegionExtractor):
         :return: two values: masks and clusters.
         """
         all_mask = self._build_combined_mask(
-            method=_mask_method, percentiles=percentiles
+            method=_mask_method,
+            percentiles=percentiles,
         )
         masks, clusters = build_cluster_mask(
             all_mask,
@@ -110,17 +110,17 @@ class Percentiles(RegionExtractor):
                 'all_pass_percentile',
                 'product_rank',
                 'product_rank_past_threshold',
-            )
-        )
+            ),
+        ),
     )
     def _build_combined_mask(self, method: str, **kw) -> np.ndarray:
-        """
-        The `_build_combined_mask` function takes a method and keyword arguments, uses the method to select
-        a function from a dictionary, and applies the selected function to a list of labels to generate a
-        result.
+        """The `_build_combined_mask` function takes a method and keyword
+        arguments, uses the method to select a function from a dictionary, and
+        applies the selected function to a list of labels to generate a result.
 
-        :param method: The "method" parameter is a string that specifies the method to be used for building
-        the combined mask. The available methods are:
+        :param method: The "method" parameter is a string that specifies
+            the method to be used for building the combined mask. The
+            available methods are:
         :type method: str
         :return: a numpy array.
         """
@@ -136,11 +136,13 @@ class Percentiles(RegionExtractor):
         return result
 
     def _all_pass_percentile(
-        self, labels: ty.List[str], percentiles: ty.Union[float, int]
+        self,
+        labels: ty.List[str],
+        percentiles: ty.Union[float, int],
     ) -> npt.NDArray[np.bool_]:
-        """
-        The `_all_pass_percentile` function calculates a mask that indicates whether each element in the
-        data set is greater than or equal to the percentile threshold for each label.
+        """The `_all_pass_percentile` function calculates a mask that indicates
+        whether each element in the data set is greater than or equal to the
+        percentile threshold for each label.
 
         :param labels: A list of strings representing the labels of the data set. Each label corresponds to
         a column in the data set
@@ -165,9 +167,8 @@ class Percentiles(RegionExtractor):
         return all_mask
 
     def _sum_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
-        """
-        The `_sum_rank` function calculates the average rank of values in a dataset for a given list of
-        labels.
+        """The `_sum_rank` function calculates the average rank of values in a
+        dataset for a given list of labels.
 
         :param labels: The `labels` parameter is a list of strings representing the labels of the data set
         :type labels: ty.List[str]
@@ -187,11 +188,12 @@ class Percentiles(RegionExtractor):
         return tot_sum
 
     def _product_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
-        """
-        The `_product_rank` function calculates the combined score of multiple labels using the `rank2d`
-        function and returns the result as a numpy array.
+        """The `_product_rank` function calculates the combined score of
+        multiple labels using the `rank2d` function and returns the result as a
+        numpy array.
 
-        :param labels: A list of strings representing the labels of the columns in the dataset
+        :param labels: A list of strings representing the labels of the
+            columns in the dataset
         :type labels: ty.List[str]
         :return: a NumPy array of type np.float64.
         """
@@ -207,9 +209,9 @@ class Percentiles(RegionExtractor):
         labels: ty.List[str],
         product_percentiles: ty.Union[float, int],
     ) -> npt.NDArray[np.bool_]:
-        """
-        The function `_product_rank_past_threshold` calculates the combined score for a list of labels and
-        returns a boolean array indicating whether each score is above a given percentile threshold.
+        """The function `_product_rank_past_threshold` calculates the combined
+        score for a list of labels and returns a boolean array indicating
+        whether each score is above a given percentile threshold.
 
         :param labels: A list of strings representing the labels of the products
         :type labels: ty.List[str]
@@ -298,13 +300,16 @@ class Percentiles(RegionExtractor):
     @plt_show
     @apply_options
     def plot_mask_time_series(
-        self, masks_and_clusters: _mask_cluster_type, time_series_joined=True
+        self,
+        masks_and_clusters: _mask_cluster_type,
+        time_series_joined=True,
     ):
         if not len(masks_and_clusters[0]):
             self.log.warning('No clusters found!')
             return
         res = self._plot_mask_time_series(
-            masks_and_clusters, time_series_joined=time_series_joined
+            masks_and_clusters,
+            time_series_joined=time_series_joined,
         )
         if time_series_joined and masks_and_clusters:
             self.save(f'{self.title_label}_time_series_all_clusters')
@@ -320,11 +325,14 @@ class Percentiles(RegionExtractor):
         _ma_window=None,
     ):
         if only_rm is None:
-            only_rm = bool((len(masks_and_clusters[0]) > 1 and time_series_joined))
+            only_rm = bool(len(masks_and_clusters[0]) > 1 and time_series_joined)
         _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
         masks, clusters = masks_and_clusters
         legend_kw = oet.utils.legend_kw(
-            loc='upper left', bbox_to_anchor=None, mode=None, ncol=4
+            loc='upper left',
+            bbox_to_anchor=None,
+            mode=None,
+            ncol=4,
         )
         for m_i, (mask, cluster) in enumerate(zip(masks, clusters)):
             lat, lon = np.median(cluster, axis=0)

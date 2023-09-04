@@ -4,6 +4,7 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
+    -   id: check-builtin-literals
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-yaml
@@ -16,7 +17,33 @@ repos:
     -   id: requirements-txt-fixer
     -   id: mixed-line-ending
     -   id: pretty-format-json
+    -   id: name-tests-test
+-   repo: https://github.com/asottile/add-trailing-comma
+    rev: v3.1.0
+    hooks:
+    -   id: add-trailing-comma
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.10.1
+    hooks:
+    -   id: pyupgrade
+-   repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.10.0
+    hooks:
+    -   id: reorder-python-imports
 -   repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
     -   id: black
+-   repo: https://github.com/awebdeveloper/pre-commit-stylelint
+    rev: '0.0.2'
+    hooks:
+    -   id: stylelint
+        additional_dependencies: ['stylelint@13.2.1', 'stylelint-config-standard@20.0.0']
+-   repo: https://github.com/PyCQA/docformatter
+    rev: 'v1.7.5'
+    hooks:
+    -   id: docformatter
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+    - id: codespell

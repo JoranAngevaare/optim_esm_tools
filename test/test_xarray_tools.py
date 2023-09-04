@@ -1,6 +1,8 @@
 import contextlib
-import optim_esm_tools as oet
+
 import numpy as np
+
+import optim_esm_tools as oet
 
 
 def test_remove_nan():
@@ -28,7 +30,7 @@ def test_global_mask():
     )
 
     rev_renamed_mask = oet.analyze.xarray_tools.reverse_name_mask_coords(
-        renamed_mask.copy()
+        renamed_mask.copy(),
     )
     assert mask.dims == rev_renamed_mask.dims, (
         mask.dims,

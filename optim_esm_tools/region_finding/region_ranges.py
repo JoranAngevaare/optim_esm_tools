@@ -1,13 +1,14 @@
-from .percentiles import Percentiles
-from .product_percentiles import ProductPercentiles
-from .local_history import LocalHistory
-from ._base import apply_options
-from optim_esm_tools.analyze.clustering import build_cluster_mask
+from abc import ABC
 
-import optim_esm_tools as oet
 import numpy as np
 import xarray as xr
-from abc import ABC
+
+import optim_esm_tools as oet
+from ._base import apply_options
+from .local_history import LocalHistory
+from .percentiles import Percentiles
+from .product_percentiles import ProductPercentiles
+from optim_esm_tools.analyze.clustering import build_cluster_mask
 
 
 class _ThresholdIterator(ABC):
@@ -31,7 +32,8 @@ class _ThresholdIterator(ABC):
             pbar.desc = f'{percentile:.1f}%'
             pbar.display()
             all_mask = self._build_combined_mask(
-                method=_mask_method, percentiles=percentile
+                method=_mask_method,
+                percentiles=percentile,
             )
 
             if already_seen is not None:

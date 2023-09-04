@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-import unittest
-import optim_esm_tools as oet
 import os
+import unittest
+
+import optim_esm_tools as oet
 from optim_esm_tools._test_utils import get_example_data_loc
 
 

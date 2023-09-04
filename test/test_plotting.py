@@ -1,7 +1,8 @@
-import optim_esm_tools as oet
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+
+import optim_esm_tools as oet
 
 
 def test_map_basic():
@@ -10,7 +11,7 @@ def test_map_basic():
 
 def test_plot_da():
     oet.plotting.plot.plot_da(
-        xr.DataArray(np.ones(12).reshape(4, 3), dims=('lat', 'lon'))
+        xr.DataArray(np.ones(12).reshape(4, 3), dims=('lat', 'lon')),
     )
 
 
@@ -27,5 +28,5 @@ def test_plate_carree():
 
 def test_add_feature():
     plot_something_else(
-        add_features='LAND OCEAN COASTLINE BORDERS LAKES RIVERS'.split()
+        add_features='LAND OCEAN COASTLINE BORDERS LAKES RIVERS'.split(),
     )

@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 import os
-import xarray as xr
-
 import typing as ty
 from warnings import warn
 
-from .globals import _FOLDER_FMT, _DEFAULT_MAX_TIME
+import xarray as xr
+
 import optim_esm_tools as oet
+from .globals import _DEFAULT_MAX_TIME
+from .globals import _FOLDER_FMT
 from optim_esm_tools.analyze import tipping_criteria
 
 
@@ -17,7 +17,7 @@ def add_conditions_to_ds(
     variable_of_interest: ty.Tuple[str] = ('tas',),
     _ma_window: ty.Optional[int] = None,
 ) -> xr.Dataset:
-    """Transform the dataset to get it ready for handling in optim_esm_tools
+    """Transform the dataset to get it ready for handling in optim_esm_tools.
 
     Args:
         ds (xr.Dataset): input dataset
@@ -46,10 +46,10 @@ def add_conditions_to_ds(
             tipping_criteria.MaxJumpAndStd,
         )
     if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
-        calculate_conditions
+        calculate_conditions,
     ):
         raise ValueError(
-            f'One or more non unique descriptions {desc}'
+            f'One or more non unique descriptions {desc}',
         )  # pragma: no cover
     if condition_kwargs is None:
         condition_kwargs = {}
@@ -63,7 +63,7 @@ def add_conditions_to_ds(
                     short_description=cls.short_description,
                     long_description=condition.long_description,
                     name=condition_array.name,
-                )
+                ),
             )
             ds[condition.short_description] = condition_array
     return ds
@@ -106,7 +106,7 @@ def read_ds(
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         add_history (bool, optional): start by merging historical dataset to the dataset.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
-        _cache (bool, optional): cache the dataset with it's extra fields to alow faster
+        _cache (bool, optional): cache the dataset with it's extra fields to allow faster
             (re)loading. Defaults to True.
         _file_name (str, optional): name to match. Defaults to configs settings.
         _skip_folder_info (bool, optional): if set to True, do not infer the properties from the
@@ -176,7 +176,7 @@ def read_ds(
             dict(
                 variable_of_interest=variable_of_interest,
                 _ma_window=_ma_window,
-            )
+            ),
         )
         data_set = add_conditions_to_ds(data_set, **kwargs)
 
@@ -202,24 +202,30 @@ def read_ds(
 
 
 def _historical_file(
-    add_history, base, _file_name, _historical_path
+    add_history,
+    base,
+    _file_name,
+    _historical_path,
 ) -> ty.Optional[str]:
     if add_history:
         historical_heads = oet.analyze.find_matches.associate_historical(
-            path=base, match_to='historical', strict=False
+            path=base,
+            match_to='historical',
+            strict=False,
         )
         if not historical_heads and not _historical_path:
             raise FileNotFoundError(f'No historical matches for {base}')
         _historical_path = _historical_path or os.path.join(
-            historical_heads[0], _file_name
+            historical_heads[0],
+            _file_name,
         )
         if not os.path.exists(_historical_path):
             raise ValueError(
-                f'{_historical_path} not found, (check {historical_heads}?)'
+                f'{_historical_path} not found, (check {historical_heads}?)',
             )
     elif _historical_path:
         raise ValueError(
-            f'Wrong input _historical_path is {_historical_path} but add_history is False'
+            f'Wrong input _historical_path is {_historical_path} but add_history is False',
         )
     return _historical_path
 
@@ -233,7 +239,7 @@ def _name_cache_file(
     is_historical,
     version=None,
 ):
-    """Get a file name that identifies the settings"""
+    """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     path = os.path.join(

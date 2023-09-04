@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import os
 import typing
 
 
 class SyndaViewer:
-    """Visualize synda downloads as a tree structure"""
+    """Visualize synda downloads as a tree structure."""
 
     def __init__(
         self,
@@ -14,13 +13,14 @@ class SyndaViewer:
         concatenate_folders: bool = True,
         count_files: bool = False,
     ):
-        """
-        Viewer for Synda Folder structure
+        """Viewer for Synda Folder structure.
 
         :param base: where to start looking
-        :param max_depth: maximum recursion depth from the base to show folders
+        :param max_depth: maximum recursion depth from the base to show
+            folders
         :param show_files: list files as well as folders
-        :param concatenate_folders: concatenate folder names if they contain only one subfolder
+        :param concatenate_folders: concatenate folder names if they
+            contain only one subfolder
         :param count_files: count files per folder
         """
         self.base = base

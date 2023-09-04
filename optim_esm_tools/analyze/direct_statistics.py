@@ -1,5 +1,6 @@
-import optim_esm_tools as oet
 import numpy as np
+
+import optim_esm_tools as oet
 
 
 def pass_test(props, thresholds, always_true=('max_jump', 'n_std_global')):
@@ -40,7 +41,7 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
     ds_hist = _ds_hist or oet.analyze.time_statistics.get_historical_ds(ds, load=True)
     var = ds.attrs['variable_id']
     index_2d = np.array(
-        np.meshgrid(np.arange(len(ds['lat'])), np.arange(len(ds['lon'])))
+        np.meshgrid(np.arange(len(ds['lat'])), np.arange(len(ds['lon']))),
     ).T
     index_2d = index_2d.reshape(np.prod(index_2d.shape) // 2, 2)
     bool_mask = np.zeros((len(ds['lat']), len(ds['lon'])), dtype=np.bool_)
@@ -77,10 +78,13 @@ def direct_test(ds, _ds_global=None, _ds_hist=None, over_ride_thresholds=None):
                 masks[k][lat_i, lon_i] = v
 
             if res := pass_test(
-                props, thresholds=thresholds, always_true=('n_std_global',)
+                props,
+                thresholds=thresholds,
+                always_true=('n_std_global',),
             ):
                 jump = oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-                    ds=ds, _ds_hist=ds_hist
+                    ds=ds,
+                    _ds_hist=ds_hist,
                 )
                 operator, thr = thresholds['max_jump']
                 res = operator(jump, thr)

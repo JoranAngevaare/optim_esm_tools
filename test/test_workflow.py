@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-import unittest
-import optim_esm_tools as oet
 import os
+import unittest
+
 import matplotlib.pyplot as plt
-from optim_esm_tools._test_utils import synda_test_available, get_example_data_loc
+
+import optim_esm_tools as oet
+from optim_esm_tools._test_utils import get_example_data_loc
+from optim_esm_tools._test_utils import synda_test_available
 
 
 @unittest.skipIf(not synda_test_available(), 'synda data not available')
@@ -27,7 +29,8 @@ class TestMapMaker(unittest.TestCase):
         cls.base = os.path.join(os.environ['ST_HOME'], 'data')
         cls.amon_file = get_example_data_loc()
         cls.ayear_file = os.path.join(
-            os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0], cls.name_merged
+            os.path.split(cls.amon_file.replace('Amon', 'AYear'))[0],
+            cls.name_merged,
         )
 
     def tearDown(self) -> None:
@@ -44,14 +47,16 @@ class TestMapMaker(unittest.TestCase):
 
     def test_make_map(self):
         data_set = oet.analyze.cmip_handler.read_ds(
-            os.path.split(self.ayear_file)[0], _file_name=self.name_merged
+            os.path.split(self.ayear_file)[0],
+            _file_name=self.name_merged,
         )
         oet.plotting.map_maker.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
     def test_map_maker_time_series(self, **kw):
         data_set = oet.analyze.cmip_handler.read_ds(
-            os.path.split(self.ayear_file)[0], _file_name=self.name_merged
+            os.path.split(self.ayear_file)[0],
+            _file_name=self.name_merged,
         )
         oet.plotting.map_maker.MapMaker(data_set=data_set).time_series(**kw)
         plt.clf()
@@ -88,8 +93,9 @@ class Units(unittest.TestCase):
         data_set = oet.analyze.cmip_handler.read_ds(
             os.path.split(
                 year_means(
-                    get_file_from_pangeo('ssp585', refresh=refresh), refresh=refresh
-                )
+                    get_file_from_pangeo('ssp585', refresh=refresh),
+                    refresh=refresh,
+                ),
             )[0],
             condition_kwargs=dict(unit=unit),
             _file_name='test_merged.nc',
