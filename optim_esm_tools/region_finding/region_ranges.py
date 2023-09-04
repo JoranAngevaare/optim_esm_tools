@@ -1,3 +1,4 @@
+import typing as ty
 from abc import ABC
 
 import numpy as np
@@ -11,6 +12,8 @@ from .percentiles import Percentiles
 from .product_percentiles import ProductPercentiles
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 
+_scalar = ty.Union[int, float]
+
 
 class _ThresholdIterator(ABC):
     data_set: xr.Dataset
@@ -20,11 +23,32 @@ class _ThresholdIterator(ABC):
 
     def _get_masks_masked(
         self,
-        iterable_range=dict(percentiles=(85, 100, 7)),
+        iterable_range: ty.Dict[str, ty.Tuple[_scalar, _scalar, int]] = dict(
+            percentiles=(85, 100, 7),
+        ),
         lon_lat_dim=('lon', 'lat'),
         _mask_method='not_specified',
         iter_mask_min_area=1e12,
     ) -> _mask_cluster_type:
+        """The function `_get_masks_masked` builds combined masks and clusters
+        based on specified parameters and returns them.
+
+        :param iterable_range: The `iterable_range` parameter is a dictionary that specifies the range
+        of values for a particular parameter that will be iterated over. It has the following structure:
+            dict(OPTION, (<MIN>, <MAX>, <N_STEPS>))
+        :type iterable_range: ty.Dict[str, ty.Tuple[ty.Union[int, float], ty.Union[int, float], int]]
+        :param lon_lat_dim: The `lon_lat_dim` parameter is a tuple that specifies the names of the
+        longitude and latitude dimensions in the dataset. These dimensions are used to extract the
+        corresponding coordinate values for building the mask
+        :param _mask_method: The `_mask_method` parameter is used to specify the method for building the
+        combined mask. It is currently set to `'not_specified'`, which means that the specific method is
+        not specified in the code snippet provided. You may need to refer to the rest of the code or the
+        documentation to determine, defaults to not_specified (optional)
+        :param iter_mask_min_area: The parameter `iter_mask_min_area` represents the minimum area that a
+        mask must have in order to be considered. Masks with an area less than `iter_mask_min_area` will
+        be excluded from the final result
+        :return: two lists: `masks` and `clusters`.
+        """
         already_seen = None
         masks, clusters = [], []
         iter_key, iter_values = list(iterable_range.items())[0]
