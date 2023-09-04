@@ -38,7 +38,7 @@ class Percentiles(RegionExtractor):
         return masks, clusters
 
     @check_accepts(
-        accepts=dict(method=('sum_rank', '_all_pass_percentile', 'product_rank'))
+        accepts=dict(method=('sum_rank', 'all_pass_percentile', 'product_rank'))
     )
     def _build_combined_mask(self, method: str, **kw) -> np.ndarray:
         labels = [crit.short_description for crit in self.criteria]

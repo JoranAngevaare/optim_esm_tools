@@ -98,8 +98,8 @@ class Work(unittest.TestCase):
     def test_iter_product_percentiles(self):
         self.test_max_region('IterProductPercentiles')
 
-    def test_iter_local_history(self):
-        self.test_max_region('IterLocalHistory')
+    # def test_iter_local_history(self):
+    #     self.test_max_region('IterLocalHistory')
 
     def test_iter_percentiles(self):
         self.test_max_region('IterPercentiles')

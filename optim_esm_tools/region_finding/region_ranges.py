@@ -21,7 +21,7 @@ class _ThresholdIterator(ABC):
         self,
         percentile_range=(85, 100, 7),
         lon_lat_dim=('lon', 'lat'),
-        _mask_method='product_rank',  # TODO or all_pass_percentile
+        _mask_method='all_pass_percentile',  # TODO or product_rank
         mask_min_area=1e12,
     ):
         already_seen = None
