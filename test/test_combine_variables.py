@@ -1,7 +1,8 @@
-import tempfile
-import optim_esm_tools as oet
 import os
+import tempfile
 from unittest import TestCase
+
+import optim_esm_tools as oet
 
 
 class TestCombineVariables(TestCase):

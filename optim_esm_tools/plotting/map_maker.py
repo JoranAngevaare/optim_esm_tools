@@ -1,27 +1,24 @@
-# -*- coding: utf-8 -*-
-import optim_esm_tools as oet
-import xarray as xr
-import numpy as np
-
-import typing as ty
 import collections
+import typing as ty
 from warnings import warn
 
 import matplotlib.pyplot as plt
-
+import numpy as np
+import xarray as xr
 from immutabledict import immutabledict
-from .plot import *
 from matplotlib.colors import LogNorm
 
-from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
+import optim_esm_tools as oet
+from .plot import *
 from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.globals import _SECONDS_TO_YEAR
 
 
-class MapMaker(object):
+class MapMaker:
     data_set: xr.Dataset
     labels = tuple('i ii iii iv v vi vii viii ix x'.split())
     kw: ty.Mapping
-    contitions: ty.Mapping
+    conditions: ty.Mapping
     normalizations: ty.Optional[ty.Mapping] = None
     _cache: bool = False
 
@@ -73,9 +70,9 @@ class MapMaker(object):
 
         if normalizations is None:
             normalizations = {i: [None, None] for i in self.conditions.keys()}
-        elif isinstance(normalizations, collections.abc.Mapping):
+        elif isinstance(normalizations, collections.abc.Mapping):  # type: ignore
             normalizations = normalizations
-        elif isinstance(normalizations, collections.abc.Iterable):
+        elif isinstance(normalizations, collections.abc.Iterable):  # type: ignore
             normalizations = {
                 i: normalizations[j] for j, i in enumerate(self.conditions.keys())
             }
@@ -83,10 +80,10 @@ class MapMaker(object):
         def _incorrect_format():
             return (
                 any(
-                    not isinstance(v, collections.abc.Iterable)
-                    for v in normalizations.values()
+                    not isinstance(v, collections.abc.Iterable)  # type: ignore
+                    for v in normalizations.values()  # type: ignore
                 )
-                or any(len(v) != 2 for v in normalizations.values())
+                or any(len(v) != 2 for v in normalizations.values())  # type: ignore
                 or any(k not in normalizations for k in self.conditions)
             )
 
@@ -94,7 +91,7 @@ class MapMaker(object):
             raise TypeError(
                 f'Normalizations should be mapping from'
                 f'{self.conditions.keys()} to vmin, vmax, '
-                f'got {normalizations} (from {normalizations_start})'
+                f'got {normalizations} (from {normalizations_start})',
             )  # pragma: no cover
         return normalizations
 
@@ -148,7 +145,7 @@ class MapMaker(object):
 
         prop = getattr(self, label)
 
-        cmap = plt.get_cmap('viridis').copy()
+        cmap = plt.get_cmap('viridis').copy()  # type: ignore
         cmap.set_extremes(under='cyan', over='orange')
         x_label = prop.attrs.get('name', label)
         c_kw = self.kw['cbar'].copy()
@@ -217,7 +214,7 @@ class MapMaker(object):
         labels = labels or [None] * len(variables)
         if not len(variables) == len(labels):
             raise ValueError(
-                f'Inconsistent number of vars and labels {variables, labels}'
+                f'Inconsistent number of vars and labels {variables, labels}',
             )  # pragma: no cover
         plot_kw.setdefault('ds', self.data_set)
         assert 'ds' in plot_kw
@@ -268,7 +265,7 @@ class MapMaker(object):
         )
 
         plt.ylim(ds[f'dt_{var_rm}'].min() / 1.05, ds[f'dt_{var_rm}'].max() * 1.05)
-        ylab = f'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
+        ylab = fr'$\partial \mathrm{{{self.variable_name(variable)}}} /\partial t$ [{self.unit(variable)}/yr]'
         plt.ylabel(ylab)
         plt.legend()
         plt.title('')
@@ -300,7 +297,7 @@ class MapMaker(object):
             _, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw=dict(hspace=0.3))
 
         plt.sca(axes[0])
-        self._ts(**plot_kw)
+        self._ts(**plot_kw)  # type: ignore
 
         plt.sca(axes[1])
         self._det_ts(**plot_kw)
@@ -352,7 +349,7 @@ class HistoricalMapMaker(MapMaker):
         if len(ret_array) == 0:
             raise ValueError(
                 f'Empty ret array, perhaps {da.shape} and {da_historical.shape} don\'t match?'
-                f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}'
+                f'\nGot\n{ret_array}\n{result}\n{da}\n{da_historical}',
             )  # pragma: no cover
         max_val = np.nanmax(ret_array)
 
@@ -366,20 +363,20 @@ class HistoricalMapMaker(MapMaker):
         low, high = current_norm.get(item, [None, None])
         if high is None:
             oet.config.get_logger().debug(f'Update max val for {item} to {max_val}')
-            current_norm.update({item: [low, max_val]})
+            current_norm.update({item: [low, max_val]})  # type: ignore
         self.set_normalizations(current_norm)
 
     @staticmethod
     def add_meta_to_da(result, name, short, long):
         name = '$\\frac{\\mathrm{scenario}}{\\mathrm{picontrol}}$' + f' of {name}'
         result = result.assign_attrs(
-            dict(short_description=short, long_description=long, name=name)
+            dict(short_description=short, long_description=long, name=name),
         )
         result.name = name
         return result
 
     def get_compare(self, item):
-        """Get the ratio of historical and the current data set"""
+        """Get the ratio of historical and the current data set."""
         condition = self.conditions[item]
 
         da = self.data_set[condition.short_description]
@@ -389,7 +386,10 @@ class HistoricalMapMaker(MapMaker):
         self.set_norm_for_item(item, max_val)
 
         result = self.add_meta_to_da(
-            result, da.name, condition.short_description, condition.long_description
+            result,
+            da.name,
+            condition.short_description,
+            condition.long_description,
         )
         return result
 
@@ -427,14 +427,19 @@ def plot_simple(
         set_y_lim_var(var)
     if add_label:
         plt.ylabel(
-            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'
+            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]',
         )
     plt.title('')
 
 
 @oet.utils.check_accepts(accepts=dict(plot=('i', 'ii', 'iii', 'iv', 'v', None)))
 def summarize_mask(
-    data_set, one_mask, plot_kw=None, other_dim=None, plot='v', fig_kw=None
+    data_set,
+    one_mask,
+    plot_kw=None,
+    other_dim=None,
+    plot: ty.Optional[str] = 'v',
+    fig_kw=None,
 ):
     plot_kw = plot_kw or dict(show_std=True)
     other_dim = other_dim or oet.config.config['analyze']['lon_lat_dim'].split(',')
@@ -444,17 +449,17 @@ def summarize_mask(
         gridspec_kw=dict(width_ratios=[1, 1], wspace=0.1, hspace=0.05),
     )
 
-    ds_sel = oet.analyze.region_finding.mask_xr_ds(data_set.copy(), one_mask)
+    ds_sel = oet.analyze.xarray_tools.mask_xr_ds(data_set.copy(), one_mask)
     mm_sel = MapMaker(ds_sel)
-    fig, axes = plt.subplot_mosaic(**fig_kw)
+    fig, axes = plt.subplot_mosaic(**fig_kw)  # type: ignore
 
-    axes['b'].sharex(axes['a'])
+    axes['b'].sharex(axes['a'])  # type: ignore
 
-    plt.sca(axes['a'])
+    plt.sca(axes['a'])  # type: ignore
     var = mm_sel.variable
     plot_simple(ds_sel, var, **plot_kw)
 
-    plt.sca(axes['b'])
+    plt.sca(axes['b'])  # type: ignore
     var = f'{mm_sel.variable}_detrend'
     plot_simple(ds_sel, var, **plot_kw)
 
@@ -475,17 +480,12 @@ def summarize_mask(
 
 def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
     ax = ax or plt.gcf().add_subplot(
-        1, 2, 2, projection=oet.plotting.plot.get_cartopy_projection()
+        1,
+        2,
+        2,
+        projection=oet.plotting.plot.get_cartopy_projection(),
     )
-
-    if field == 'cell_area':
-        ds_dummy[field] /= 1e6
-        tot_area = float(ds_dummy[field].sum(skipna=True))
-
-    ds_dummy[field].values[ds_dummy[field] > 0] = tot_area
-    ds_dummy[field].plot(
-        vmin=1,
-        vmax=510100000,
+    kw = dict(
         norm=LogNorm(),
         cbar_kwargs={
             **oet.plotting.map_maker.MapMaker(ds_dummy).kw.get('cbar', {}),
@@ -493,15 +493,27 @@ def overlay_area_mask(ds_dummy, field='cell_area', ax=None):
         },
         transform=oet.plotting.plot.get_cartopy_transform(),
     )
+    if field == 'cell_area':
+        ds_dummy[field] /= 1e6
+        tot_area = float(ds_dummy[field].sum(skipna=True))
+        ds_dummy[field].values[ds_dummy[field] > 0] = tot_area
+        kw.update(
+            dict(
+                vmin=1,
+                vmax=510100000,
+            ),  # type: ignore
+        )
+    ds_dummy[field].plot(**kw)
     ax.coastlines()
-    exponent = int(np.log10(tot_area))
+    if field == 'cell_area':
+        exponent = int(np.log10(tot_area))  # type: ignore
 
-    plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$')
+        plt.title(f'Area ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$')  # type: ignore
     gl = ax.gridlines(draw_labels=True)
     gl.top_labels = False
 
 
 def make_title(ds):
     return '{institution_id} {source_id} {experiment_id} {variant_label} {variable_id} {version}'.format(
-        **ds.attrs
+        **ds.attrs,
     )

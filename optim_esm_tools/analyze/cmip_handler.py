@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 import os
-import xarray as xr
-
 import typing as ty
 from warnings import warn
 
-from .globals import _FOLDER_FMT, _DEFAULT_MAX_TIME
+import xarray as xr
+
 import optim_esm_tools as oet
+from .globals import _DEFAULT_MAX_TIME
+from .globals import _FOLDER_FMT
 from optim_esm_tools.analyze import tipping_criteria
 
 
@@ -15,9 +15,9 @@ def add_conditions_to_ds(
     calculate_conditions: ty.Optional[ty.Tuple[tipping_criteria._Condition]] = None,
     condition_kwargs: ty.Optional[ty.Mapping] = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
-    _ma_window: ty.Optional[int] = None,
+    _ma_window: ty.Optional[ty.Union[int, str]] = None,
 ) -> xr.Dataset:
-    """Transform the dataset to get it ready for handling in optim_esm_tools
+    """Transform the dataset to get it ready for handling in optim_esm_tools.
 
     Args:
         ds (xr.Dataset): input dataset
@@ -44,26 +44,27 @@ def add_conditions_to_ds(
             tipping_criteria.MaxJumpYearly,
             tipping_criteria.MaxDerivitive,
             tipping_criteria.MaxJumpAndStd,
-        )
-    if len(set(desc := (c.short_description for c in calculate_conditions))) != len(
-        calculate_conditions
+        )  # type: ignore
+    if len(set(desc := (c.short_description for c in calculate_conditions))) != len(  # type: ignore
+        calculate_conditions,  # type: ignore
     ):
         raise ValueError(
-            f'One or more non unique descriptions {desc}'
+            f'One or more non unique descriptions {desc}',
         )  # pragma: no cover
     if condition_kwargs is None:
-        condition_kwargs = dict()
+        condition_kwargs = {}
 
     for variable in oet.utils.to_str_tuple(variable_of_interest):
+        assert calculate_conditions is not None
         for cls in calculate_conditions:
-            condition = cls(**condition_kwargs, variable=variable)
+            condition = cls(**condition_kwargs, variable=variable)  # type: ignore
             condition_array = condition.calculate(ds)
             condition_array = condition_array.assign_attrs(
                 dict(
                     short_description=cls.short_description,
                     long_description=condition.long_description,
                     name=condition_array.name,
-                )
+                ),
             )
             ds[condition.short_description] = condition_array
     return ds
@@ -73,21 +74,21 @@ def add_conditions_to_ds(
 @oet.utils.timed()
 def read_ds(
     base: str,
-    variable_of_interest: ty.Tuple[str] = None,
+    variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
     max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     apply_transform: bool = True,
     pre_process: bool = True,
     strict: bool = True,
-    load: bool = None,
+    load: ty.Optional[bool] = None,
     add_history: bool = False,
-    _ma_window: ty.Optional[int] = None,
+    _ma_window: ty.Optional[ty.Union[int, str]] = None,
     _cache: bool = True,
-    _file_name: str = None,
+    _file_name: ty.Optional[str] = None,
     _skip_folder_info: bool = False,
-    _historical_path: str = None,
+    _historical_path: ty.Optional[str] = None,
     **kwargs,
-) -> xr.Dataset:
+) -> ty.Optional[xr.Dataset]:
     """Read a dataset from a folder called "base".
 
     Args:
@@ -106,7 +107,7 @@ def read_ds(
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         add_history (bool, optional): start by merging historical dataset to the dataset.
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
-        _cache (bool, optional): cache the dataset with it's extra fields to alow faster
+        _cache (bool, optional): cache the dataset with it's extra fields to allow faster
             (re)loading. Defaults to True.
         _file_name (str, optional): name to match. Defaults to configs settings.
         _skip_folder_info (bool, optional): if set to True, do not infer the properties from the
@@ -155,7 +156,7 @@ def read_ds(
         if strict:
             raise FileNotFoundError(message)
         log.warning(message)
-        return None
+        return
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
@@ -176,7 +177,7 @@ def read_ds(
             dict(
                 variable_of_interest=variable_of_interest,
                 _ma_window=_ma_window,
-            )
+            ),
         )
         data_set = add_conditions_to_ds(data_set, **kwargs)
 
@@ -188,7 +189,7 @@ def read_ds(
         if _skip_folder_info
         else {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
     )
-    metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))
+    metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))  # type: ignore
     if _historical_path:
         metadata.update(dict(historical_file=_historical_path))
 
@@ -202,24 +203,30 @@ def read_ds(
 
 
 def _historical_file(
-    add_history, base, _file_name, _historical_path
+    add_history,
+    base,
+    _file_name,
+    _historical_path,
 ) -> ty.Optional[str]:
     if add_history:
         historical_heads = oet.analyze.find_matches.associate_historical(
-            path=base, match_to='historical', strict=False
+            path=base,
+            match_to='historical',
+            strict=False,
         )
         if not historical_heads and not _historical_path:
             raise FileNotFoundError(f'No historical matches for {base}')
         _historical_path = _historical_path or os.path.join(
-            historical_heads[0], _file_name
+            historical_heads[0],  # type: ignore
+            _file_name,
         )
         if not os.path.exists(_historical_path):
             raise ValueError(
-                f'{_historical_path} not found, (check {historical_heads}?)'
+                f'{_historical_path} not found, (check {historical_heads}?)',
             )
     elif _historical_path:
         raise ValueError(
-            f'Wrong input _historical_path is {_historical_path} but add_history is False'
+            f'Wrong input _historical_path is {_historical_path} but add_history is False',
         )
     return _historical_path
 
@@ -233,7 +240,7 @@ def _name_cache_file(
     is_historical,
     version=None,
 ):
-    """Get a file name that identifies the settings"""
+    """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
     _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
     path = os.path.join(

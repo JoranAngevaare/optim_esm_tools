@@ -1,19 +1,21 @@
-import optim_esm_tools as oet
-import numpy as np
-import xarray as xr
+import operator
+import os
 import typing as ty
 from functools import partial
-import os
-import operator
+
+import numpy as np
+import xarray as xr
+
+import optim_esm_tools as oet
 
 
 class TimeStatistics:
-    calculation_kwargs: ty.Mapping = None
+    calculation_kwargs: ty.Optional[ty.Mapping] = None
 
     def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
         # sourcery skip: dict-literal
         self.data_set = data_set
-        self.calculation_kwargs = calculation_kwargs or dict()
+        self.calculation_kwargs = calculation_kwargs or {}
         self.functions = self.default_calculations()
         if any(k not in self.functions for k in self.calculation_kwargs):
             bad = set(self.calculation_kwargs.keys()) - set(self.functions.keys())
@@ -74,7 +76,7 @@ class TimeStatistics:
             ty.Dict[ty.Optional[float]]: Mapping of test to result value
         """
         return {
-            k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)
+            k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)  # type: ignore
             for k, f in self.functions.items()
         }
 
@@ -113,23 +115,32 @@ def default_thresholds(
 
 def _get_ds_global(ds, **read_kw):
     path = ds.attrs['file']
-    return (
-        oet.load_glob(path)
-        if os.path.exists(path)
-        else oet.read_ds(os.path.split(path)[0], **read_kw)
-    )
+    if os.path.exists(path):
+        result = oet.load_glob(path)
+        assert result is not None, path
+        return result
+    oet.get_logger().warning(f'fallback for {path}')
+    return oet.read_ds(os.path.split(path)[0], **read_kw)
 
 
 def n_times_global_std(
-    ds, average_over=None, criterion='std detrended', _ds_global=None, **read_kw
+    ds,
+    average_over=None,
+    criterion='std detrended',
+    _ds_global=None,
+    **read_kw,
 ):
     average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
-        ','
+        ',',
     )
     ds_global = _ds_global or _get_ds_global(ds, **read_kw)
     variable = ds.attrs['variable_id']
     crit = _get_tip_criterion(criterion)(variable=variable)
     val = float(crit.calculate(ds.mean(average_over)))
+    assert isinstance(
+        ds_global,
+        xr.Dataset,
+    ), f'Got type {type(_ds_global)} expected xr.Dataset. ({read_kw})'
     val_global = float(crit.calculate(ds_global.mean(average_over)))
     return val / val_global if val_global else np.inf
 
@@ -137,21 +148,22 @@ def n_times_global_std(
 def get_historical_ds(ds, _file_name=None, **kw):
     # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
-    find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)
-    read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)
+    find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)  # type: ignore
+    read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)  # type: ignore
     if _file_name is not None:
         find_kw['search_kw'] = dict(required_file=_file_name)
         read_kw['_file_name'] = _file_name
     try:
         hist_path = oet.analyze.find_matches.associate_historical(
-            path=ds.attrs['path'], **find_kw
+            path=ds.attrs['path'],
+            **find_kw,
         )
     except RuntimeError as e:  # pragma: no cover
         print(e)
         return
     read_kw.setdefault('max_time', None)
     read_kw.setdefault('min_time', None)
-    hist_ds = oet.read_ds(hist_path[0], **read_kw)
+    hist_ds = oet.read_ds(hist_path[0], **read_kw)  # type: ignore
     return hist_ds
 
 
@@ -171,7 +183,7 @@ def calculate_dip_test(ds, field=None, nan_policy='omit'):
         values = values[~np.isnan(values)]
     else:
         raise NotImplementedError(
-            'Not sure how to deal with nans other than omit'
+            'Not sure how to deal with nans other than omit',
         )  # pragma: no cover
     if len(values) < 3:  # pragma: no cover
         # At least 3 samples are needed
@@ -193,7 +205,11 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
 
 
 def calculate_symmetry_test(
-    ds, field=None, nan_policy='omit', test_statistic='MI', **kw
+    ds,
+    field=None,
+    nan_policy='omit',
+    test_statistic='MI',
+    **kw,
 ):
     import rpy_symmetry as rsym
 
@@ -207,15 +223,15 @@ def calculate_symmetry_test(
 
 
 def _get_tip_criterion(short_description):
-    for mod in oet.analyze.tipping_criteria.__dict__.values():
+    for mod in oet.analyze.tipping_criteria.__dict__.values():  # type: ignore
         if not isinstance(mod, type):
             continue
-        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):
+        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):  # type: ignore
             continue
         if getattr(mod, 'short_description', None) == short_description:
             return mod
     raise ValueError(
-        f'No tipping criterion associated to {short_description}'
+        f'No tipping criterion associated to {short_description}',
     )  # pragma: no cover
 
 

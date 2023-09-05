@@ -1,10 +1,12 @@
+import unittest
+
+import hypothesis
 import numpy as np
+
 import optim_esm_tools._test_utils
 import optim_esm_tools.analyze.clustering as clustering
 from optim_esm_tools.config import config
 from optim_esm_tools.utils import timed
-import hypothesis
-import unittest
 
 
 def test_clustering_empty():
@@ -110,7 +112,8 @@ class TestClustering(unittest.TestCase):
         hypothesis.strategies.integers(min_value=0, max_value=_max_lon),
         hypothesis.strategies.integers(min_value=0, max_value=_max_lat),
         hypothesis.strategies.integers(
-            min_value=1, max_value=int(config['analyze']['clustering_min_neighbors'])
+            min_value=1,
+            max_value=int(config['analyze']['clustering_min_neighbors']),
         ),
     )
     @timed(seconds=1, _report='print', _args_max=300)
@@ -125,7 +128,10 @@ class TestClustering(unittest.TestCase):
         min_samples_cluster,
     ):
         ds = optim_esm_tools._test_utils.minimal_xr_ds(
-            len_x=len_lon, len_y=len_lat, len_time=2, add_nans=False
+            len_x=len_lon,
+            len_y=len_lat,
+            len_time=2,
+            add_nans=False,
         )
         mask = ds['var'].isel(time=0).values.copy()
         mask[:] = 0

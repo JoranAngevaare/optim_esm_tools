@@ -1,7 +1,8 @@
-import tempfile
-import optim_esm_tools as oet
 import os
+import tempfile
 from unittest import TestCase
+
+import optim_esm_tools as oet
 
 
 class TestReadDs(TestCase):
@@ -24,7 +25,10 @@ class TestReadDs(TestCase):
 
             with self.assertRaises(FileNotFoundError):
                 oet.read_ds(
-                    head, add_history=True, _file_name=tail, _skip_folder_info=True
+                    head,
+                    add_history=True,
+                    _file_name=tail,
+                    _skip_folder_info=True,
                 )
             with self.assertRaises(ValueError):
                 oet.read_ds(

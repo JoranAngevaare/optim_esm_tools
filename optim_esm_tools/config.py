@@ -1,8 +1,9 @@
-"""Shared common methods for reprocessing, not useful in itself"""
-from optim_esm_tools.utils import root_folder
+"""Shared common methods for reprocessing, not useful in itself."""
 import configparser
 import logging
 import os
+
+from optim_esm_tools.utils import root_folder
 
 if 'OPTIM_ESM_CONFIG' in os.environ:
     config_path = os.environ['OPTIM_ESM_CONFIG']
@@ -36,8 +37,8 @@ def get_logger(name='oet'):
     return _logger[name]
 
 
-if _warn_later:
+if _warn_later:  # type: ignore
     get_logger().info(
         f'Using {config_path}-config. Overwrite by setting "OPTIM_ESM_CONFIG" '
-        f'as an environment variable'
+        f'as an environment variable',
     )

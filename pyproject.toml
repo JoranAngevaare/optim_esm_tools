@@ -76,4 +76,4 @@ exclude_lines = [
 
 [tool.flake8]
 # Set maximum width of the line to 100
-max-line-length = 100
+max-line-length = 110

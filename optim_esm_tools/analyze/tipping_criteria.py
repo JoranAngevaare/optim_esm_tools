@@ -1,13 +1,16 @@
-from .xarray_tools import apply_abs, _native_date_fmt, _remove_any_none_times
-from optim_esm_tools.utils import check_accepts, timed
-from .globals import _SECONDS_TO_YEAR
-
-import xarray as xr
-
-import typing as ty
 import abc
-from immutabledict import immutabledict
+import typing as ty
+
 import numpy as np
+import xarray as xr
+from immutabledict import immutabledict
+
+from .globals import _SECONDS_TO_YEAR
+from .xarray_tools import _native_date_fmt
+from .xarray_tools import _remove_any_none_times
+from .xarray_tools import apply_abs
+from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import timed
 
 
 class _Condition(abc.ABC):
@@ -45,13 +48,12 @@ class StartEndDifference(_Condition):
     def calculate(self, data_set):
         return running_mean_diff(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming='{variable}_run_mean_{running_mean}',
-            running_mean=self.running_mean,
-            # Pass kw arguments on? I think not
-            _t_0_date=None,
-            _t_1_date=None,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming='{variable}_run_mean_{running_mean}',  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
+            _t_0_date=None,  # type: ignore
+            _t_1_date=None,  # type: ignore
             **self.defaults,
         )
 
@@ -70,10 +72,10 @@ class StdDetrended(_Condition):
     def calculate(self, data_set):
         return running_mean_std(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming=self.use_variable,
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming=self.use_variable,  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
@@ -96,11 +98,11 @@ class MaxJump(_Condition):
     def calculate(self, data_set):
         return max_change_xyr(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming=self.use_variable,
-            x_yr=self.number_of_years,
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming=self.use_variable,  # type: ignore
+            x_yr=self.number_of_years,  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
@@ -140,38 +142,61 @@ class MaxDerivitive(_Condition):
     def calculate(self, data_set):
         return max_derivative(
             data_set,
-            variable=self.variable,
-            time_var=self.time_var,
-            naming='{variable}_run_mean_{running_mean}',
-            running_mean=self.running_mean,
+            variable=self.variable,  # type: ignore
+            time_var=self.time_var,  # type: ignore
+            naming='{variable}_run_mean_{running_mean}',  # type: ignore
+            running_mean=self.running_mean,  # type: ignore
             **self.defaults,
         )
 
 
-class MaxJumpAndStd(MaxJump, StdDetrended):
+class MaxJumpAndStd(_Condition):
     short_description: str = 'percentile score std and max jump'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.number_of_years = 10
 
+    @staticmethod
+    def parents():
+        return MaxJump, StdDetrended
+
     @property
     def long_description(self):
-        return f'Product of {super(MaxJumpAndStd, self).short_description} and {super(MaxJump, self).short_description}'
+        p1, p2 = self.parents()
+        return f'Product of {p1.short_description} and {p2.short_description}'
 
-    def calculate(self, data_set):
-        super_1 = super(MaxJump, self)
-        super_2 = super(MaxJumpAndStd, self)
+    def get_parents_init(self):
+        return [
+            p(
+                variable=self.variable,
+                running_mean=self.running_mean,
+                time_var=self.time_var,
+                **self.defaults,
+            )
+            for p in self.parents()
+        ]
+
+    def get_parent_results(self, data_set):
+        super_1, super_2 = self.get_parents_init()
         da_1 = super_1.calculate(data_set)
         da_2 = super_2.calculate(data_set)
+        assert super_1.short_description != super_2.short_description, (
+            super_1.short_description,
+            super_2.short_description,
+        )
+        return {super_1: da_1, super_2: da_2}
 
-        combined_score = np.ones_like(da_1.values)
-        for da, label in zip(
-            [da_1, da_2], [super_1.short_description, super_2.short_description]
-        ):
-            _name = f'percentile {label}'
-            combined_score *= var_to_perc(da, _name, None)
-        return xr.DataArray(combined_score, dims=da_1.dims, name=self.short_description)
+    def calculate(self, data_set):
+        da_1, da_2 = self.get_parent_results(data_set).values()
+        combined_score = np.ones_like(da_1.values, dtype=np.float64)
+        for da in [da_1, da_2]:
+            combined_score *= rank2d(da.values)
+        return xr.DataArray(
+            combined_score,
+            coords=da_1.coords,
+            name=self.short_description,
+        )
 
 
 @timed
@@ -188,8 +213,8 @@ def running_mean_diff(
     apply_abs: bool = True,
     _t_0_date: ty.Optional[tuple] = None,
     _t_1_date: ty.Optional[tuple] = None,
-) -> xr.Dataset:
-    """Return difference in running mean of data set
+) -> xr.DataArray:  # type: ignore
+    """Return difference in running mean of data set.
 
     Args:
         data_set (xr.Dataset):
@@ -218,20 +243,20 @@ def running_mean_diff(
     data_var = _remove_any_none_times(data_set[var_name], time_var)
 
     if _t_0_date is not None:
-        t_0 = _native_date_fmt(_time_values, _t_0_date)
+        t_0 = _native_date_fmt(_time_values, _t_0_date)  # type: ignore
         data_t_0 = data_var.sel(time=t_0, method='nearest')
     else:
         data_t_0 = data_var.isel(time=0)
 
     if _t_0_date is not None:
-        t_1 = _native_date_fmt(_time_values, _t_1_date)
+        t_1 = _native_date_fmt(_time_values, _t_1_date)  # type: ignore
         data_t_1 = data_var.sel(time=t_1, method='nearest')
     else:
         data_t_1 = data_var.isel(time=-1)
 
     result = data_t_1 - data_t_0
     result = result.copy()
-    var_unit = data_var.attrs.get('units', '{units}').replace('%', '\%')
+    var_unit = data_var.attrs.get('units', '{units}').replace('%', r'\%')
     name = data_var.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -240,13 +265,13 @@ def running_mean_diff(
 
     if unit == 'relative':
         result = 100 * result / data_t_0
-        result.name = f't[-1] - t[0] / t[0] for {name} $\%$'
+        result.name = fr't[-1] - t[0] / t[0] for {name} $\%$'
         return result
 
     # Redundant if just for clarity
     if unit == 'std':
         result = result / result.std()
-        result.name = f't[-1] - t[0] for {name} [$\sigma$]'
+        result.name = fr't[-1] - t[0] for {name} [$\sigma$]'
         return result
 
 
@@ -262,11 +287,11 @@ def running_mean_std(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
     result = result.copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', '\%')
+    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', r'\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
     if unit == 'absolute':
@@ -275,12 +300,12 @@ def running_mean_std(
 
     if unit == 'relative':
         result = 100 * result / data_set[data_var].mean(dim=time_var)
-        result.name = f'Relative Std. {name} [$\%$]'
+        result.name = fr'Relative Std. {name} [$\%$]'
         return result
 
     if unit == 'std':
         result = result / data_set[data_var].std()
-        result.name = f'Std. {name} [$\sigma$]'
+        result.name = fr'Std. {name} [$\sigma$]'
         return result
 
 
@@ -297,7 +322,7 @@ def max_change_xyr(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
     to_min_x_yr = data_set.isel({time_var: slice(None, -x_yr)})[data_var]
@@ -306,22 +331,22 @@ def max_change_xyr(
     result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
 
     result = np.abs(result.max(dim=time_var)).copy()
-    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', '\%')
+    var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', r'\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
     if unit == 'absolute':
-        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'
-        return result
+        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'  # type: ignore
+        return result  # type: ignore
 
     if unit == 'relative':
         result = 100 * result / to_min_x_yr.mean(dim=time_var)
-        result.name = f'{x_yr} yr diff. {name} [$\%$]'
-        return result
+        result.name = fr'{x_yr} yr diff. {name} [$\%$]'  # type: ignore
+        return result  # type: ignore
 
     if unit == 'std':
         result = result / result.std()
-        result.name = f'{x_yr} yr diff. {name} [$\sigma$]'
-        return result
+        result.name = fr'{x_yr} yr diff. {name} [$\sigma$]'  # type: ignore
+        return result  # type: ignore
 
 
 @timed
@@ -336,7 +361,7 @@ def max_derivative(
     rename_to: str = 'long_name',
     apply_abs: bool = True,
     unit: str = 'absolute',
-) -> xr.Dataset:
+) -> xr.Dataset:  # type: ignore
     var_name = naming.format(variable=variable, running_mean=running_mean)
 
     data_array = _remove_any_none_times(data_set[var_name], time_var)
@@ -344,27 +369,27 @@ def max_derivative(
         np.abs(data_array.differentiate(time_var)).max(dim=time_var) * _SECONDS_TO_YEAR
     )
 
-    var_unit = data_array.attrs.get('units', '{units}').replace('%', '\%')
+    var_unit = data_array.attrs.get('units', '{units}').replace('%', r'\%')
     name = data_array.attrs.get(rename_to, variable)
 
     if unit == 'absolute':
-        result.name = f'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
+        result.name = fr'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
         return result
 
     if unit == 'relative':
         result = 100 * result / data_array.mean(dim=time_var)
-        result.name = f'Max $\partial/\partial t$ {name} [$\%$/yr]'
+        result.name = fr'Max $\partial/\partial t$ {name} [$\%$/yr]'
         return result
 
     if unit == 'std':
         # A local unit of sigma might be better X.std(dim=time_var)
         result = result / data_array.std()
-        result.name = f'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
+        result.name = fr'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
         return result
 
 
 def rank2d(a):
-    """Calculate precentiles of values in `a`"""
+    """Calculate percentiles of values in `a`"""
     from scipy.interpolate import interp1d
 
     a_flat = a[~np.isnan(a)].flatten()
@@ -380,17 +405,20 @@ def rank2d(a):
 
 
 def var_to_perc(
-    ds: ty.Union[xr.Dataset, xr.DataArray], dest_var: str, source_var: str
+    ds: ty.Union[xr.Dataset, xr.DataArray],
+    dest_var: str,
+    source_var: str,
 ) -> ty.Union[xr.Dataset, np.ndarray]:
-    """Calculate the percentile score of each of the data var, and assign it to the data set to get
+    """Calculate the percentile score of each of the data var, and assign it to
+    the data set to get.
 
     Args:
         ds (xr.Dataset): data_set with data-var to calculate the percentiles of
-        dest_var (str): under wich name the scores should be combined under.
+        dest_var (str): under which name the scores should be combined under.
         source_var (str): property to calculate the percentiles of
 
     Returns:
-        xr.Dataset: Original data_set with one extra colum (dest_var)
+        xr.Dataset: Original data_set with one extra column (dest_var)
     """
     source_array = ds if source_var is None else ds[source_var]
     percentiles = rank2d(source_array.values)
@@ -399,4 +427,4 @@ def var_to_perc(
         return percentiles
 
     ds[dest_var] = (source_array.dims, percentiles)
-    return ds
+    return ds  # type: ignore

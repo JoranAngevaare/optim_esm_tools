@@ -1,15 +1,21 @@
-import matplotlib.pyplot as plt
-import optim_esm_tools as oet
-from optim_esm_tools.config import config, get_logger
 import typing as ty
+
+import matplotlib.pyplot as plt
 import xarray as xr
+
+import optim_esm_tools as oet
+from optim_esm_tools.config import config
+from optim_esm_tools.config import get_logger
 
 
 def setup_map(
-    projection=None, coastlines=True, add_features=False, **projection_kwargs
+    projection=None,
+    coastlines=True,
+    add_features=False,
+    **projection_kwargs,
 ):
     plt.gcf().add_subplot(
-        projection=get_cartopy_projection(projection, **projection_kwargs)
+        projection=get_cartopy_projection(projection, **projection_kwargs),
     )
     ax = plt.gca()
     if coastlines:
@@ -63,7 +69,7 @@ def set_y_lim_var(var):
 
 
 def get_unit_da(da):
-    return da.attrs.get('units', '?').replace('%', '\%')
+    return da.attrs.get('units', '?').replace('%', r'\%')
 
 
 def get_unit(ds, var):
@@ -81,16 +87,20 @@ def get_cartopy_projection(projection=None, _field='projection', **projection_kw
 
 def get_cartopy_transform(projection=None, **projection_kwargs):
     return get_cartopy_projection(
-        projection=projection, _field='transform', **projection_kwargs
+        projection=projection,
+        _field='transform',
+        **projection_kwargs,
     )
 
 
 def get_xy_lim_for_projection(
     projection=None,
 ) -> ty.Tuple[ty.Tuple[float, float], ty.Tuple[float, float]]:
-    """
-    Blunt hardcoding for the different projections. Calling plt.xlim(0, 360) will have vastly
-    different outcomes depending on the projection used. Here we hardcoded some of the more common.
+    """Blunt hardcoding for the different projections.
+
+    Calling plt.xlim(0, 360) will have vastly different outcomes
+    depending on the projection used. Here we hardcoded some of the more
+    common.
     """
     projection = projection or config['cartopy']['projection']
     lims = dict(
@@ -110,12 +120,12 @@ def get_xy_lim_for_projection(
     )
     if projection not in lims:
         get_logger().warning(
-            f'No hardcoded x/y lims for {projection}, might yield odd figures.'
+            f'No hardcoded x/y lims for {projection}, might yield odd figures.',
         )  # pragma: no cover
     return lims.get(projection, ((0, 360), (-90, 90)))
 
 
 def plot_da(da: xr.DataArray, projection: str = None, **kw):
-    """Simple wrapper for da.plot() with correct transforms and projections"""
+    """Simple wrapper for da.plot() with correct transforms and projections."""
     setup_map(projection=projection)
     da.plot(transform=get_cartopy_transform(), **kw)

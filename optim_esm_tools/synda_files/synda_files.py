@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import os
 import typing
 
 
 class SyndaViewer:
-    """Visualize synda downloads as a tree structure"""
+    """Visualize synda downloads as a tree structure."""
 
     def __init__(
         self,
@@ -14,13 +13,14 @@ class SyndaViewer:
         concatenate_folders: bool = True,
         count_files: bool = False,
     ):
-        """
-        Viewer for Synda Folder structure
+        """Viewer for Synda Folder structure.
 
         :param base: where to start looking
-        :param max_depth: maximum recursion depth from the base to show folders
+        :param max_depth: maximum recursion depth from the base to show
+            folders
         :param show_files: list files as well as folders
-        :param concatenate_folders: concatenate folder names if they contain only one subfolder
+        :param concatenate_folders: concatenate folder names if they
+            contain only one subfolder
         :param count_files: count files per folder
         """
         self.base = base
@@ -40,10 +40,12 @@ class SyndaViewer:
             if self._skip_deep(head):
                 continue
             split = self.chopped_path(head)
+            look_back = None
             for look_back in range(len(split) - 1):
                 last_head = os.sep.join(split[:-look_back])
                 if last_head in tree.nodes.keys():
                     break
+            assert look_back is not None
             if last_head in ['', '/']:
                 print(
                     head,
@@ -75,7 +77,7 @@ class SyndaViewer:
         return (
             self.max_depth
             and self.count_depth(head) - self.count_depth(self.base) > self.max_depth
-        )
+        )  # type: ignore
 
     @staticmethod
     def chopped_path(path) -> list:

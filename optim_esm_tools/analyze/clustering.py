@@ -1,12 +1,19 @@
 import contextlib
-import itertools
-import numpy as np
-from optim_esm_tools.utils import tqdm, timed
-from optim_esm_tools.config import get_logger, config
 import typing as ty
+from math import atan2
+from math import cos
+from math import radians
+from math import sin
+from math import sqrt
+
 import numba
-from math import sin, cos, sqrt, atan2, radians
+import numpy as np
 import xarray as xr
+
+from optim_esm_tools.config import config
+from optim_esm_tools.config import get_logger
+from optim_esm_tools.utils import timed
+from optim_esm_tools.utils import tqdm
 
 
 @timed()
@@ -18,7 +25,8 @@ def build_clusters(
     min_samples: int = int(config['analyze']['clustering_min_neighbors']),
     cluster_opts: ty.Optional[dict] = None,
 ) -> ty.List[np.ndarray]:
-    """Build clusters based on a list of coordinates, use halfsine metric for spherical spatial data
+    """Build clusters based on a list of coordinates, use halfsine metric for
+    spherical spatial data.
 
     Args:
         coordinates_deg (np.ndarray): set of xy coordinates in degrees
@@ -48,11 +56,12 @@ def build_clusters(
     # Thanks https://stackoverflow.com/a/38731787/18280620!
     try:
         db_fit = DBSCAN(eps=max_distance_km / 6371.0, **cluster_opts).fit(
-            X=coordinates_rad, sample_weight=weights
+            X=coordinates_rad,
+            sample_weight=weights,
         )
     except ValueError as e:  # pragma: no cover
         raise ValueError(
-            f'With {coordinates_rad.shape} and {getattr(weights, "shape", None)} {coordinates_rad}, {weights}'
+            f'With {coordinates_rad.shape} and {getattr(weights, "shape", None)} {coordinates_rad}, {weights}',
         ) from e
 
     labels = db_fit.labels_
@@ -82,13 +91,14 @@ def build_clusters(
 @timed()
 def build_cluster_mask(
     global_mask: np.ndarray,
-    lat_coord: np.array,
-    lon_coord: np.array,
+    lat_coord: np.ndarray,
+    lon_coord: np.ndarray,
     show_tqdm: bool = False,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
-    """Build set of clusters and masks based on the global mask, basically a utility wrapper around build_clusters'
+    """Build set of clusters and masks based on the global mask, basically a
+    utility wrapper around build_clusters'.
 
     Args:
         global_mask (np.ndarray): full 2d mask of the data
@@ -131,14 +141,15 @@ def build_cluster_mask(
 @timed()
 def build_weighted_cluster(
     weights: np.ndarray,
-    lat_coord: np.array,
-    lon_coord: np.array,
+    lat_coord: np.ndarray,
+    lon_coord: np.ndarray,
     show_tqdm: bool = False,
     threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
-    """Build set of clusters and masks based on the weights (which should be a grid)'
+    """Build set of clusters and masks based on the weights (which should be a
+    grid)'.
 
     Args:
         weights (np.ndarray): normalized score data (values in [0,1])
@@ -176,7 +187,8 @@ def build_weighted_cluster(
 
 
 def _check_input(data, lat_coord, lon_coord):
-    """Check for consistency and if we need to convert the lon/lat coordinates to a meshgrid"""
+    """Check for consistency and if we need to convert the lon/lat coordinates
+    to a meshgrid."""
     if len(lon_coord.shape) <= 1:
         lon, lat = np.meshgrid(lon_coord, lat_coord)
     else:
@@ -190,17 +202,19 @@ def _check_input(data, lat_coord, lon_coord):
 
 
 def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
-    """Overlapping logic between functions to get the masks and clusters"""
+    """Overlapping logic between functions to get the masks and clusters."""
     masks = []
     clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
     if lat.shape != lon.shape:
         raise ValueError(
-            f'Got inconsistent input {lat.shape} != {lon.shape}'
+            f'Got inconsistent input {lat.shape} != {lon.shape}',
         )  # pragma: no cover
     for cluster in clusters:
         mask = np.zeros(lat.shape, np.bool_)
         for coord_lat, coord_lon in tqdm(
-            cluster, desc='fill_mask', disable=not show_tqdm
+            cluster,
+            desc='fill_mask',
+            disable=not show_tqdm,
         ):
             # This is a bit blunt, but it's fast enough to regain the indexes such that we can build a 2d masked array.
             mask_x = np.isclose(lon, coord_lon)
@@ -211,27 +225,31 @@ def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
 
 
 def infer_max_step_size(
-    lat: np.ndarray, lon: np.ndarray, off_by_factor: float = None
+    lat: np.ndarray,
+    lon: np.ndarray,
+    off_by_factor: ty.Optional[float] = None,
 ) -> float:
-    """
-    Infer the max. distance between two points to be considered as belonging to the same cluster.
+    """Infer the max. distance between two points to be considered as belonging
+    to the same cluster.
 
-    There are two methods implemented, preferably, the lon, lat values are 1d-arrays, which can be
-    interpreted as a regular grid. If this is the case, calculate the distance for each point to
-    it's neighbors (also diagonally). Then, the max distance for the clustering can be taken as
-    the max. distance to any of the neighboring points.
+    There are two methods implemented, preferably, the lon, lat values
+    are 1d-arrays, which can be interpreted as a regular grid. If this
+    is the case, calculate the distance for each point to it's neighbors
+    (also diagonally). Then, the max distance for the clustering can be
+    taken as the max. distance to any of the neighboring points.
 
-    Empirically, we found that this distance is not enough, and an additional fudge factor is
-    taken into account from version v1.0.3 onwards, this is taken to be sqrt(2). This is probably
-    not a coincidence, but it's not really clear where it's coming from.
+    Empirically, we found that this distance is not enough, and an
+    additional fudge factor is taken into account from version v1.0.3
+    onwards, this is taken to be sqrt(2). This is probably not a
+    coincidence, but it's not really clear where it's coming from.
     """
     if off_by_factor is None:
         off_by_factor = float(config['analyze']['clustering_fudge_factor'])
     if len(lat.shape) == 1:
-        return off_by_factor * np.max(calculate_distance_map(lat, lon))
+        return off_by_factor * np.max(calculate_distance_map(lat, lon))  # type: ignore
 
     get_logger().info(
-        '(Irregular) grid, max_step_size based on first points above equator'
+        '(Irregular) grid, max_step_size based on first points above equator',
     )
     # We have to get two points from the potentially irregular grid and guess the distance from
     # that. This is not as reliable as calculating this for a regular grid.
@@ -249,7 +267,8 @@ def infer_max_step_size(
 
 
 def calculate_distance_map(lat, lon):
-    """For each point in a spanned lat lon grid, calculate the distance to the neighboring points"""
+    """For each point in a spanned lat lon grid, calculate the distance to the
+    neighboring points."""
     if isinstance(lat, xr.DataArray):
         lat = lat.values
         lon = lon.values
@@ -263,7 +282,7 @@ def _calculate_distance_map(lat, lon):  # sourcery skip: use-itertools-product
     distances = np.zeros((n_lat, n_lon))
 
     shift_by_index = np.array(
-        [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (1, -1), (-1, 1)]
+        [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (1, -1), (-1, 1)],
     )
     neighbors = np.zeros(len(shift_by_index), dtype=np.float64)
     for lon_i in range(n_lon):
@@ -284,7 +303,7 @@ def _calculate_distance_map(lat, lon):  # sourcery skip: use-itertools-product
 
 
 def _distance(coords, force_math=False):
-    """Wrapper for if geopy is not installed"""
+    """Wrapper for if geopy is not installed."""
     if not force_math:
         with contextlib.suppress(ImportError):
             from geopy.distance import geodesic
