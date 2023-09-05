@@ -222,7 +222,9 @@ def to_str_tuple(
         return tuple(x)
     if isinstance(x, tuple):
         return x
-    raise TypeError(f'Expected string or tuple of strings, got {type(x)}')
+    raise TypeError(
+        f'Expected string or tuple of strings, got {type(x)}',
+    )  # pragma: no cover
 
 
 def mathrm(string):

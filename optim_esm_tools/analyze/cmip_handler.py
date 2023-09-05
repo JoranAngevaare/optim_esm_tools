@@ -134,7 +134,7 @@ def read_ds(
     if kwargs:
         log.error(f'Not really advised yet to call with {kwargs}')
         _cache = False
-    if not apply_transform:
+    if not apply_transform:  # pragma: no cover
         # Don't cache the partial ds
         _cache = False
 
@@ -167,8 +167,10 @@ def read_ds(
             _ma_window=_ma_window,
             variable_id=variable_of_interest,
         )
-    else:
+    else:  # pragma: no cover
         message = 'Not preprocessing file is dangerous, dimensions may differ wildly!'
+        if strict:
+            raise ValueError(message)
         log.warning(message)
         data_set = oet.analyze.io.load_glob(data_path, load=load)
 
@@ -220,7 +222,7 @@ def _historical_file(
             historical_heads[0],  # type: ignore
             _file_name,
         )
-        if not os.path.exists(_historical_path):
+        if not os.path.exists(_historical_path):  # pragma: no cover
             raise ValueError(
                 f'{_historical_path} not found, (check {historical_heads}?)',
             )

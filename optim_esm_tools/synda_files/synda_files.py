@@ -46,16 +46,7 @@ class SyndaViewer:
                 if last_head in tree.nodes.keys():
                     break
             assert look_back is not None
-            if last_head in ['', '/']:
-                print(
-                    head,
-                    directories,
-                    files,
-                    last_head,
-                    look_back,
-                    split[:-look_back],
-                    tree.nodes.keys(),
-                )
+            if last_head in ['', '/']:  # pragma: no cover
                 last_head = base
 
             if self._add_head(directories):

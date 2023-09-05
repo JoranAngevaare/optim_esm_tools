@@ -176,7 +176,7 @@ class Percentiles(RegionExtractor):
     def _all_pass_historical(self, *a, **kw):
         raise NotImplementedError(
             f'{self.__class__.__name__} has not method all_pass_historical',
-        )  # pragma no cover
+        )  # pragma: no cover
 
     def _sum_rank(self, labels: ty.List[str]) -> npt.NDArray[np.float64]:
         """The `_sum_rank` function calculates the average rank of values in a

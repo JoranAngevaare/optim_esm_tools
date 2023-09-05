@@ -49,7 +49,7 @@ class _HistroricalLookup(abc.ABC):
             read_ds_kw.setdefault(k, v)  # type: ignore
         historical_path = self.find_historical(**kw)
         if historical_path is None:
-            raise ValueError('No match found')
+            raise ValueError('No match found')  # pragma: no cover
         res = oet.read_ds(historical_path[0], **read_ds_kw)
         assert isinstance(res, xr.Dataset)
         return res

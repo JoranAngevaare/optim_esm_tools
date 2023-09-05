@@ -182,7 +182,7 @@ class MapMaker:
         if item in self.conditions:
             condition = self.conditions[item]
             return self.data_set[condition.short_description]
-        return self.__getattribute__(item)
+        return self.__getattribute__(item)  # pragma: no cover
 
     def _ts(
         self,
@@ -396,7 +396,7 @@ class HistoricalMapMaker(MapMaker):
     def __getattr__(self, item):
         if item in self.conditions:
             return self.get_compare(item)
-        return self.__getattribute__(item)
+        return self.__getattribute__(item)  # pragma: no cover
 
 
 def plot_simple(

@@ -119,8 +119,9 @@ def _get_ds_global(ds, **read_kw):
         result = oet.load_glob(path)
         assert result is not None, path
         return result
-    oet.get_logger().warning(f'fallback for {path}')
-    return oet.read_ds(os.path.split(path)[0], **read_kw)
+    else:  # pragma: no cover
+        oet.get_logger().warning(f'fallback for {path}')
+        return oet.read_ds(os.path.split(path)[0], **read_kw)
 
 
 def n_times_global_std(
@@ -267,7 +268,7 @@ def calculate_n_breaks(
     model = model or oet.config.config['analyze']['rpt_model']
     method = method or oet.config.config['analyze']['rpt_method']
 
-    if len(values) < min_size:
+    if len(values) < min_size:  # pragma: no cover
         return None
 
     algorithm = getattr(rpt, method)(model=model, min_size=min_size, jump=jump)

@@ -53,6 +53,19 @@ class TestMapMaker(unittest.TestCase):
         oet.plotting.map_maker.MapMaker(data_set=data_set).plot_all(2)
         plt.clf()
 
+    def test_make_map_w_normalizations(self):
+        data_set = oet.analyze.cmip_handler.read_ds(
+            os.path.split(self.ayear_file)[0],
+            _file_name=self.name_merged,
+        )
+        mm = oet.plotting.map_maker.MapMaker(
+            data_set=data_set,
+            normalizations=[[0.1, 10]] * 5,
+        )
+        mm.plot_all(2)
+        print(mm.normalizations)
+        plt.clf()
+
     def test_map_maker_time_series(self, **kw):
         data_set = oet.analyze.cmip_handler.read_ds(
             os.path.split(self.ayear_file)[0],

@@ -31,7 +31,7 @@ class VariableMerger:
         if data_set is None:
             assert paths, "Dataset specified, don't give paths"
         else:
-            assert not paths, 'Dataset not specified, give paths!'
+            assert not paths, 'Dataset not specified, give paths!'  # pragma: no cover
         self.data_set = data_set
 
         self.mask_paths = paths
@@ -254,7 +254,9 @@ class VariableMerger:
         if self.merge_method == 'logical_or':
             return common_mask | other_dataset[field].astype(np.bool_)
 
-        raise NotImplementedError(f'No such method as {self.merge_method}')
+        raise NotImplementedError(
+            f'No such method as {self.merge_method}',
+        )  # pragma: no cover
 
     def add_table(self, *a, **kw):
         return add_table(*a, **kw)
