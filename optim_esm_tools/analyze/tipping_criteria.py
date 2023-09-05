@@ -242,18 +242,8 @@ def running_mean_diff(
 
     data_var = _remove_any_none_times(data_set[var_name], time_var)
 
-    if _t_0_date is not None:
-        t_0 = _native_date_fmt(_time_values, _t_0_date)  # type: ignore
-        data_t_0 = data_var.sel(time=t_0, method='nearest')
-    else:
-        data_t_0 = data_var.isel(time=0)
-
-    if _t_0_date is not None:
-        t_1 = _native_date_fmt(_time_values, _t_1_date)  # type: ignore
-        data_t_1 = data_var.sel(time=t_1, method='nearest')
-    else:
-        data_t_1 = data_var.isel(time=-1)
-
+    data_t_0 = data_var.isel(time=0)
+    data_t_1 = data_var.isel(time=-1)
     result = data_t_1 - data_t_0
     result = result.copy()
     var_unit = data_var.attrs.get('units', '{units}').replace('%', r'\%')
@@ -402,29 +392,3 @@ def rank2d(a):
     n = len(a_flat)
     itp = interp1d(np.sort(a_flat), np.arange(n) / n, bounds_error=False)
     return itp(a)
-
-
-def var_to_perc(
-    ds: ty.Union[xr.Dataset, xr.DataArray],
-    dest_var: str,
-    source_var: str,
-) -> ty.Union[xr.Dataset, np.ndarray]:
-    """Calculate the percentile score of each of the data var, and assign it to
-    the data set to get.
-
-    Args:
-        ds (xr.Dataset): data_set with data-var to calculate the percentiles of
-        dest_var (str): under which name the scores should be combined under.
-        source_var (str): property to calculate the percentiles of
-
-    Returns:
-        xr.Dataset: Original data_set with one extra column (dest_var)
-    """
-    source_array = ds if source_var is None else ds[source_var]
-    percentiles = rank2d(source_array.values)
-
-    if source_var is None:
-        return percentiles
-
-    ds[dest_var] = (source_array.dims, percentiles)
-    return ds  # type: ignore

@@ -170,28 +170,28 @@ class RegionExtractor:
         self.plot_masks(masks_and_clusters)
         self.plot_mask_time_series(masks_and_clusters)
 
-    def get_masks(self) -> _mask_cluster_type:
+    def get_masks(self) -> _mask_cluster_type:  # pragma: no cover
         raise NotImplementedError(
             f'{self.__class__.__name__} has no get_masks',
-        )  # pragma no cover
+        )
 
     def plot_masks(
         self,
         masks_and_clusters: _mask_cluster_type,
         **kw,
-    ) -> _mask_cluster_type:
+    ) -> _mask_cluster_type:  # pragma: no cover
         raise NotImplementedError(
             f'{self.__class__.__name__} has no plot_masks',
-        )  # pragma no cover
+        )
 
     def plot_mask_time_series(
         self,
         masks_and_clusters: _mask_cluster_type,
         **kw,
-    ) -> _mask_cluster_type:
+    ) -> _mask_cluster_type:  # pragma: no cover
         raise NotImplementedError(
             f'{self.__class__.__name__} has no plot_mask_time_series',
-        )  # pragma no cover
+        )
 
     @plt_show()
     def plot_basic_map(self) -> None:
@@ -200,10 +200,10 @@ class RegionExtractor:
         self._plot_basic_map()
         self.save(f'{self.title_label}_global_map')
 
-    def _plot_basic_map(self):
+    def _plot_basic_map(self):  # pragma: no cover
         raise NotImplementedError(
             f'{self.__class__.__name__} has no _plot_basic_map',
-        )  # pragma: no cover
+        )
 
     def save(self, name) -> None:
         """The `save` function saves a figure with the given name and
@@ -249,8 +249,8 @@ class RegionExtractor:
         """
         try:
             if mask is None or not np.sum(mask):
-                return np.array([0])
-        except Exception as e:
+                return np.array([0])  # pragma: no cover
+        except Exception as e:  # pragma: no cover
             raise ValueError(mask) from e
         self.check_shape(mask)
         return self.data_set['cell_area'].values[mask]
