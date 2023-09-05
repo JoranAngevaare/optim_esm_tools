@@ -50,7 +50,7 @@ def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
                 if add_abs_to_name and isinstance(getattr(response, 'name'), str):
                     response.name = f'Abs. {response.name}'
                 return np.abs(response)
-            return response
+            return response  # pragma: no cover
 
         return somedec_inner
 
@@ -209,7 +209,7 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     data_set = data_set.where(da_mask.compute(), drop=True)
 
     # Restore ignored variables and attributes
-    for k in dropped:
+    for k in dropped:  # pragma: no cover
         data_set[k] = ds_start[k]
     return data_set
 

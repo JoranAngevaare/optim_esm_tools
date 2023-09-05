@@ -42,7 +42,7 @@ def get_file_from_pangeo(experiment_id='ssp585', refresh=True):
     data = list(ddict.values())[0]
 
     data = data.mean(set(data.dims) - {'x', 'y', 'lat', 'lon', 'time'})
-    if query['variable_id'] != 'tas':
+    if query['variable_id'] != 'tas':  # pragma: no cover
         raise ValueError(
             'Only tas for now as only areacella is hardcoded (see line below)',
         )

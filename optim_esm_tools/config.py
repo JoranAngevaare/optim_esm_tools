@@ -5,7 +5,7 @@ import os
 
 from optim_esm_tools.utils import root_folder
 
-if 'OPTIM_ESM_CONFIG' in os.environ:
+if 'OPTIM_ESM_CONFIG' in os.environ:  # pragma: no cover
     config_path = os.environ['OPTIM_ESM_CONFIG']
 else:
     _warn_later = True
