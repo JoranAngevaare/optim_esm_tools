@@ -216,9 +216,8 @@ def _historical_file(
         )
         if not historical_heads and not _historical_path:
             raise FileNotFoundError(f'No historical matches for {base}')
-        assert historical_heads is not None
         _historical_path = _historical_path or os.path.join(
-            historical_heads[0],
+            historical_heads[0],  # type: ignore
             _file_name,
         )
         if not os.path.exists(_historical_path):
