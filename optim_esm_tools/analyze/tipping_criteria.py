@@ -211,8 +211,6 @@ def running_mean_diff(
     rename_to: str = 'long_name',
     unit: str = 'absolute',
     apply_abs: bool = True,
-    _t_0_date: ty.Optional[tuple] = None,
-    _t_1_date: ty.Optional[tuple] = None,
 ) -> xr.DataArray:  # type: ignore
     """Return difference in running mean of data set.
 
@@ -225,9 +223,6 @@ def running_mean_diff(
         rename_to (str, optional): . Defaults to 'long_name'.
         unit (str, optional): . Defaults to 'absolute'.
         apply_abs (bool, optional): . Defaults to True.
-        _t_0_date (ty.Optional[tuple], optional): . Defaults to None.
-        _t_1_date (ty.Optional[tuple], optional): . Defaults to None.
-
     Raises:
         ValueError: when no timestamps are not none?
 
@@ -319,8 +314,8 @@ def max_change_xyr(
 
     # Keep the metadata (and time stamps of the to_min_x_yr)
     result = to_min_x_yr.copy(data=plus_x_yr.values - to_min_x_yr.values)
-
-    result = np.abs(result.max(dim=time_var)).copy()
+    result.data = np.abs(result.values)
+    result = result.max(dim=time_var)
     var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', r'\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
