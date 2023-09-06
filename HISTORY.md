@@ -1,3 +1,23 @@
+1.5.0 / 2023-09-6
+------------------
+#### Minor change
+* Iterative masking in `region_finding.py` to gain control of masked areas by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/141
+
+#### Patches
+* Fix tests for past py39 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/138
+* Fix absolute numbers for tipping criteria by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/136
+* Update merge variables by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/137
+* Update coverage by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/142
+
+
+#### Notes
+* Important bugfix in https://github.com/JoranAngevaare/optim_esm_tools/pull/136 which solves an issue with decreasing trends not being treated the same as increasing trends due to a `np.max` call to signed values.
+
+
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.4.1...v1.5.0
+
 1.4.1 / 2023-08-28
 ------------------
 * Sourcery refactor suggestions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/132
