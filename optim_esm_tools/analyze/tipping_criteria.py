@@ -52,8 +52,6 @@ class StartEndDifference(_Condition):
             time_var=self.time_var,  # type: ignore
             naming='{variable}_run_mean_{running_mean}',  # type: ignore
             running_mean=self.running_mean,  # type: ignore
-            _t_0_date=None,  # type: ignore
-            _t_1_date=None,  # type: ignore
             **self.defaults,
         )
 
