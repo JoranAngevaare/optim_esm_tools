@@ -1,5 +1,16 @@
-1.5.0 / 2023-09-6
+1.6.0 / 2023-09-06
 ------------------
+* Fix the sign issue for good by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/143
+
+#### Notes
+* Important bugfix in https://github.com/JoranAngevaare/optim_esm_tools/pull/143 which solves an issue with decreasing trends not being treated the same as increasing trends due to a `np.max` call to signed values.
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.5.0...v1.6.0
+
+
+1.5.0 / 2023-09-06
+------------------
+_bugged release, please use >v1.6.0_
 #### Minor change
 * Iterative masking in `region_finding.py` to gain control of masked areas by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/141
 
