@@ -92,8 +92,7 @@ class VariableMerger:
         )
         return new_ds
 
-    @staticmethod
-    def _merge_squash(new_ds: dict) -> xr.Dataset:
+    def _merge_squash(self, new_ds: dict) -> xr.Dataset:
         try:
             new_ds = xr.Dataset(**new_ds)
         except TypeError as e:  # pragma: no cover
