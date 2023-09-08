@@ -111,6 +111,7 @@ class TestVariableMerger(TestCase):
         dataset.attrs['variables'] = list(
             set(dummy_data) - {'global_mask', 'cell_area'} | {'offset_variable1'},
         )
+        dataset.attrs['source_files'] = ['' for _ in dataset.attrs['variables']]
 
         # Add a running mean with 10 samples to each variable while considering the new dimensions
         for var_name in dummy_data:
