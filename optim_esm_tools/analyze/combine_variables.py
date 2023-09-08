@@ -314,7 +314,6 @@ class VariableMerger:
         _historical_ds=None,
         **plot_kw,
     ):
-        # plot_kw.setdefault('alpha', 0.5)
         plot_kw.setdefault('lw', 1)
         plot_kw.setdefault('add_label', False)
         read_ds_kw = read_ds_kw or {}
@@ -344,8 +343,7 @@ class VariableMerger:
                 + oet.config.config['analyze']['moving_average_years']
             )
             oet.plotting.map_maker.plot_simple(historical_ds, var_rm, **rm_kw)
-            oet.plotting.map_maker.plot_simple(historical_ds, var, **plot_kw)  # type: ignore
-            # plt.legend(loc='center left')
+            oet.plotting.map_maker.plot_simple(historical_ds, var, **plot_kw)
 
 
 def histogram(d, **kw):

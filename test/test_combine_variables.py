@@ -189,7 +189,6 @@ class TestVariableMerger(TestCase):
             ds_length_1,
             add_out_of_order_variable=False,
         )
-        # for vars in ds_0.attrs['variables']
         ds_1['time'] = [
             cftime.DatetimeNoLeap(self.first_year - i - 1, 1, i + 1)
             for i, _ in enumerate(ds_1['time'])
