@@ -5,8 +5,9 @@ from unittest import TestCase
 
 import cftime
 import numpy as np
-import pytest
 import xarray as xr
+from hypothesis import given
+from hypothesis import strategies as st
 
 import optim_esm_tools as oet
 from optim_esm_tools.analyze.combine_variables import VariableMerger
@@ -49,14 +50,6 @@ class TestCombineVariables(TestCase):
 
     def test_merge_w_hist(self):
         self.test_merge_two(add_histograms=True)
-
-
-from hypothesis import given
-from hypothesis import strategies as st
-
-import xarray as xr
-import numpy as np
-import cftime
 
 
 class TestVariableMerger(TestCase):
