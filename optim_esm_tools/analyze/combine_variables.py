@@ -92,7 +92,7 @@ class VariableMerger:
         return new_ds
 
     @staticmethod
-    def _merge_squash(new_ds) -> xr.Dataset:
+    def _merge_squash(new_ds: dict) -> xr.Dataset:
         try:
             new_ds = xr.Dataset(**new_ds)
         except TypeError as e:  # pragma: no cover
@@ -108,6 +108,26 @@ class VariableMerger:
                     new_ds[k].attrs = v.attrs
                 else:
                     new_ds[k] = v
+        dt = new_ds['time'].values[-1].year - new_ds['time'].values[0].year
+        if len(new_ds['time']) > dt + 1:  # allow off by one
+            new_ds = self._fix_wong_merge(new_ds)
+        return new_ds
+
+    @staticmethod
+    def _fix_wong_merge(ds):
+        """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
+        removing duplicate time values and adjusting the data accordingly.
+
+        :param ds: The parameter `ds` is a dataset object. It is assumed to have a dimension called 'time'
+        and contains multiple variables
+        :return: a new dataset, `new_ds`, which is a modified version of the input dataset `ds`.
+        """
+        new_ds = ds.copy()
+        new_ds = new_ds.isel(time=slice(None, len(new_ds['time']) // 2))
+        new_ds['time'] = ds['time'][::2]
+        for v, a in ds.data_vars.items():
+            if 'time' in a.dims:
+                new_ds[v].data = a[1::2] if np.isnan(a.values[10]) else a[::2]
         return new_ds
 
     def make_fig(self, ds=None, fig_kw=None, add_histograms=False):
