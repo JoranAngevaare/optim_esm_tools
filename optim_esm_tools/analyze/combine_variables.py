@@ -147,7 +147,7 @@ class VariableMerger:
 
         axes = self._make_fig(ds, fig_kw=fig_kw, add_histograms=add_histograms, **kw)
         if add_history:
-            kw.pop('add_summary')
+            kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
         return axes
 

@@ -15,7 +15,7 @@ from optim_esm_tools.analyze.combine_variables import VariableMerger
 
 
 class TestCombineVariables(TestCase):
-    def test_merge_two(self, nx=5, ny=20, is_match=(True, True), **plot_kw):
+    def test_merge_two(self, nx=5, ny=10, is_match=(True, True), **plot_kw):
         with tempfile.TemporaryDirectory() as temp_dir:
             setup_kw = dict(len_x=nx, len_y=ny, len_time=20, add_nans=False)
             names = list('abcefg')[: len(is_match)]
@@ -42,7 +42,7 @@ class TestCombineVariables(TestCase):
                 if m:
                     assert n in merged.data_vars
             oet.analyze.combine_variables.change_plt_table_height()
-            merger.make_fig(merged, **plot_kw)
+            merger.make_fig(merged, **plot_kw, add_history=False)
             return merger
 
     def test_merge_three(self):
