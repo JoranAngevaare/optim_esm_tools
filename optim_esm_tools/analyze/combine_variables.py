@@ -1,3 +1,4 @@
+import os
 import string
 import typing as ty
 from collections import defaultdict
@@ -41,6 +42,10 @@ class VariableMerger:
         self.tipping_thresholds = tipping_thresholds
         self.table_formats = table_formats
         if data_set:
+            self.source_files = dict(
+                zip(data_set.attrs['variables'], data_set.attrs['source_files']),
+            )
+            self.common_mask = data_set['global_mask']
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -87,8 +92,7 @@ class VariableMerger:
         )
         return new_ds
 
-    @staticmethod
-    def _merge_squash(new_ds: dict) -> xr.Dataset:
+    def _merge_squash(self, new_ds: dict) -> xr.Dataset:
         try:
             new_ds = xr.Dataset(**new_ds)
         except TypeError as e:  # pragma: no cover
@@ -126,10 +130,25 @@ class VariableMerger:
                 new_ds[v].data = a[1::2] if np.isnan(a.values[10]) else a[::2]
         return new_ds
 
-    def make_fig(self, ds=None, fig_kw=None, add_histograms=False):
+    def make_fig(
+        self,
+        ds=None,
+        fig_kw=None,
+        add_histograms=False,
+        add_history: bool = True,
+        _historical_ds=None,
+        **kw,
+    ):
+        # sourcery skip: merge-repeated-ifs, move-assign
         ds = ds or self.squash_sources()
+        if add_history:
+            kw.setdefault('set_y_lim', False)
 
-        return self._make_fig(ds, fig_kw=fig_kw, add_histograms=add_histograms)
+        axes = self._make_fig(ds, fig_kw=fig_kw, add_histograms=add_histograms, **kw)
+        if add_history:
+            kw.pop('add_summary', None)
+            self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
+        return axes
 
     @staticmethod
     def _guess_fig_kw(keys, add_histograms=False):
@@ -150,6 +169,8 @@ class VariableMerger:
         ds: xr.Dataset,
         fig_kw: ty.Optional[ty.Mapping] = None,
         add_histograms: bool = False,
+        add_summary: bool = True,
+        **kw,
     ):
         variables = list(oet.utils.to_str_tuple(ds.attrs['variables']))
         mapping = {string.ascii_lowercase[i]: v for i, v in enumerate(variables)}
@@ -168,7 +189,7 @@ class VariableMerger:
 
         for key, var in mapping.items():
             plt.sca(axes[key])  # type: ignore
-            plot_kw = dict(label=var)
+            plot_kw = dict(label=var, **kw)
             rm_kw = {
                 k: v
                 for k, v in {
@@ -200,6 +221,9 @@ class VariableMerger:
             ds.where(ds['global_mask']).copy(),
             ax=ax,
         )
+        axes['global_map'] = ax  # type: ignore
+        if not add_summary:
+            return axes
         summary = self.summarize_stats(ds)
         res_f, tips = result_table(
             summary,
@@ -212,7 +236,7 @@ class VariableMerger:
             ax=axes['t'],  # type: ignore
             ha='center' if add_histograms else 'bottom',
         )
-        axes['global_map'] = ax  # type: ignore
+
         return axes
 
     @staticmethod
@@ -280,6 +304,45 @@ class VariableMerger:
 
     def add_table(self, *a, **kw):
         return add_table(*a, **kw)
+
+    def _add_historical_period(
+        self,
+        axes,
+        match_to='historical',
+        read_ds_kw=None,
+        _historical_ds=None,
+        **plot_kw,
+    ):
+        plot_kw.setdefault('lw', 1)
+        plot_kw.setdefault('add_label', False)
+        read_ds_kw = read_ds_kw or {}
+        keys = [k for k in axes if k.lower() == k]
+        for key, (var, path) in zip(keys, self.source_files.items()):
+            historical_ds = (
+                _historical_ds
+                or oet.analyze.time_statistics.get_historical_ds(
+                    oet.load_glob(path),
+                    match_to=match_to,
+                )
+            )
+            historical_ds = historical_ds.where(self.common_mask)
+
+            plt.sca(axes[key])
+            rm_kw = {
+                k: v
+                for k, v in {
+                    **plot_kw,
+                    **dict(alpha=0.5, set_y_lim=False),
+                }.items()
+                if k != 'label'
+            }
+            var_rm = (
+                var
+                + '_run_mean_'
+                + oet.config.config['analyze']['moving_average_years']
+            )
+            oet.plotting.map_maker.plot_simple(historical_ds, var_rm, **rm_kw)
+            oet.plotting.map_maker.plot_simple(historical_ds, var, **plot_kw)
 
 
 def histogram(d, **kw):
