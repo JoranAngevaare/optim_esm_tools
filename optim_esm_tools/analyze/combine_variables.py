@@ -1,3 +1,4 @@
+import os
 import string
 import typing as ty
 from collections import defaultdict
@@ -289,9 +290,13 @@ class VariableMerger:
         plot_kw.setdefault('ls', '--')
         read_ds_kw = read_ds_kw or {}
         keys = [k for k in axes if k.lower() == k]
-        for key, var, path in zip(keys, self.source_files.items()):
+        for key, (var, path) in zip(keys, self.source_files.items()):
             # Load the corresponding file
-            historical_ds = oet.read_ds(path, add_history=True, **read_ds_kw)
+            historical_ds = oet.read_ds(
+                os.path.split(path)[0],
+                add_history=True,
+                **read_ds_kw,
+            )
             historical_ds = historical_ds.where(common_mask).mean('lat lon'.split())
             # key = string.ascii_uppercase[len(axes) - 1]  # Use the last key in the axes
             plt.sca(axes[key])

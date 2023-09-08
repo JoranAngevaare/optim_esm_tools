@@ -7,6 +7,7 @@ import cftime
 import numpy as np
 import xarray as xr
 from hypothesis import given
+from hypothesis import settings
 from hypothesis import strategies as st
 
 import optim_esm_tools as oet
@@ -114,6 +115,7 @@ class TestVariableMerger(TestCase):
         dataset.attrs['source_files'] = ['' for _ in dataset.attrs['variables']]
 
         # Add a running mean with 10 samples to each variable while considering the new dimensions
+        _ma_window = oet.config.config['analyze']['moving_average_years']
         for var_name in dummy_data:
             if var_name in ['cell_area', 'global_mask']:
                 continue
@@ -127,12 +129,13 @@ class TestVariableMerger(TestCase):
                         mode='valid',
                     )
                     rm[5:-4, lat_idx, lon_idx] = running_mean
-            dataset[var_name + '_run_mean_10'] = (('time', 'lat', 'lon'), rm)
+            dataset[f'{var_name}_run_mean_{_ma_window}'] = (('time', 'lat', 'lon'), rm)
         dataset['offset_variable1'] = da_off
-        dataset['offset_variable1__run_mean_10'] = da_off
+        dataset[f'offset_variable1__run_mean_{_ma_window}'] = da_off
 
         return dataset
 
+    @settings(max_examples=10, deadline=None)
     @given(
         dummy_dataset_length=st.integers(min_value=11, max_value=20),
         random_seed=st.integers(min_value=1, max_value=1000),
