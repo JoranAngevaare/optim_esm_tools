@@ -41,6 +41,10 @@ class VariableMerger:
         self.tipping_thresholds = tipping_thresholds
         self.table_formats = table_formats
         if data_set:
+            self.source_files = dict(
+                zip(data_set.attrs['variables'], data_set.attrs['source_files']),
+            )
+            self.common_mask = data_set['global_mask']
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -260,6 +264,33 @@ class VariableMerger:
 
     def add_table(self, *a, **kw):
         return add_table(*a, **kw)
+
+    def _add_historical_period(self, axes, common_mask, read_ds_kw=None, **plot_kw):
+        plot_kw.setdefault('ls', '--')
+        read_ds_kw = read_ds_kw or {}
+        keys = [k for k in axes if k.lower() == k]
+        for key, var, path in zip(keys, self.source_files.items()):
+            # Load the corresponding file
+            historical_ds = oet.read_ds(path, add_history=True, **read_ds_kw)
+            historical_ds = historical_ds.where(common_mask).mean('lat lon'.split())
+            # key = string.ascii_uppercase[len(axes) - 1]  # Use the last key in the axes
+            plt.sca(axes[key])
+            rm_kw = {
+                k: v
+                for k, v in {
+                    **plot_kw,
+                    **dict(alpha=0.5, add_label=False, set_y_lim=False),
+                }.items()
+                if k != 'label'
+            }
+            var_rm = (
+                var
+                + '_run_mean_'
+                + oet.config.config['analyze']['moving_average_years']
+            )
+            oet.plotting.map_maker.plot_simple(historical_ds, var_rm, **rm_kw)
+            oet.plotting.map_maker.plot_simple(historical_ds, var, **plot_kw)  # type: ignore
+            # plt.legend(loc='center left')
 
 
 def histogram(d, **kw):
