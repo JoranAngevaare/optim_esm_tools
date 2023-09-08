@@ -146,7 +146,7 @@ def n_times_global_std(
     return val / val_global if val_global else np.inf
 
 
-def get_historical_ds(ds, _file_name=None, **kw):
+def get_historical_ds(ds, match_to='piControl', _file_name=None, **kw):
     # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
     find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)  # type: ignore
@@ -157,6 +157,7 @@ def get_historical_ds(ds, _file_name=None, **kw):
     try:
         hist_path = oet.analyze.find_matches.associate_historical(
             path=ds.attrs['path'],
+            match_to=match_to,
             **find_kw,
         )
     except RuntimeError as e:  # pragma: no cover
