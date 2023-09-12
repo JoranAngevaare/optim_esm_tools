@@ -43,11 +43,8 @@ class VariableMerger:
         self.table_formats = table_formats
         if data_set:
             self.source_files = dict(
-                zip(
                     oet.utils.to_str_tuple(data_set.attrs['variables']),
                     oet.utils.to_str_tuple(data_set.attrs['source_files']),
-                ),
-            )
             self.common_mask = data_set['global_mask']
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
