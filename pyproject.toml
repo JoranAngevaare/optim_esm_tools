@@ -1,6 +1,6 @@
 [project]
 name = "optim_esm_tools"
-version = "1.6.2"
+version = "1.6.3"
 dependencies = [
     "immutabledict",
     "intake-esm",
