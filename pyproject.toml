@@ -1,6 +1,6 @@
 [project]
 name = "optim_esm_tools"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
     "immutabledict",
     "intake-esm",
@@ -46,11 +46,13 @@ test = [
 ]
 
 [tool.setuptools]
-packages = ["optim_esm_tools"]
 script-files = ['bin/oet_plot']
 
 [tool.setuptools.package-data]
 optim_esm_tools = ['data/*', 'optim_esm_tools/*', '*.ini*']
+
+[tool.setuptools.packages.find]
+where = [".", "optim_esm_tools"]
 
 [project.urls]
 homepage = 'https://github.com/JoranAngevaare/optim_esm_tools'

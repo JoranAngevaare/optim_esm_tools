@@ -1,3 +1,14 @@
+1.6.3 / 2023-09-13
+------------------
+* Merge method to deal with offset time series by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/144
+* Historical data in plotting routine by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/145
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/146
+* Fix installation method by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/148
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.6.1...v1.6.2
+
+
 1.6.0 / 2023-09-06
 ------------------
 * Fix the sign issue for good by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/143
