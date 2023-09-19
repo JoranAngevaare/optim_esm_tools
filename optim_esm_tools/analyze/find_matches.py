@@ -231,7 +231,7 @@ def associate_historical(
         search.update(search_kw)  # type: ignore
 
     if query_updates is None:
-        # It's important to match the variant-label last, otherwise we get mismatched simulations 
+        # It's important to match the variant-label last, otherwise we get mismatched simulations
         # from completely different ensamble members
         query_updates = [
             {},

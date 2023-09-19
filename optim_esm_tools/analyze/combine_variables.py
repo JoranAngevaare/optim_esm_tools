@@ -61,15 +61,21 @@ class VariableMerger:
         new_ds = self._merge_squash(new_ds)
         return new_ds
 
-    def _squash_variables(self) -> ty.Mapping:
-        common_mask = (
-            self.common_mask
-            if self.common_mask.dims == ('lat', 'lon')
-            else oet.analyze.xarray_tools.reverse_name_mask_coords(self.common_mask)
-        )
+    def get_common_mask(self, variable_id=None):
+        if variable_id and isinstance(self.common_mask, ty.Mapping):
+            return self.common_mask[variable_id]
+        return self.common_mask
+
+    def _squash_variables(self, common_mask=None) -> ty.Mapping:
+        common_mask = common_mask or self.common_mask
 
         new_ds = defaultdict(dict)
-        new_ds['data_vars']['global_mask'] = common_mask
+        if isinstance(common_mask, xr.DataArray):
+            new_ds['data_vars']['global_mask'] = common_mask
+        else:
+            assert isinstance(common_mask, ty.Mapping), type(common_mask)
+            for var, mask in common_mask.items():
+                new_ds['data_vars'][f'global_mask_{var}'] = mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
             for sub_variable in list(_ds.data_vars):
@@ -78,7 +84,7 @@ class VariableMerger:
 
                 new_ds['data_vars'][sub_variable] = (
                     _ds[sub_variable]
-                    .where(common_mask)
+                    .where(self.get_common_mask(var))
                     .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
                 )
                 new_ds['data_vars'][sub_variable].attrs = _ds[sub_variable].attrs
@@ -186,12 +192,15 @@ class VariableMerger:
 
         _, axes = plt.subplot_mosaic(**fig_kw)
 
-        if len(var_keys := list(mapping.keys())) > 1:
-            for k in var_keys[1:]:
+        for old_key, new_key in mapping.items():
+            axes[new_key] = axes.pop(old_key)
+
+        if len(variables) > 1:
+            for k in variables[1:]:
                 axes[k].sharex(axes[var_keys[0]])  # type: ignore
 
-        for key, var in mapping.items():
-            plt.sca(axes[key])  # type: ignore
+        for var in variables:
+            plt.sca(axes[var])  # type: ignore
             plot_kw = dict(label=var, **kw)
             rm_kw = {
                 k: v
@@ -210,7 +219,7 @@ class VariableMerger:
             oet.plotting.map_maker.plot_simple(ds, var, **plot_kw)  # type: ignore
             plt.legend(loc='center left')
             if add_histograms:
-                plt.sca(axes[key.upper()])  # type: ignore
+                plt.sca(axes[{v: k for k, v in mapping.items()}[key.upper()]])  # type: ignore
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
@@ -221,7 +230,7 @@ class VariableMerger:
             projection=oet.plotting.plot.get_cartopy_projection(),
         )
         oet.plotting.map_maker.overlay_area_mask(
-            ds.where(ds['global_mask']).copy(),
+            ds.where(self.get_common_mask()).copy(),
             ax=ax,
         )
         axes['global_map'] = ax  # type: ignore
@@ -267,6 +276,13 @@ class VariableMerger:
             )
         }
 
+    def _check_mask_coord_names(self, mask):
+        if isinstance(mask, ty.Mapping):
+            return {k: self._check_mask_coord_names(v) for k, v in mask.items()}
+        if isinstance(mask, xr.DataArray) and mask.dims != ('lat', 'lon'):
+            return oet.analyze.xarray_tools.reverse_name_mask_coords(mask)
+        return mask
+
     def process_masks(self) -> ty.Tuple[dict, xr.DataArray]:
         source_files = {}
         common_mask = None
@@ -291,16 +307,19 @@ class VariableMerger:
         common_mask: ty.Optional[xr.DataArray],
         other_dataset: xr.Dataset,
         field: ty.Optional[str] = None,
+        dtype=np.bool_,
     ) -> xr.DataArray:
         field = field or (
             'global_mask' if 'global_mask' in other_dataset else 'cell_area'
         )
         is_the_first_instance = common_mask is None
+        other_mask = self._check_mask_coord_names(other_dataset[field])
         if is_the_first_instance:
-            return other_dataset[field].astype(np.bool_)
+            return other_mask.astype(dtype)
         if self.merge_method == 'logical_or':
-            return common_mask | other_dataset[field].astype(np.bool_)
-
+            return common_mask | other_mask.astype(dtype)
+        elif self.merge_method == 'test':
+            return common_mask.astype(dtype) + other_mask.astype(dtype)
         raise NotImplementedError(
             f'No such method as {self.merge_method}',
         )  # pragma: no cover
@@ -319,8 +338,8 @@ class VariableMerger:
         plot_kw.setdefault('lw', 1)
         plot_kw.setdefault('add_label', False)
         read_ds_kw = read_ds_kw or {}
-        keys = [k for k in axes if k.lower() == k]
-        for key, (var, path) in zip(keys, self.source_files.items()):
+
+        for var, path in self.source_files.items():
             historical_ds = (
                 _historical_ds
                 or oet.analyze.time_statistics.get_historical_ds(
@@ -328,9 +347,10 @@ class VariableMerger:
                     match_to=match_to,
                 )
             )
-            historical_ds = historical_ds.where(self.common_mask)
+            common_mask = self.get_common_mask(var)
+            historical_ds = historical_ds.where(common_mask)
 
-            plt.sca(axes[key])
+            plt.sca(axes[var])
             rm_kw = {
                 k: v
                 for k, v in {
