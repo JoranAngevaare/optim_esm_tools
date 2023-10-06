@@ -231,11 +231,13 @@ def associate_historical(
         search.update(search_kw)  # type: ignore
 
     if query_updates is None:
+        # It's important to match the variant-label last, otherwise we get mismatched simulations
+        # from completely different ensamble members
         query_updates = [
             {},
-            dict(variant_label='*'),
             dict(version='*'),
             dict(grid_label='*'),
+            dict(variant_label='*'),
         ]
 
     for try_n, update_query in enumerate(query_updates):
