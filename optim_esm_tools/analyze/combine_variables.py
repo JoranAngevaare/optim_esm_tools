@@ -197,7 +197,7 @@ class VariableMerger:
 
         if len(variables) > 1:
             for k in variables[1:]:
-                axes[k].sharex(axes[var_keys[0]])  # type: ignore
+                axes[k].sharex(axes[variables[0]])  # type: ignore
 
         for var in variables:
             plt.sca(axes[var])  # type: ignore
@@ -219,7 +219,7 @@ class VariableMerger:
             oet.plotting.map_maker.plot_simple(ds, var, **plot_kw)  # type: ignore
             plt.legend(loc='center left')
             if add_histograms:
-                plt.sca(axes[{v: k for k, v in mapping.items()}[key.upper()]])  # type: ignore
+                plt.sca(axes[var.upper()])  # type: ignore
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
