@@ -62,7 +62,11 @@ class VariableMerger:
         return new_ds
 
     def get_common_mask(self, variable_id=None):
-        if variable_id and isinstance(self.common_mask, ty.Mapping):
+        if (
+            variable_id
+            and isinstance(self.common_mask, ty.Mapping)
+            and variable_id in self.common_mask
+        ):
             return self.common_mask[variable_id]
         return self.common_mask
 
@@ -229,6 +233,9 @@ class VariableMerger:
             2,
             projection=oet.plotting.plot.get_cartopy_projection(),
         )
+        common_mask = self.get_common_mask()
+        if isinstance(common_mask, ty.Mapping):
+            common_mask = common_mask[var]
         oet.plotting.map_maker.overlay_area_mask(
             ds.where(self.get_common_mask()).copy(),
             ax=ax,
