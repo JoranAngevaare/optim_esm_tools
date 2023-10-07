@@ -211,6 +211,7 @@ def calculate_symmetry_test(
     field=None,
     nan_policy='omit',
     test_statistic='MI',
+    repeat=10,
     **kw,
 ):
     import rpy_symmetry as rsym
@@ -221,7 +222,12 @@ def calculate_symmetry_test(
     else:  # pragma: no cover
         message = 'Not sure how to deal with nans other than omit'
         raise NotImplementedError(message)
-    return rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
+    return np.mean(
+        [
+            rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
+            for _ in range(repeat)
+        ],
+    )
 
 
 def _get_tip_criterion(short_description):
