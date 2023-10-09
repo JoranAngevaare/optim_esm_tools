@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
+from matplotlib.legend_handler import HandlerTuple
 
 import optim_esm_tools as oet
 from optim_esm_tools.analyze.time_statistics import default_thresholds
@@ -48,7 +49,7 @@ class VariableMerger:
                     oet.utils.to_str_tuple(data_set.attrs['source_files']),
                 ),
             )
-            self.common_mask = data_set['global_mask']
+            self.common_mask = data_set['shared_mask']
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -62,13 +63,10 @@ class VariableMerger:
         return new_ds
 
     def get_common_mask(self, variable_id=None):
-        if (
-            variable_id
-            and isinstance(self.common_mask, ty.Mapping)
-            and variable_id in self.common_mask
-        ):
+        assert isinstance(self.common_mask, ty.Mapping)
+        if variable_id and variable_id in self.common_mask:
             return self.common_mask[variable_id]
-        return self.common_mask
+        return self.common_mask['common_mask']
 
     def _squash_variables(self, common_mask=None) -> ty.Mapping:
         common_mask = common_mask or self.common_mask
@@ -78,8 +76,14 @@ class VariableMerger:
             new_ds['data_vars']['global_mask'] = common_mask
         else:
             assert isinstance(common_mask, ty.Mapping), type(common_mask)
+            shared_mask = None
             for var, mask in common_mask.items():
                 new_ds['data_vars'][f'global_mask_{var}'] = mask
+                if shared_mask is None:
+                    shared_mask = mask.astype(np.bool_).copy()
+                    continue
+                shared_mask = mask.astype(np.bool_) | shared_mask
+            new_ds['data_vars']['common_mask'] = shared_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
             for sub_variable in list(_ds.data_vars):
@@ -161,6 +165,8 @@ class VariableMerger:
         if add_history:
             kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
+        if self.merge_method == 'independent':
+            self._continue_indepentent_var_figure(axes)
         return axes
 
     @staticmethod
@@ -258,6 +264,68 @@ class VariableMerger:
 
         return axes
 
+    def _continue_indepentent_var_figure(self, previous_axes, skip_common=True):
+        previous_axes['global_map'].cla()
+        for ax in plt.gcf().axes:
+            if ax.get_label() == '<colorbar>':
+                ax.remove()
+
+        plt.gcf().delaxes(previous_axes['global_map'])
+        ax = plt.gcf().add_subplot(
+            1,
+            2,
+            2,
+            projection=oet.plotting.plot.get_cartopy_projection(),
+        )
+
+        plt.gca().coastlines()
+        gl = ax.gridlines(draw_labels=True)
+        gl.top_labels = False
+
+        cmaps = dict(
+            zip(
+                ['siconc', 'sos', 'tas', 'tos'],
+                ['Blues', 'Greens', 'Reds', 'Purples'],
+            ),
+        )
+        legend_args = []
+        for k, v in self.common_mask.items():
+            if skip_common and k == 'common_mask':
+                continue
+            a = v.astype(int).plot.contour(
+                transform=oet.plotting.plot.get_cartopy_transform(),
+                cmap=cmaps.get(k, 'viridis'),
+                alpha=0.5,
+            )
+            a, _ = a.legend_elements()
+            for l in a:
+                l.set_linewidth(10)
+            legend_args.append(tuple(a))
+
+        def get_area(k):
+            # TODO we can make this better
+            ds = self.squash_sources()
+            tot_area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
+            exponent = int(np.log10(tot_area))  # type: ignore
+
+            return (
+                f'{k} -- ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$'
+            )
+
+        labels = [get_area(k) for k in self.common_mask.keys()]
+        plt.legend(
+            legend_args,
+            labels,
+            numpoints=1,
+            handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
+            **oet.utils.legend_kw(
+                ncol=2,
+                #                                         bbox_to_anchor=(0.0, -1.02, 1, -0.32)
+            ),
+        )
+        previous_axes['global_map'] = ax
+        return previous_axes
+
     @staticmethod
     def simple_hist(ds, var, hist_kw=None, add_label=True, **plot_kw):
         da = ds[var]
@@ -290,14 +358,31 @@ class VariableMerger:
             return oet.analyze.xarray_tools.reverse_name_mask_coords(mask)
         return mask
 
-    def process_masks(self) -> ty.Tuple[dict, xr.DataArray]:
+    def process_masks(self) -> ty.Tuple[dict, ty.Union[ty.Mapping, xr.DataArray]]:
         source_files = {}
-        common_mask = None
+        variable_masks = {}
         for path in self.mask_paths:  # type: ignore
             ds = oet.load_glob(path)
+            variable_id = ds.attrs['variable_id']
             # Source files may be non-unique!
-            source_files[ds.attrs['variable_id']] = ds.attrs['file']
-            common_mask = self.combine_masks(common_mask, ds)
+            source_files[variable_id] = ds.attrs['file']
+
+            variable_masks[variable_id] = self.combine_masks(
+                variable_masks.get(variable_id),
+                ds,
+                dtype=np.int64,
+            )
+
+        shared_mask = None
+        for var_mask in variable_masks.values():
+            if shared_mask is None:
+                shared_mask = var_mask.copy()
+            else:
+                shared_mask |= var_mask
+        variable_masks['common_mask'] = shared_mask
+        if self.merge_method == 'logical_or':
+            # Each variable did get it's own mask - but that is not what we want.
+            variable_masks = dict(common_mask=shared_mask)
         for other_path in self.other_paths:
             if other_path == '':  # pragma: no cover
                 continue
@@ -306,8 +391,8 @@ class VariableMerger:
             var = ds.attrs['variable_id']
             if var not in source_files:
                 source_files[var] = ds.attrs['file']
-        assert isinstance(common_mask, xr.DataArray)
-        return source_files, common_mask
+        assert isinstance(variable_masks, ty.Mapping)
+        return source_files, variable_masks
 
     def combine_masks(
         self,
@@ -325,7 +410,7 @@ class VariableMerger:
             return other_mask.astype(dtype)
         if self.merge_method == 'logical_or':
             return common_mask | other_mask.astype(dtype)
-        elif self.merge_method == 'test':
+        elif self.merge_method == 'independent':
             return common_mask.astype(dtype) + other_mask.astype(dtype)
         raise NotImplementedError(
             f'No such method as {self.merge_method}',
