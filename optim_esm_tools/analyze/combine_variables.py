@@ -49,7 +49,12 @@ class VariableMerger:
                     oet.utils.to_str_tuple(data_set.attrs['source_files']),
                 ),
             )
-            self.common_mask = data_set['shared_mask']
+
+            self.common_mask = {
+                k[len('global_mask_') :]: data_set[k]
+                for k in list(data_set.data_vars)
+                if k.startswith('global_mask_')
+            }
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
