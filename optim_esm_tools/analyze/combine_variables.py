@@ -277,6 +277,7 @@ class VariableMerger:
         self.add_table(
             res_f=res_f,
             tips=tips,
+            summary=summary,
             ax=axes['t'],  # type: ignore
             ha='center' if add_histograms else 'bottom',
         )
@@ -514,6 +515,7 @@ def add_table(
     fontsize=16,
     pass_color=(0.75, 1, 0.75),
     ha='bottom',
+    summary=None,
 ):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')

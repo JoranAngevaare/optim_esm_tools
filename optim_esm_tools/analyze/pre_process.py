@@ -34,7 +34,21 @@ def get_preprocessed_ds(source, **kw):
         intermediate_file = pre_process(**kw)
         # After with close this "with", we lose the file, so load it just to be sure we have all we need
         ds = load_glob(intermediate_file).load()  # type: ignore
+    sanity_check(ds)
     return ds
+
+
+def sanity_check(ds):
+    t_prev = None
+
+    for i, t in enumerate(ds['time'].values):
+        t_cur = getattr(t, 'year', None)
+        if t_prev is not None and t_cur <= t_prev:
+            raise ValueError(
+                f'Got at least one overlapping year on index {i} {t_cur} {t_prev}',
+            )
+        t_prev = t_cur
+    # get_logger().error('All good no problem!')
 
 
 @timed
@@ -130,6 +144,7 @@ def pre_process(
             f_tmp,
         )
         source = f_tmp
+    _remove_duplicate_time_stamps(source)
     time_range = f'{_fmt_date(min_time)},{_fmt_date(max_time)}'
     cdo_int.seldate(time_range, input=source, output=f_time)  # type: ignore
 
@@ -162,6 +177,24 @@ def pre_process(
         for p in files:
             os.remove(p)
     return save_as
+
+
+def _remove_duplicate_time_stamps(path):
+    ds = load_glob(path)
+    if (t_len := len(ds['time'])) > (
+        t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)
+    ) + 1:
+        get_logger().warning(
+            f'Finding {t_len} timestamps in {t_span} years - removing duplicates',
+        )
+        ds = ds.drop_duplicates('time')
+        if (t_new_len := len(ds['time'])) > t_span + 1:
+            raise ValueError(f'{t_new_len} too long! Started with {t_len} and {t_span}')
+        get_logger().warning('Timestamp issue solved')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_as = os.path.join(temp_dir, 'temp.nc')
+            ds.to_netcdf(save_as)
+            os.rename(save_as, path)
 
 
 def _remap_and_merge(
