@@ -111,13 +111,27 @@ class VariableMerger:
                     new_ds[k].attrs = v.attrs
                 else:
                     new_ds[k] = v
+        except ValueError as e:  # pragma: no cover
+            oet.get_logger().warning(
+                f'Ran into {e} fallback method because of duplicated time stamps',
+            )
+            data_vars = new_ds.pop('data_vars')
+            new_ds = xr.Dataset(**new_ds)
+
+            for k, v in data_vars.items():
+                if 'time' in new_ds.coords and 'time' in v.coords:
+                    v = v.drop_duplicates('time')
+                    new_ds[k] = ('time', v.values)
+                    new_ds[k].attrs = v.attrs
+                else:
+                    new_ds[k] = v
         dt = new_ds['time'].values[-1].year - new_ds['time'].values[0].year
         if len(new_ds['time']) > dt + 1:  # allow off by one
-            new_ds = self._fix_wong_merge(new_ds)
+            new_ds = self._fix_wrong_merge(new_ds)
         return new_ds
 
     @staticmethod
-    def _fix_wong_merge(ds):
+    def _fix_wrong_merge(ds):
         """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
         removing duplicate time values and adjusting the data accordingly.
 
