@@ -207,13 +207,36 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
 
 
 def calculate_symmetry_test(
-    ds,
-    field=None,
-    nan_policy='omit',
-    test_statistic='MI',
-    repeat=10,
+    ds: xr.Dataset,
+    field: ty.Optional[str] = None,
+    nan_policy: str = 'omit',
+    test_statistic: str = 'MI',
+    n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
     **kw,
-):
+) -> np.float64:
+    """The function `calculate_symmetry_test` calculates the symmetry test
+    statistic for a given dataset and field using the R package `rpy_symmetry`.
+
+    :param ds: An xarray Dataset containing the data
+    :type ds: xr.Dataset
+    :param field: The `field` parameter is an optional string that specifies the field or variable from
+    the dataset (`ds`) that you want to calculate symmetry test for. If `field` is not provided, the
+    function will calculate the symmetry test for all variables in the dataset
+    :type field: ty.Optional[str]
+    :param nan_policy: The `nan_policy` parameter determines how to handle missing values (NaNs) in the
+    data. The default value is 'omit', which means that any NaN values will be excluded from the
+    calculation, defaults to omit
+    :type nan_policy: str (optional)
+    :param test_statistic: The `test_statistic` parameter is a string that specifies the test statistic
+    to be used in the symmetry test. It determines how the symmetry of the data will be measured,
+    defaults to MI
+    :type test_statistic: str (optional)
+    :param n_repeat: The parameter `n_repeat` specifies the number of times the symmetry test should be
+    repeated. The symmetry test in R does give non-deterministic results. As such repeat a test this
+    many times and take the average
+    :type n_repeat: int
+    :return: The function `calculate_symmetry_test` returns a `np.float64` value.
+    """
     import rpy_symmetry as rsym
 
     values = get_values_from_data_set(ds, field, add='')
@@ -225,7 +248,7 @@ def calculate_symmetry_test(
     return np.mean(
         [
             rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
-            for _ in range(repeat)
+            for _ in range(n_repeat)
         ],
     )
 
