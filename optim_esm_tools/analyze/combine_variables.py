@@ -307,7 +307,6 @@ class VariableMerger:
             2,
             projection=oet.plotting.plot.get_cartopy_projection(),
         )
-
         plt.gca().coastlines()
         gl = ax.gridlines(draw_labels=True)
         gl.top_labels = False
@@ -327,12 +326,9 @@ class VariableMerger:
             legend_args.append(tuple(artists))
 
         def get_area(k):
-            tot_area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
-            exponent = int(np.log10(tot_area))  # type: ignore
-
-            return (
-                f'{k} -- ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$'
-            )
+            area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
+            exp = int(np.log10(area))  # type: ignore
+            return f'{k} -- ${area/(10**exp):.1f}\\times10^{{{exp}}}$ km$^2$'
 
         labels = [get_area(k) for k in self.common_mask.keys() if k != 'common_mask']
         plt.legend(
