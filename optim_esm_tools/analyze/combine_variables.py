@@ -3,6 +3,7 @@ import string
 import typing as ty
 from collections import defaultdict
 
+import immutabledict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -20,6 +21,15 @@ class VariableMerger:
     full_paths = None
     source_files: ty.Mapping
     common_mask: xr.DataArray
+
+    _independent_cmaps = immutabledict.immutabledict(
+        dict(
+            zip(
+                ['siconc', 'sos', 'tas', 'tos'],
+                ['Blues', 'Greens', 'Reds', 'Purples'],
+            ),
+        ),
+    )
 
     def __init__(
         self,
@@ -172,6 +182,7 @@ class VariableMerger:
         fig_kw=None,
         add_histograms=False,
         add_history: bool = True,
+        add_summary: bool = True,
         _historical_ds=None,
         **kw,
     ):
@@ -184,8 +195,24 @@ class VariableMerger:
         if add_history:
             kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
+        if self.merge_method == 'logical_or':
+            axes = self._continue_global_map(axes, ds=ds)
         if self.merge_method == 'independent':
-            self._continue_indepentent_var_figure(axes)
+            axes = self._continue_indepentent_var_figure(axes, ds=ds)
+        if add_summary:
+            summary = self.summarize_stats(ds)
+            res_f, tips = result_table(
+                summary,
+                thresholds=self.tipping_thresholds,
+                formats=self.table_formats,
+            )
+            self.add_table(
+                res_f=res_f,
+                tips=tips,
+                summary=summary,
+                ax=axes['t'],  # type: ignore
+                ha='center' if add_histograms else 'bottom',
+            )
         return axes
 
     @staticmethod
@@ -207,7 +234,6 @@ class VariableMerger:
         ds: xr.Dataset,
         fig_kw: ty.Optional[ty.Mapping] = None,
         add_histograms: bool = False,
-        add_summary: bool = True,
         **kw,
     ):
         variables = list(oet.utils.to_str_tuple(ds.attrs['variables']))
@@ -252,46 +278,25 @@ class VariableMerger:
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
+
+        return axes
+
+    def _continue_global_map(self, axes, ds, ax=None, skip_common=True):
         ax = plt.gcf().add_subplot(
             1,
             2,
             2,
             projection=oet.plotting.plot.get_cartopy_projection(),
         )
-        common_mask = self.get_common_mask()
-        if isinstance(common_mask, ty.Mapping):
-            common_mask = common_mask[var]
         oet.plotting.map_maker.overlay_area_mask(
             ds.where(self.get_common_mask()).copy(),
             ax=ax,
         )
         axes['global_map'] = ax  # type: ignore
-        if not add_summary:
-            return axes
-        summary = self.summarize_stats(ds)
-        res_f, tips = result_table(
-            summary,
-            thresholds=self.tipping_thresholds,
-            formats=self.table_formats,
-        )
-        self.add_table(
-            res_f=res_f,
-            tips=tips,
-            summary=summary,
-            ax=axes['t'],  # type: ignore
-            ha='center' if add_histograms else 'bottom',
-        )
-
         return axes
 
-    def _continue_indepentent_var_figure(self, previous_axes, skip_common=True):
-        previous_axes['global_map'].cla()
-        for ax in plt.gcf().axes:
-            if ax.get_label() == '<colorbar>':
-                ax.remove()
-
-        plt.gcf().delaxes(previous_axes['global_map'])
-        ax = plt.gcf().add_subplot(
+    def _continue_indepentent_var_figure(self, axes, ds, ax=None, skip_common=True):
+        ax = ax or plt.gcf().add_subplot(
             1,
             2,
             2,
@@ -302,19 +307,13 @@ class VariableMerger:
         gl = ax.gridlines(draw_labels=True)
         gl.top_labels = False
 
-        cmaps = dict(
-            zip(
-                ['siconc', 'sos', 'tas', 'tos'],
-                ['Blues', 'Greens', 'Reds', 'Purples'],
-            ),
-        )
         legend_args = []
         for k, v in self.common_mask.items():
             if skip_common and k == 'common_mask':
                 continue
             a = v.astype(int).plot.contour(
                 transform=oet.plotting.plot.get_cartopy_transform(),
-                cmap=cmaps.get(k, 'viridis'),
+                cmap=self._independent_cmaps.get(k, 'viridis'),
                 alpha=0.5,
             )
             a, _ = a.legend_elements()
@@ -323,8 +322,6 @@ class VariableMerger:
             legend_args.append(tuple(a))
 
         def get_area(k):
-            # TODO we can make this better
-            ds = self.squash_sources()
             tot_area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
             exponent = int(np.log10(tot_area))  # type: ignore
 
@@ -340,11 +337,10 @@ class VariableMerger:
             handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
             **oet.utils.legend_kw(
                 ncol=2,
-                #                                         bbox_to_anchor=(0.0, -1.02, 1, -0.32)
             ),
         )
-        previous_axes['global_map'] = ax
-        return previous_axes
+        axes['global_map'] = ax
+        return axes
 
     @staticmethod
     def simple_hist(ds, var, hist_kw=None, add_label=True, **plot_kw):
