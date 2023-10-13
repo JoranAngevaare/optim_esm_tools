@@ -3,11 +3,11 @@ import string
 import typing as ty
 from collections import defaultdict
 
-import immutabledict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
+from immutabledict import immutabledict as imdict
 from matplotlib.legend_handler import HandlerTuple
 
 import optim_esm_tools as oet
@@ -22,13 +22,16 @@ class VariableMerger:
     source_files: ty.Mapping
     common_mask: xr.DataArray
 
-    _independent_cmaps = immutabledict.immutabledict(
-        dict(
-            zip(
-                ['siconc', 'sos', 'tas', 'tos'],
-                ['Blues', 'Greens', 'Reds', 'Purples'],
-            ),
-        ),
+    _independent_cmaps = imdict(
+        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues', 'Greens', 'Reds', 'Purples']),
+    )
+    _independent_legend_kw = imdict(
+        numpoints=1,
+        handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
+        **oet.utils.legend_kw(ncol=2),
+    )
+    _contour_f_kw = imdict(
+        alpha=0.5,
     )
 
     def __init__(
@@ -310,18 +313,18 @@ class VariableMerger:
         gl.top_labels = False
 
         legend_args = []
-        for k, v in self.common_mask.items():
-            if skip_common and k == 'common_mask':
+        for variable, mask in self.common_mask.items():
+            if skip_common and variable == 'common_mask':
                 continue
-            a = v.astype(int).plot.contour(
+            artists = mask.astype(int).plot.contour(
+                cmap=self._independent_cmaps.get(variable, 'viridis'),
                 transform=oet.plotting.plot.get_cartopy_transform(),
-                cmap=self._independent_cmaps.get(k, 'viridis'),
-                alpha=0.5,
+                **self._contour_f_kw,
             )
-            a, _ = a.legend_elements()
-            for l in a:
-                l.set_linewidth(10)
-            legend_args.append(tuple(a))
+            artists, _ = artists.legend_elements()
+            for line in artists:
+                line.set_linewidth(10)
+            legend_args.append(tuple(artists))
 
         def get_area(k):
             tot_area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
@@ -335,11 +338,7 @@ class VariableMerger:
         plt.legend(
             legend_args,
             labels,
-            numpoints=1,
-            handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
-            **oet.utils.legend_kw(
-                ncol=2,
-            ),
+            **self._independent_legend_kw,
         )
         axes['global_map'] = ax
         return axes
