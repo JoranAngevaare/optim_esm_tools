@@ -85,14 +85,14 @@ class TestVariableMerger(TestCase):
         )
 
         # Create global mask as a boolean array
-        global_mask = (('lat', 'lon'), np.random.choice([True, False], size=(ny, nx)))
+        common_mask = (('lat', 'lon'), np.random.choice([True, False], size=(ny, nx)))
         cell_area = (('lat', 'lon'), np.arange(ny * nx).reshape(ny, nx))
 
         dummy_data = {
             'variable1': variable1,
             'variable2': variable2,
             'variable3': variable3,
-            'global_mask': global_mask,
+            'common_mask': common_mask,
             'cell_area': cell_area,
         }
 
@@ -104,7 +104,7 @@ class TestVariableMerger(TestCase):
 
         dataset = xr.Dataset(data_vars=dummy_data, coords=coords)
 
-        variables = list(set(dummy_data) - {'global_mask', 'cell_area'})
+        variables = list(set(dummy_data) - {'common_mask', 'cell_area'})
         if add_out_of_order_variable:
             variables += ['offset_variable1']
         dataset.attrs['variables'] = variables
@@ -113,7 +113,7 @@ class TestVariableMerger(TestCase):
         # Add a running mean with 10 samples to each variable while considering the new dimensions
         _ma_window = oet.config.config['analyze']['moving_average_years']
         for var_name in dummy_data:
-            if var_name in ['cell_area', 'global_mask']:
+            if var_name in ['cell_area', 'common_mask']:
                 continue
             rm = np.zeros_like(dataset[var_name].values, dtype=np.float16)
             rm[:] = np.nan

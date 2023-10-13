@@ -55,6 +55,7 @@ class VariableMerger:
                 for k in list(data_set.data_vars)
                 if k.startswith('global_mask_')
             }
+            self.common_mask.update(dict(common_mask=data_set['common_mask']))
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -71,6 +72,7 @@ class VariableMerger:
         assert isinstance(self.common_mask, ty.Mapping)
         if variable_id and variable_id in self.common_mask:
             return self.common_mask[variable_id]
+        assert 'common_mask' in self.common_mask, self.common_mask.keys()
         return self.common_mask['common_mask']
 
     def _squash_variables(self, common_mask=None) -> ty.Mapping:
@@ -78,7 +80,7 @@ class VariableMerger:
 
         new_ds = defaultdict(dict)
         if isinstance(common_mask, xr.DataArray):
-            new_ds['data_vars']['global_mask'] = common_mask
+            new_ds['data_vars']['common_mask'] = common_mask
         else:
             assert isinstance(common_mask, ty.Mapping), type(common_mask)
             shared_mask = None
@@ -325,6 +327,7 @@ class VariableMerger:
         def get_area(k):
             # TODO we can make this better
             ds = self.squash_sources()
+            mask = self.get_common_mask(k)
             tot_area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
             exponent = int(np.log10(tot_area))  # type: ignore
 
@@ -572,11 +575,11 @@ def summarize_stats(ds, field, path):
         ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
         'n_std_global': oet.analyze.time_statistics.n_times_global_std(
-            ds=oet.load_glob(path).where(ds['global_mask']),
+            ds=oet.load_glob(path).where(ds['common_mask']),
         ),
         'max_jump': oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-            ds=oet.load_glob(path).where(ds['global_mask']),
-            mask=ds['global_mask'],
+            ds=oet.load_glob(path).where(ds['common_mask']),
+            mask=ds['common_mask'],
         ),
     }
 
