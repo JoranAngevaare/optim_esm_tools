@@ -177,11 +177,11 @@ def pre_process(
     return save_as
 
 
-def _remove_duplicate_time_stamps(path):
+def _remove_duplicate_time_stamps(path):  # pragma: no cover
     ds = load_glob(path)
     if (t_len := len(ds['time'])) > (
         t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)
-    ) + 1:  # pragma: no cover
+    ) + 1:
         get_logger().warning(
             f'Finding {t_len} timestamps in {t_span} years - removing duplicates',
         )
