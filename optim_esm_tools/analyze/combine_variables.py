@@ -49,7 +49,12 @@ class VariableMerger:
                     oet.utils.to_str_tuple(data_set.attrs['source_files']),
                 ),
             )
-            self.common_mask = data_set['shared_mask']
+
+            self.common_mask = {
+                k[len('global_mask_') :]: data_set[k]
+                for k in list(data_set.data_vars)
+                if k.startswith('global_mask_')
+            }
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -125,13 +130,27 @@ class VariableMerger:
                     new_ds[k].attrs = v.attrs
                 else:
                     new_ds[k] = v
+        except ValueError as e:  # pragma: no cover
+            oet.get_logger().warning(
+                f'Ran into {e} fallback method because of duplicated time stamps',
+            )
+            data_vars = new_ds.pop('data_vars')
+            new_ds = xr.Dataset(**new_ds)
+
+            for k, v in data_vars.items():
+                if 'time' in new_ds.coords and 'time' in v.coords:
+                    v = v.drop_duplicates('time')
+                    new_ds[k] = ('time', v.values)
+                    new_ds[k].attrs = v.attrs
+                else:
+                    new_ds[k] = v
         dt = new_ds['time'].values[-1].year - new_ds['time'].values[0].year
         if len(new_ds['time']) > dt + 1:  # allow off by one
-            new_ds = self._fix_wong_merge(new_ds)
+            new_ds = self._fix_wrong_merge(new_ds)
         return new_ds
 
     @staticmethod
-    def _fix_wong_merge(ds):
+    def _fix_wrong_merge(ds):
         """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
         removing duplicate time values and adjusting the data accordingly.
 
@@ -258,6 +277,7 @@ class VariableMerger:
         self.add_table(
             res_f=res_f,
             tips=tips,
+            summary=summary,
             ax=axes['t'],  # type: ignore
             ha='center' if add_histograms else 'bottom',
         )
@@ -495,6 +515,7 @@ def add_table(
     fontsize=16,
     pass_color=(0.75, 1, 0.75),
     ha='bottom',
+    summary=None,
 ):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')
