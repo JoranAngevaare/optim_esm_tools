@@ -162,7 +162,7 @@ class VariableMerger:
         return new_ds
 
     @staticmethod
-    def _fix_wrong_merge(ds):
+    def _fix_wrong_merge(ds):  # pragma: no cover
         """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
         removing duplicate time values and adjusting the data accordingly.
 
@@ -331,7 +331,7 @@ class VariableMerger:
                 f'{k} -- ${tot_area/(10**exponent):.1f}\\times10^{{{exponent}}}$ km$^2$'
             )
 
-        labels = [get_area(k) for k in self.common_mask.keys()]
+        labels = [get_area(k) for k in self.common_mask.keys() if k != 'common_mask']
         plt.legend(
             legend_args,
             labels,
