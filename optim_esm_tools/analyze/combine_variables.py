@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
+from immutabledict import immutabledict as imdict
+from matplotlib.legend_handler import HandlerTuple
 
 import optim_esm_tools as oet
 from optim_esm_tools.analyze.time_statistics import default_thresholds
@@ -19,6 +21,18 @@ class VariableMerger:
     full_paths = None
     source_files: ty.Mapping
     common_mask: xr.DataArray
+
+    _independent_cmaps = imdict(
+        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues', 'Greens', 'Reds', 'Purples']),
+    )
+    _independent_legend_kw = imdict(
+        numpoints=1,
+        handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
+        **oet.utils.legend_kw(ncol=2),
+    )
+    _contour_f_kw = imdict(
+        alpha=0.5,
+    )
 
     def __init__(
         self,
@@ -48,7 +62,13 @@ class VariableMerger:
                     oet.utils.to_str_tuple(data_set.attrs['source_files']),
                 ),
             )
-            self.common_mask = data_set['global_mask']
+
+            self.common_mask = {
+                k[len('global_mask_') :]: data_set[k]
+                for k in list(data_set.data_vars)
+                if k.startswith('global_mask_')
+            }
+            self.common_mask.update(dict(common_mask=data_set['common_mask']))
             return  # pragma: no cover
         source_files, common_mask = self.process_masks()
         self.source_files = source_files
@@ -61,15 +81,29 @@ class VariableMerger:
         new_ds = self._merge_squash(new_ds)
         return new_ds
 
-    def _squash_variables(self) -> ty.Mapping:
-        common_mask = (
-            self.common_mask
-            if self.common_mask.dims == ('lat', 'lon')
-            else oet.analyze.xarray_tools.reverse_name_mask_coords(self.common_mask)
-        )
+    def get_common_mask(self, variable_id=None):
+        assert isinstance(self.common_mask, ty.Mapping)
+        if variable_id and variable_id in self.common_mask:
+            return self.common_mask[variable_id]
+        assert 'common_mask' in self.common_mask, self.common_mask.keys()
+        return self.common_mask['common_mask']
+
+    def _squash_variables(self, common_mask=None) -> ty.Mapping:
+        common_mask = common_mask or self.common_mask
 
         new_ds = defaultdict(dict)
-        new_ds['data_vars']['global_mask'] = common_mask
+        if isinstance(common_mask, xr.DataArray):
+            new_ds['data_vars']['common_mask'] = common_mask
+        else:
+            assert isinstance(common_mask, ty.Mapping), type(common_mask)
+            shared_mask = None
+            for var, mask in common_mask.items():
+                new_ds['data_vars'][f'global_mask_{var}'] = mask
+                if shared_mask is None:
+                    shared_mask = mask.astype(np.bool_).copy()
+                    continue
+                shared_mask = mask.astype(np.bool_) | shared_mask
+            new_ds['data_vars']['common_mask'] = shared_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
             for sub_variable in list(_ds.data_vars):
@@ -78,7 +112,7 @@ class VariableMerger:
 
                 new_ds['data_vars'][sub_variable] = (
                     _ds[sub_variable]
-                    .where(common_mask)
+                    .where(self.get_common_mask(var))
                     .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
                 )
                 new_ds['data_vars'][sub_variable].attrs = _ds[sub_variable].attrs
@@ -131,7 +165,7 @@ class VariableMerger:
         return new_ds
 
     @staticmethod
-    def _fix_wrong_merge(ds):
+    def _fix_wrong_merge(ds):  # pragma: no cover
         """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
         removing duplicate time values and adjusting the data accordingly.
 
@@ -153,6 +187,7 @@ class VariableMerger:
         fig_kw=None,
         add_histograms=False,
         add_history: bool = True,
+        add_summary: bool = True,
         _historical_ds=None,
         **kw,
     ):
@@ -165,6 +200,24 @@ class VariableMerger:
         if add_history:
             kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
+        if self.merge_method == 'logical_or':
+            axes = self._continue_global_map(axes, ds=ds)
+        if self.merge_method == 'independent':
+            axes = self._continue_indepentent_var_figure(axes, ds=ds)
+        if add_summary:
+            summary = self.summarize_stats(ds)
+            res_f, tips = result_table(
+                summary,
+                thresholds=self.tipping_thresholds,
+                formats=self.table_formats,
+            )
+            self.add_table(
+                res_f=res_f,
+                tips=tips,
+                summary=summary,
+                ax=axes['t'],  # type: ignore
+                ha='center' if add_histograms else 'bottom',
+            )
         return axes
 
     @staticmethod
@@ -186,7 +239,6 @@ class VariableMerger:
         ds: xr.Dataset,
         fig_kw: ty.Optional[ty.Mapping] = None,
         add_histograms: bool = False,
-        add_summary: bool = True,
         **kw,
     ):
         variables = list(oet.utils.to_str_tuple(ds.attrs['variables']))
@@ -200,12 +252,15 @@ class VariableMerger:
 
         _, axes = plt.subplot_mosaic(**fig_kw)
 
-        if len(var_keys := list(mapping.keys())) > 1:
-            for k in var_keys[1:]:
-                axes[k].sharex(axes[var_keys[0]])  # type: ignore
+        for old_key, new_key in mapping.items():
+            axes[new_key] = axes.pop(old_key)
 
-        for key, var in mapping.items():
-            plt.sca(axes[key])  # type: ignore
+        if len(variables) > 1:
+            for k in variables[1:]:
+                axes[k].sharex(axes[variables[0]])  # type: ignore
+
+        for var in variables:
+            plt.sca(axes[var])  # type: ignore
             plot_kw = dict(label=var, **kw)
             rm_kw = {
                 k: v
@@ -224,10 +279,14 @@ class VariableMerger:
             oet.plotting.map_maker.plot_simple(ds, var, **plot_kw)  # type: ignore
             plt.legend(loc='center left')
             if add_histograms:
-                plt.sca(axes[key.upper()])  # type: ignore
+                plt.sca(axes[var.upper()])  # type: ignore
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
+
+        return axes
+
+    def _continue_global_map(self, axes, ds, ax=None, skip_common=True):
         ax = plt.gcf().add_subplot(
             1,
             2,
@@ -235,25 +294,49 @@ class VariableMerger:
             projection=oet.plotting.plot.get_cartopy_projection(),
         )
         oet.plotting.map_maker.overlay_area_mask(
-            ds.where(ds['global_mask']).copy(),
+            ds.where(self.get_common_mask()).copy(),
             ax=ax,
         )
         axes['global_map'] = ax  # type: ignore
-        if not add_summary:
-            return axes
-        summary = self.summarize_stats(ds)
-        res_f, tips = result_table(
-            summary,
-            thresholds=self.tipping_thresholds,
-            formats=self.table_formats,
-        )
-        self.add_table(
-            res_f=res_f,
-            tips=tips,
-            ax=axes['t'],  # type: ignore
-            ha='center' if add_histograms else 'bottom',
-        )
+        return axes
 
+    def _continue_indepentent_var_figure(self, axes, ds, ax=None, skip_common=True):
+        ax = ax or plt.gcf().add_subplot(
+            1,
+            2,
+            2,
+            projection=oet.plotting.plot.get_cartopy_projection(),
+        )
+        plt.gca().coastlines()
+        gl = ax.gridlines(draw_labels=True)
+        gl.top_labels = False
+
+        legend_args = []
+        for variable, mask in self.common_mask.items():
+            if skip_common and variable == 'common_mask':
+                continue
+            artists = mask.astype(int).plot.contour(
+                cmap=self._independent_cmaps.get(variable, 'viridis'),
+                transform=oet.plotting.plot.get_cartopy_transform(),
+                **self._contour_f_kw,
+            )
+            artists, _ = artists.legend_elements()
+            for line in artists:
+                line.set_linewidth(10)
+            legend_args.append(tuple(artists))
+
+        def get_area(k):
+            area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
+            exp = int(np.log10(area))  # type: ignore
+            return f'{k} -- ${area/(10**exp):.1f}\\times10^{{{exp}}}$ km$^2$'
+
+        labels = [get_area(k) for k in self.common_mask.keys() if k != 'common_mask']
+        plt.legend(
+            legend_args,
+            labels,
+            **self._independent_legend_kw,
+        )
+        axes['global_map'] = ax
         return axes
 
     @staticmethod
@@ -281,14 +364,38 @@ class VariableMerger:
             )
         }
 
-    def process_masks(self) -> ty.Tuple[dict, xr.DataArray]:
+    def _check_mask_coord_names(self, mask):
+        if isinstance(mask, ty.Mapping):
+            return {k: self._check_mask_coord_names(v) for k, v in mask.items()}
+        if isinstance(mask, xr.DataArray) and mask.dims != ('lat', 'lon'):
+            return oet.analyze.xarray_tools.reverse_name_mask_coords(mask)
+        return mask
+
+    def process_masks(self) -> ty.Tuple[dict, ty.Union[ty.Mapping, xr.DataArray]]:
         source_files = {}
-        common_mask = None
+        variable_masks = {}
         for path in self.mask_paths:  # type: ignore
             ds = oet.load_glob(path)
+            variable_id = ds.attrs['variable_id']
             # Source files may be non-unique!
-            source_files[ds.attrs['variable_id']] = ds.attrs['file']
-            common_mask = self.combine_masks(common_mask, ds)
+            source_files[variable_id] = ds.attrs['file']
+
+            variable_masks[variable_id] = self.combine_masks(
+                variable_masks.get(variable_id),
+                ds,
+                dtype=np.int64,
+            )
+
+        shared_mask = None
+        for var_mask in variable_masks.values():
+            if shared_mask is None:
+                shared_mask = var_mask.copy()
+            else:
+                shared_mask |= var_mask
+        variable_masks['common_mask'] = shared_mask
+        if self.merge_method == 'logical_or':
+            # Each variable did get it's own mask - but that is not what we want.
+            variable_masks = dict(common_mask=shared_mask)
         for other_path in self.other_paths:
             if other_path == '':  # pragma: no cover
                 continue
@@ -297,24 +404,27 @@ class VariableMerger:
             var = ds.attrs['variable_id']
             if var not in source_files:
                 source_files[var] = ds.attrs['file']
-        assert isinstance(common_mask, xr.DataArray)
-        return source_files, common_mask
+        assert isinstance(variable_masks, ty.Mapping)
+        return source_files, variable_masks
 
     def combine_masks(
         self,
         common_mask: ty.Optional[xr.DataArray],
         other_dataset: xr.Dataset,
         field: ty.Optional[str] = None,
+        dtype=np.bool_,
     ) -> xr.DataArray:
         field = field or (
             'global_mask' if 'global_mask' in other_dataset else 'cell_area'
         )
         is_the_first_instance = common_mask is None
+        other_mask = self._check_mask_coord_names(other_dataset[field])
         if is_the_first_instance:
-            return other_dataset[field].astype(np.bool_)
+            return other_mask.astype(dtype)
         if self.merge_method == 'logical_or':
-            return common_mask | other_dataset[field].astype(np.bool_)
-
+            return common_mask | other_mask.astype(dtype)
+        elif self.merge_method == 'independent':
+            return common_mask.astype(dtype) + other_mask.astype(dtype)
         raise NotImplementedError(
             f'No such method as {self.merge_method}',
         )  # pragma: no cover
@@ -333,8 +443,8 @@ class VariableMerger:
         plot_kw.setdefault('lw', 1)
         plot_kw.setdefault('add_label', False)
         read_ds_kw = read_ds_kw or {}
-        keys = [k for k in axes if k.lower() == k]
-        for key, (var, path) in zip(keys, self.source_files.items()):
+
+        for var, path in self.source_files.items():
             historical_ds = (
                 _historical_ds
                 or oet.analyze.time_statistics.get_historical_ds(
@@ -342,9 +452,10 @@ class VariableMerger:
                     match_to=match_to,
                 )
             )
-            historical_ds = historical_ds.where(self.common_mask)
+            common_mask = self.get_common_mask(var)
+            historical_ds = historical_ds.where(common_mask)
 
-            plt.sca(axes[key])
+            plt.sca(axes[var])
             rm_kw = {
                 k: v
                 for k, v in {
@@ -397,6 +508,7 @@ def add_table(
     fontsize=16,
     pass_color=(0.75, 1, 0.75),
     ha='bottom',
+    summary=None,
 ):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')
@@ -453,11 +565,11 @@ def summarize_stats(ds, field, path):
         ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
         'n_std_global': oet.analyze.time_statistics.n_times_global_std(
-            ds=oet.load_glob(path).where(ds['global_mask']),
+            ds=oet.load_glob(path).where(ds['common_mask']),
         ),
         'max_jump': oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-            ds=oet.load_glob(path).where(ds['global_mask']),
-            mask=ds['global_mask'],
+            ds=oet.load_glob(path).where(ds['common_mask']),
+            mask=ds['common_mask'],
         ),
     }
 
