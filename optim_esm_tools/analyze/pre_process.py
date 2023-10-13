@@ -43,12 +43,10 @@ def sanity_check(ds):
 
     for i, t in enumerate(ds['time'].values):
         t_cur = getattr(t, 'year', None)
-        if t_prev is not None and t_cur <= t_prev:
-            raise ValueError(
-                f'Got at least one overlapping year on index {i} {t_cur} {t_prev}',
-            )
+        if t_prev is not None and t_cur <= t_prev:  # pragma: no cover
+            m = f'Got at least one overlapping year on index {i} {t_cur} {t_prev}'
+            raise ValueError(m)
         t_prev = t_cur
-    # get_logger().error('All good no problem!')
 
 
 @timed
@@ -179,7 +177,7 @@ def pre_process(
     return save_as
 
 
-def _remove_duplicate_time_stamps(path):
+def _remove_duplicate_time_stamps(path):  # pragma: no cover
     ds = load_glob(path)
     if (t_len := len(ds['time'])) > (
         t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)

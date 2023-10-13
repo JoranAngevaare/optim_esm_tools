@@ -197,6 +197,30 @@ class TestVariableMerger(TestCase):
         merger.make_fig(add_history=True, _historical_ds=ds_1, add_summary=False)
         oet.plotting.plot._show(False)
 
+    @settings(max_examples=10, deadline=None)
+    @given(
+        dummy_dataset_length=st.integers(min_value=11, max_value=20),
+        random_seed=st.integers(min_value=1, max_value=1000),
+        add_out_of_order_variable=st.booleans(),
+    )
+    def test_merge_independent(
+        self,
+        dummy_dataset_length,
+        random_seed,
+        add_out_of_order_variable,
+    ):
+        np.random.seed(random_seed)
+        dummy_dataset = self.create_dummy_dataset(
+            dummy_dataset_length,
+            add_out_of_order_variable=add_out_of_order_variable,
+        )
+        merger = VariableMerger(data_set=dummy_dataset, merge_method='independent')
+        merger.make_fig(add_summary=False, add_history=False)
+        oet.plotting.plot._show(False)
+        assert merger.data_set.equals(dummy_dataset)
+        assert merger.mask_paths is None
+        assert merger.merge_method == 'independent'
+
 
 if __name__ == '__main__':
     main()

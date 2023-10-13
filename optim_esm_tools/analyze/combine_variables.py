@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
+from immutabledict import immutabledict as imdict
 from matplotlib.legend_handler import HandlerTuple
 
 import optim_esm_tools as oet
@@ -20,6 +21,18 @@ class VariableMerger:
     full_paths = None
     source_files: ty.Mapping
     common_mask: xr.DataArray
+
+    _independent_cmaps = imdict(
+        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues', 'Greens', 'Reds', 'Purples']),
+    )
+    _independent_legend_kw = imdict(
+        numpoints=1,
+        handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
+        **oet.utils.legend_kw(ncol=2),
+    )
+    _contour_f_kw = imdict(
+        alpha=0.5,
+    )
 
     def __init__(
         self,
@@ -152,7 +165,7 @@ class VariableMerger:
         return new_ds
 
     @staticmethod
-    def _fix_wrong_merge(ds):
+    def _fix_wrong_merge(ds):  # pragma: no cover
         """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
         removing duplicate time values and adjusting the data accordingly.
 
@@ -174,6 +187,7 @@ class VariableMerger:
         fig_kw=None,
         add_histograms=False,
         add_history: bool = True,
+        add_summary: bool = True,
         _historical_ds=None,
         **kw,
     ):
@@ -186,8 +200,24 @@ class VariableMerger:
         if add_history:
             kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
+        if self.merge_method == 'logical_or':
+            axes = self._continue_global_map(axes, ds=ds)
         if self.merge_method == 'independent':
-            self._continue_indepentent_var_figure(axes)
+            axes = self._continue_indepentent_var_figure(axes, ds=ds)
+        if add_summary:
+            summary = self.summarize_stats(ds)
+            res_f, tips = result_table(
+                summary,
+                thresholds=self.tipping_thresholds,
+                formats=self.table_formats,
+            )
+            self.add_table(
+                res_f=res_f,
+                tips=tips,
+                summary=summary,
+                ax=axes['t'],  # type: ignore
+                ha='center' if add_histograms else 'bottom',
+            )
         return axes
 
     @staticmethod
@@ -209,7 +239,6 @@ class VariableMerger:
         ds: xr.Dataset,
         fig_kw: ty.Optional[ty.Mapping] = None,
         add_histograms: bool = False,
-        add_summary: bool = True,
         **kw,
     ):
         variables = list(oet.utils.to_str_tuple(ds.attrs['variables']))
@@ -254,6 +283,10 @@ class VariableMerger:
                 hist_kw = dict(bins=25, range=[np.nanmin(ds[var]), np.nanmax(ds[var])])
                 self.simple_hist(ds, var, hist_kw=hist_kw)
                 self.simple_hist(ds, var_rm, hist_kw=hist_kw, add_label=False)
+
+        return axes
+
+    def _continue_global_map(self, axes, ds, ax=None, skip_common=True):
         ax = plt.gcf().add_subplot(
             1,
             2,
@@ -268,22 +301,44 @@ class VariableMerger:
             ax=ax,
         )
         axes['global_map'] = ax  # type: ignore
-        if not add_summary:
-            return axes
-        summary = self.summarize_stats(ds)
-        res_f, tips = result_table(
-            summary,
-            thresholds=self.tipping_thresholds,
-            formats=self.table_formats,
-        )
-        self.add_table(
-            res_f=res_f,
-            tips=tips,
-            summary=summary,
-            ax=axes['t'],  # type: ignore
-            ha='center' if add_histograms else 'bottom',
-        )
 
+    def _continue_indepentent_var_figure(self, axes, ds, ax=None, skip_common=True):
+        ax = ax or plt.gcf().add_subplot(
+            1,
+            2,
+            2,
+            projection=oet.plotting.plot.get_cartopy_projection(),
+        )
+        plt.gca().coastlines()
+        gl = ax.gridlines(draw_labels=True)
+        gl.top_labels = False
+
+        legend_args = []
+        for variable, mask in self.common_mask.items():
+            if skip_common and variable == 'common_mask':
+                continue
+            artists = mask.astype(int).plot.contour(
+                cmap=self._independent_cmaps.get(variable, 'viridis'),
+                transform=oet.plotting.plot.get_cartopy_transform(),
+                **self._contour_f_kw,
+            )
+            artists, _ = artists.legend_elements()
+            for line in artists:
+                line.set_linewidth(10)
+            legend_args.append(tuple(artists))
+
+        def get_area(k):
+            area = float(ds['cell_area'].where(ds[f'global_mask_{k}']).sum() / 1e6)
+            exp = int(np.log10(area))  # type: ignore
+            return f'{k} -- ${area/(10**exp):.1f}\\times10^{{{exp}}}$ km$^2$'
+
+        labels = [get_area(k) for k in self.common_mask.keys() if k != 'common_mask']
+        plt.legend(
+            legend_args,
+            labels,
+            **self._independent_legend_kw,
+        )
+        axes['global_map'] = ax
         return axes
 
     def _continue_indepentent_var_figure(self, previous_axes, skip_common=True):
