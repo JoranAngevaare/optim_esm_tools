@@ -189,7 +189,7 @@ def read_ds(
     metadata = (
         {}
         if _skip_folder_info
-        else {k: folders[-i - 1] for i, k in enumerate(_FOLDER_FMT[::-1])}
+        else oet.analyze.find_matches.folder_to_dict(base)
     )
     metadata.update(dict(path=base, file=res_file, running_mean_period=_ma_window))  # type: ignore
     if _historical_path:
