@@ -183,8 +183,6 @@ def read_ds(
         )
         data_set = add_conditions_to_ds(data_set, **kwargs)
 
-    folders = base.split(os.sep)
-
     # start with -1 (for i==0)
     metadata = (
         {}
