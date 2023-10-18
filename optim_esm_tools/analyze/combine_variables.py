@@ -357,7 +357,7 @@ class VariableMerger:
 
     def summarize_stats(self, ds):
         return {
-            field: summarize_stats(ds, field, path)
+            field: summarize_stats(ds=ds, field=field, path=path)
             for field, path in zip(
                 oet.utils.to_str_tuple(ds.attrs['variables']),
                 oet.utils.to_str_tuple(ds.attrs['source_files']),

@@ -52,7 +52,7 @@ class _ThresholdIterator:
         iter_key, iter_values = list(iterable_range.items())[0]
         pbar = oet.utils.tqdm(iter_values, disable=not self._tqmd)
         for value in pbar:
-            pbar.desc = f'{iter_key} = {value:.1g}'
+            pbar.desc = f'{iter_key} = {value:.3g}'
 
             all_mask = self._build_combined_mask(  # type: ignore
                 method=_mask_method,
