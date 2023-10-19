@@ -10,6 +10,7 @@ from ._base import apply_options
 from .local_history import LocalHistory
 from .percentiles import Percentiles
 from .product_percentiles import ProductPercentiles
+from optim_esm_tools.analyze import tipping_criteria
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.region_finding._base import _mask_cluster_type
 
@@ -27,29 +28,39 @@ class _ThresholdIterator:
         lon_lat_dim=('lon', 'lat'),
         _mask_method='not_specified',
         iter_mask_min_area=1e12,
+        iter_mask_max_area=9e12,
     ) -> _mask_cluster_type:
         """The function `_get_masks_masked` builds masks and clusters based on
-        specified parameters and returns them.
+        a given iterable range and a combination of masks, and returns the
+        masks and clusters that meet certain size criteria.
 
-        :param iterable_range: The `iterable_range` parameter is a dictionary that specifies the range
-        of values for which the function will iterate. It has a single key-value pair, where the key
-        represents the name of the parameter being iterated over, and the value is an iterable (such as
-        a list or numpy array)
+        :param iterable_range: A dictionary that specifies the range of values for the iteration. The
+        keys represent the name of the parameter being iterated over, and the values represent the
+        iterable range of values for that parameter
         :type iterable_range: ty.Dict[str, ty.Iterable]
         :param lon_lat_dim: The `lon_lat_dim` parameter is a tuple that specifies the names of the
-        longitude and latitude dimensions in the dataset. These dimensions are used to extract the
-        corresponding coordinate values for building the cluster mask
-        :param _mask_method: The `_mask_method` parameter is used to specify the method for building the
-        combined mask. It is currently set to `'not_specified'`, which means that the method is not
-        specified and needs to be provided, defaults to not_specified (optional)
-        :param iter_mask_min_area: The parameter `iter_mask_min_area` represents the minimum area that a
-        mask must have in order to be considered. Masks with an area less than `iter_mask_min_area` will
-        be excluded from the final result
+        longitude and latitude dimensions in your dataset. These dimensions are used to extract the
+        corresponding coordinate values for building the mask
+        :param _mask_method: The `_mask_method` parameter is a string that specifies the method to be
+        used for building the combined mask. It is not specified in the code snippet provided, so its
+        value is not known, defaults to not_specified (optional)
+        :param iter_mask_min_area: The parameter `iter_mask_min_area` represents the minimum area
+        threshold for a mask. It is used to filter out masks that have a size smaller than this
+        threshold
+        :param iter_mask_max_area: The parameter `iter_mask_max_area` represents the maximum area that a
+        mask can have. Masks with an area greater than or equal to `iter_mask_max_area` will raise an
+        error
         :return: two lists: `masks` and `clusters`.
         """
         already_seen = None
         masks, clusters = [], []
-        iter_key, iter_values = list(iterable_range.items())[0]
+
+        _, filtered_kwargs = self._get_mask_function_and_kw(
+            method=_mask_method,
+            **iterable_range,
+        )
+        iter_key, iter_values = list(filtered_kwargs.items())[0]
+
         pbar = oet.utils.tqdm(iter_values, disable=not self._tqmd)
         for value in pbar:
             pbar.desc = f'{iter_key} = {value:.3g}'
@@ -68,12 +79,18 @@ class _ThresholdIterator:
                 lat_coord=self.data_set[lon_lat_dim[1]].values,
             )
             for m, c in zip(these_masks, these_clusters):
-                if self.mask_area(m).sum() >= iter_mask_min_area:  # type: ignore
+                size = self.mask_area(m).sum()
+                if size >= iter_mask_min_area and size < iter_mask_max_area:
                     masks.append(m)
                     clusters.append(c)
                     if already_seen is None:
                         already_seen = m.copy()
                     already_seen[m] = True
+                elif size >= iter_mask_max_area:
+                    raise ValueError(
+                        f'Got {size/iter_mask_min_area:.1%} target size for {value}',
+                    )
+
         pbar.close()
         return masks, clusters
 
@@ -123,4 +140,23 @@ class IterPercentiles(_ThresholdIterator, Percentiles):
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
             _mask_method='all_pass_percentile',
+        )
+
+
+class IterStartEnd(_ThresholdIterator, ProductPercentiles):
+    labels = ('i',)
+    criteria: ty.Tuple = (tipping_criteria.StartEndDifference,)
+
+    @apply_options
+    def _get_masks_masked(
+        self,
+        iterable_range=dict(product_percentiles=np.linspace(99.9, 85, 41)),
+        lon_lat_dim=('lon', 'lat'),
+        iter_mask_min_area=1e12,
+    ) -> _mask_cluster_type:
+        return super()._get_masks_masked(
+            iterable_range=iterable_range,
+            lon_lat_dim=lon_lat_dim,
+            iter_mask_min_area=iter_mask_min_area,
+            _mask_method='product_rank_past_threshold',
         )

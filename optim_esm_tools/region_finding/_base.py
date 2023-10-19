@@ -148,7 +148,7 @@ class RegionExtractor:
         :return: The method is returning the `_logger` attribute.
         """
         if self._logger is None:
-            self._logger = oet.config.get_logger()
+            self._logger = oet.config.get_logger(f'{self.__class__.__name__}')
         return self._logger
 
     @apply_options()

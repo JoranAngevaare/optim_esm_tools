@@ -252,7 +252,7 @@ def legend_kw(**kw):
 
 def filter_keyword_arguments(
     kw: ty.Mapping,
-    func: type,
+    func: ty.Callable,
     allow_varkw: bool = False,
 ) -> dict:
     """Only pass accepted keyword arguments (from kw) into function "func".
