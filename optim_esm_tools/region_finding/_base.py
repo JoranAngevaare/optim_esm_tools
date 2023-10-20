@@ -152,7 +152,7 @@ class RegionExtractor:
         return self._logger
 
     @apply_options()
-    def workflow(self, show_basic=True):
+    def workflow(self, show_basic=True) -> _mask_cluster_type:
         """The function "workflow" performs a series of tasks related to
         plotting maps and time series data.
 
@@ -169,6 +169,7 @@ class RegionExtractor:
 
         self.plot_masks(masks_and_clusters)
         self.plot_mask_time_series(masks_and_clusters)
+        return masks_and_clusters
 
     def get_masks(self) -> _mask_cluster_type:  # pragma: no cover
         raise NotImplementedError(

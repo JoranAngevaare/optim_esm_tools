@@ -2,6 +2,8 @@ import os
 import tempfile
 import unittest
 
+import numpy as np
+
 import optim_esm_tools._test_utils
 from optim_esm_tools.analyze import region_finding
 from optim_esm_tools.analyze.cmip_handler import read_ds
@@ -22,6 +24,17 @@ class Work(unittest.TestCase):
     def get_path(data_name, refresh=True):
         return optim_esm_tools._test_utils.get_path_for_ds(data_name, refresh=refresh)
 
+    @staticmethod
+    def _post_test_regions_no_overlap(masks):
+        """Make sure that no gridpi."""
+        if not len(masks):
+            return
+        n_masks = masks[0].copy().astype(int)
+        n_masks[:] = 0
+        for mask_i in masks:
+            n_masks[mask_i] += 1
+        assert np.max(n_masks) <= 1
+
     def test_max_region(self, make='MaxRegion', new_opt=None, skip_save=True):
         # sourcery skip: dict-assign-update-to-union
         cls = getattr(region_finding, make)
@@ -33,8 +46,14 @@ class Work(unittest.TestCase):
             scatter_medians=True,
             percentiles=50,
             search_kw=dict(required_file=tail),
+            iterable_range=dict(
+                percentiles=np.linspace(99.99, 85, 2),
+                product_percentiles=np.linspace(99.9, 85, 2),
+                n_times_historical=np.linspace(8, 2.5, 2),
+            ),
         )
-        # sourcery skip: no-conditionals-in-tests
+        #
+        # skip: no-conditionals-in-tests
         if new_opt:
             extra_opt.update(new_opt)
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -57,7 +76,8 @@ class Work(unittest.TestCase):
             )
             region_finder.show = False
 
-            region_finder.workflow()
+            masks, _ = region_finder.workflow()
+            self._post_test_regions_no_overlap(masks)
             return region_finder
 
     def test_max_region_wo_time_series(self):
@@ -104,6 +124,14 @@ class Work(unittest.TestCase):
 
     def test_iter_local_history(self):
         self.test_max_region('IterLocalHistory')
+
+    def test_iter_start_end_history(self):
+        self.test_max_region(
+            'IterStartEnd',
+            new_opt=dict(
+                iter_range=dict(product_percentiles=np.linspace(99.9, 85, 41)),
+            ),
+        )
 
     def test_iter_percentiles(self):
         self.test_max_region('IterPercentiles')
