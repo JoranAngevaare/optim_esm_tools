@@ -147,3 +147,8 @@ class Work(unittest.TestCase):
                 'IterPercentiles',
                 new_opt=dict(cluster_method='weighted'),
             )
+        with self.assertRaises(NotImplementedError):
+            self.test_max_region(
+                'IterStartEnd',
+                new_opt=dict(cluster_method='weighted'),
+            )

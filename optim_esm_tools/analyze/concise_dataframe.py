@@ -18,6 +18,7 @@ class ConciseDataFrame:
         tqdm: bool = False,
         match_overlap: bool = True,
         min_frac_overlap: float = 0.33,
+        eager_mode=True,
     ):
         # important to sort by tips == True first! As in match_rows there is a line that assumes
         # that all tipping rows are already merged!
@@ -31,6 +32,7 @@ class ConciseDataFrame:
         self.match_overlap = match_overlap
         self.tqdm = tqdm
         self.min_frac_overlap = min_frac_overlap
+        self.eager_mode = True
 
     def concise(self) -> pd.DataFrame:
         rows = [row.to_dict() for _, row in self.df.iterrows()]
@@ -48,44 +50,60 @@ class ConciseDataFrame:
     def combine_rows(rows: ty.Mapping, delimiter: str) -> ty.Dict[str, str]:
         ret = {}
         for k in rows[0].keys():
-            val = sorted(list({r[k] for r in rows}))
+            vals = list({r[k] for r in rows})
+            try:
+                val = sorted(vals)
+            except TypeError:
+                val = sorted([str(v) for v in vals])
             ret[k] = val[0] if len(val) == 1 else delimiter.join([str(v) for v in val])
         return ret
 
-    def match_rows(self, rows: ty.Mapping) -> ty.List[ty.Mapping]:
+    _mask_cache = None
+
+    def overlaps_enough(self, path1, path2, use_field='global_mask'):
+        self._mask_cache = self._mask_cache or {}
+        for path in path1, path2:
+            if path not in self._mask_cache:
+                self._mask_cache[path] = oet.load_glob(path)[use_field].values
+        result = (
+            self.overlaps_percent(self._mask_cache[path1], self._mask_cache[path2])
+            >= self.min_frac_overlap
+        )
+        if not self.eager_mode:
+            self._mask_cache = None
+        return result
+
+    @staticmethod
+    def overlaps_percent(arr1, arr2):
+        return np.sum(arr1 & arr2) / min(np.sum(arr1), np.sum(arr2))
+
+    def match_rows(self, rows):
+        df = pd.DataFrame(rows)
+        match = sorted(set(df.columns) - set(self.group))
+
         groups = []
-        for row in oet.utils.tqdm(rows, desc='rows', disable=not self.tqdm):
+        for row in oet.utils.tqdm(rows, desc='rows', disable=False):
             if any(row in g for g in groups):
                 continue
 
             groups.append([row])
-            for other_row in rows:
+            mask = np.ones(len(df), dtype=np.bool_)
+            for m in match:
+                mask &= df[m] == row[m]
+            for other_row in oet.utils.tqdm(
+                [row for m, row in zip(mask, rows) if m],
+                desc='subrows',
+                disable=True,
+            ):
                 if row == other_row:
                     continue
-                for k, v in row.items():
-                    if k in self.group:
-                        continue
-                    if other_row.get(k) != v:
-                        break
-                else:
-                    if (not self.match_overlap) or (
-                        any(
-                            self.overlaps_enough(r['path'], other_row['path'])
-                            for r in groups[-1]
-                            if r['tips']
-                        )
-                    ):
-                        groups[-1].append(other_row)
+
+                if (not self.match_overlap) or (
+                    any(
+                        self.overlaps_enough(r['path'], other_row['path'])
+                        for r in groups[-1]
+                        if r['tips']
+                    )
+                ):
+                    groups[-1].append(other_row)
         return groups
-
-    @staticmethod
-    def overlaps_percent(ds1, ds2, use_field='global_mask'):
-        arr1 = ds1[use_field].values
-        arr2 = ds2[use_field].values
-        return np.sum(arr1 & arr2) / min(np.sum(arr1), np.sum(arr2))
-
-    def overlaps_enough(self, path1, path2):
-        return (
-            self.overlaps_percent(oet.load_glob(path1), oet.load_glob(path2))
-            >= self.min_frac_overlap
-        )
