@@ -23,7 +23,7 @@ class VariableMerger:
     common_mask: xr.DataArray
 
     _independent_cmaps = imdict(
-        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues', 'Greens', 'Reds', 'Purples']),
+        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues_r', 'Greens_r', 'Reds_r', 'Purples_r']),
     )
     _independent_legend_kw = imdict(
         numpoints=1,
