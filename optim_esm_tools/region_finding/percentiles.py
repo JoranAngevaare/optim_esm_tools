@@ -114,6 +114,27 @@ class Percentiles(RegionExtractor):
             ),
         ),
     )
+    def _get_mask_function_and_kw(
+        self,
+        method: str,
+        **kw,
+    ) -> ty.Tuple[ty.Callable, dict]:
+        functions = dict(
+            all_pass_percentile=self._all_pass_percentile,
+            all_pass_historical=self._all_pass_historical,
+            product_rank=self._product_rank,
+            product_rank_past_threshold=self._product_rank_past_threshold,
+            sum_rank=self._sum_rank,
+        )
+        func = functions[method]
+        assert isinstance(func, ty.Callable)
+        filter_kw = oet.utils.filter_keyword_arguments(kw, func, allow_varkw=False)
+        if removed := set(kw) - set(filter_kw):
+            self.log.info(
+                f'Removed {removed}. Started with {kw}, returning res {filter_kw}',
+            )
+        return func, filter_kw
+
     def _build_combined_mask(self, method: str, **kw) -> np.ndarray:
         """The `_build_combined_mask` function takes a method and keyword
         arguments, uses the method to select a function from a dictionary, and
@@ -131,14 +152,8 @@ class Percentiles(RegionExtractor):
         :return: a numpy array.
         """
         labels = [crit.short_description for crit in self.criteria]
-        function = dict(
-            all_pass_percentile=self._all_pass_percentile,
-            all_pass_historical=self._all_pass_historical,
-            product_rank=self._product_rank,
-            product_rank_past_threshold=self._product_rank_past_threshold,
-            sum_rank=self._sum_rank,
-        )
-        result = function[method](labels, **kw)
+        func, filter_kw = self._get_mask_function_and_kw(method=method, **kw)
+        result = func(labels, **filter_kw)
         self.check_shape(result)
         return result
 

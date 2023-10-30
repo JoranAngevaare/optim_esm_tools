@@ -23,7 +23,10 @@ class VariableMerger:
     common_mask: xr.DataArray
 
     _independent_cmaps = imdict(
-        zip(['siconc', 'sos', 'tas', 'tos'], ['Blues', 'Greens', 'Reds', 'Purples']),
+        zip(
+            ['siconc', 'sos', 'tas', 'tos'],
+            ['Blues_r', 'Greens_r', 'Reds_r', 'Purples_r'],
+        ),
     )
     _independent_legend_kw = imdict(
         numpoints=1,
@@ -42,6 +45,7 @@ class VariableMerger:
         merge_method: str = 'logical_or',
         tipping_thresholds: ty.Optional[ty.Mapping] = None,
         table_formats: ty.Optional[ty.Dict[str, str]] = None,
+        use_cftime: bool = True,
     ) -> None:
         if data_set is None:
             assert paths, "Dataset specified, don't give paths"
@@ -55,6 +59,7 @@ class VariableMerger:
         self.merge_method = merge_method
         self.tipping_thresholds = tipping_thresholds
         self.table_formats = table_formats
+        self.use_cftime = use_cftime
         if data_set:
             self.source_files = dict(
                 zip(
@@ -106,6 +111,7 @@ class VariableMerger:
             new_ds['data_vars']['common_mask'] = shared_mask
         for var, path in self.source_files.items():
             _ds = oet.load_glob(path)
+            _ds['time'] = [int(d.year) for d in _ds['time'].values]
             for sub_variable in list(_ds.data_vars):
                 if var not in sub_variable:
                     continue
@@ -129,15 +135,15 @@ class VariableMerger:
         )
         return new_ds
 
-    def _merge_squash(self, new_ds: dict) -> xr.Dataset:
+    def _merge_squash(self, new_ds_kw: dict) -> xr.Dataset:
         try:
-            new_ds = xr.Dataset(**new_ds)
+            new_ds = xr.Dataset(**new_ds_kw)
         except TypeError as e:  # pragma: no cover
             oet.get_logger().warning(f'Ran into {e} fallback method because of cftime')
             # Stupid cftime can't compare it's own formats
             # But xarray can fudge something along the way!
-            data_vars = new_ds.pop('data_vars')
-            new_ds = xr.Dataset(**new_ds)
+            data_vars = new_ds_kw.pop('data_vars')
+            new_ds = xr.Dataset(**new_ds_kw)
 
             for k, v in data_vars.items():
                 if 'time' in new_ds.coords and 'time' in v.coords:
@@ -149,8 +155,8 @@ class VariableMerger:
             oet.get_logger().warning(
                 f'Ran into {e} fallback method because of duplicated time stamps',
             )
-            data_vars = new_ds.pop('data_vars')
-            new_ds = xr.Dataset(**new_ds)
+            data_vars = new_ds_kw.pop('data_vars')
+            new_ds = xr.Dataset(**new_ds_kw)
 
             for k, v in data_vars.items():
                 if 'time' in new_ds.coords and 'time' in v.coords:
@@ -159,26 +165,13 @@ class VariableMerger:
                     new_ds[k].attrs = v.attrs
                 else:
                     new_ds[k] = v
-        dt = new_ds['time'].values[-1].year - new_ds['time'].values[0].year
-        if len(new_ds['time']) > dt + 1:  # allow off by one
-            new_ds = self._fix_wrong_merge(new_ds)
-        return new_ds
+        if self.use_cftime:
+            import cftime
 
-    @staticmethod
-    def _fix_wrong_merge(ds):  # pragma: no cover
-        """The function `_fix_wong_merge` fixes a wrong merge in a dataset by
-        removing duplicate time values and adjusting the data accordingly.
-
-        :param ds: The parameter `ds` is a dataset object. It is assumed to have a dimension called 'time'
-        and contains multiple variables
-        :return: a new dataset, `new_ds`, which is a modified version of the input dataset `ds`.
-        """
-        new_ds = ds.copy()
-        new_ds = new_ds.isel(time=slice(None, len(new_ds['time']) // 2))
-        new_ds['time'] = ds['time'][::2]
-        for v, a in ds.data_vars.items():
-            if 'time' in a.dims:
-                new_ds[v].data = a[1::2] if np.isnan(a.values[10]) else a[::2]
+            new_ds['time'] = [cftime.DatetimeNoLeap(y, 7, 1) for y in new_ds['time']]
+            dt = new_ds['time'].values[-1].year - new_ds['time'].values[0].year
+            if len(new_ds['time']) > dt + 1:
+                raise ValueError('Got more years than dates.')
         return new_ds
 
     def make_fig(
