@@ -1,3 +1,29 @@
+1.7.0 / 2023-10-30
+------------------
+## Minor
+* Allow different masks by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/152
+* `IterStartEnd` method for finding region by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/161
+
+## Patch
+* Query with constant variable_id by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/147
+* Repeated testing for `rpy_symmetry` tests by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/153
+* Sanity checks in time merging during pre-processing by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/158
+* Update config internals `v0.6.0` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/159
+* Find method from `folder_to_dict` in `read_ds` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/160
+
+## Package updates
+* Bump actions/checkout from 3 to 4 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/151
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/149
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/150
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/156
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/162
+
+## New Contributors
+* @dependabot made their first contribution in https://github.com/JoranAngevaare/optim_esm_tools/pull/151
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v1.6.3...v1.7.0
+
+
 1.6.3 / 2023-09-13
 ------------------
 * Merge method to deal with offset time series by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/144
