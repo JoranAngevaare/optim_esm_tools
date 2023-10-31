@@ -7,8 +7,6 @@ from scipy.stats import percentileofscore
 
 import optim_esm_tools as oet
 
-# from hypothesis import given, strategies as st, settings, HealthCheck
-
 
 @given(arrays(np.float16, shape=(10, 10)).filter(lambda x: len(np.unique(x)) > 1))
 def test_rank_2d_float(a):
@@ -27,7 +25,7 @@ def _rank2d(a):
     if len(np.unique(a_flat)) < 2:
         return
     pcts = np.array(
-        [[percentileofscore(a_flat, i, kind='mean') / 100 for i in aa] for aa in a]
+        [[percentileofscore(a_flat, i, kind='mean') / 100 for i in aa] for aa in a],
     )
     rnk = oet.analyze.tools.rank2d(a)
 

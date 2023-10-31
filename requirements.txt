@@ -4,6 +4,7 @@ matplotlib
 numba
 numpy
 pandas
+scipy
 tqdm
 treelib
 xarray
