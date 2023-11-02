@@ -6,10 +6,12 @@ import xarray as xr
 from immutabledict import immutabledict
 
 from .globals import _SECONDS_TO_YEAR
+from .tools import rank2d
 from .xarray_tools import _native_date_fmt
 from .xarray_tools import _remove_any_none_times
 from .xarray_tools import apply_abs
 from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import deprecated
 from optim_esm_tools.utils import timed
 
 
@@ -371,17 +373,4 @@ def max_derivative(
         return result
 
 
-def rank2d(a):
-    """Calculate percentiles of values in `a`"""
-    from scipy.interpolate import interp1d
-
-    a_flat = a[~np.isnan(a)].flatten()
-    # This is equivalent to
-    # from scipy.stats import percentileofscore
-    # import optim_esm_tools as oet
-    # pcts = [[percentileofscore(a_flat, i, kind='mean') / 100 for i in aa]
-    #         for aa in oet.utils.tqdm(a)]
-    # return pcts
-    n = len(a_flat)
-    itp = interp1d(np.sort(a_flat), np.arange(n) / n, bounds_error=False)
-    return itp(a)
+rank2d = deprecated(rank2d, 'Call rank2d from optim_esm_tools.analyze.tools')

@@ -46,7 +46,6 @@ def build_clusters(
     cluster_opts['min_samples'] = min_samples
 
     from sklearn.cluster import DBSCAN
-    import numpy as np
 
     coordinates_rad = np.radians(coordinates_deg).T
 

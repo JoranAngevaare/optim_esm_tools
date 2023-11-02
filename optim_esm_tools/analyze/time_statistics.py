@@ -4,6 +4,7 @@ import typing as ty
 from functools import partial
 
 import numpy as np
+import scipy
 import xarray as xr
 
 import optim_esm_tools as oet
@@ -196,8 +197,6 @@ def calculate_dip_test(ds, field=None, nan_policy='omit'):
 
 
 def calculate_skewtest(ds, field=None, nan_policy='omit'):
-    import scipy
-
     values = get_values_from_data_set(ds, field, add='')
     if sum(~np.isnan(values)) < 8:  # pragma: no cover
         # At least 8 samples are needed
