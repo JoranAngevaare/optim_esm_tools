@@ -8,4 +8,5 @@ from . import io
 from . import pre_process
 from . import region_finding
 from . import time_statistics
+from . import tools
 from . import xarray_tools
