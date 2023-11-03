@@ -29,7 +29,6 @@ def rank2d(a):
     cumsum_low[1:] = cumsum_high[:-1]
     cumsum = (cumsum_high + cumsum_low) / 2
     itp = interp1d(a_sorted, cumsum, bounds_error=True, kind='linear')
-    print(a_sorted, a_flat, cumsum, count, itp(a_flat))
 
     result = np.empty_like(a, dtype=np.float32)
     result[:] = np.nan
