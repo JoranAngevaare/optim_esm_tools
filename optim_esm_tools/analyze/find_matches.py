@@ -5,6 +5,7 @@ from collections import defaultdict
 from optim_esm_tools.config import config
 from optim_esm_tools.config import get_logger
 from optim_esm_tools.utils import check_accepts
+from optim_esm_tools.utils import deprecated
 from optim_esm_tools.utils import timed
 
 
@@ -29,10 +30,10 @@ def find_matches(
     activity_id='ScenarioMIP',
     institution_id='*',
     source_id='*',
-    experiment_id='ssp585',
+    experiment_id='*',
     variant_label='*',
-    domain='Ayear',
-    variable_id='tas',
+    domain='*',
+    variable_id='*',
     grid_label='*',
     version='*',
     max_versions: int = 1,
@@ -199,15 +200,20 @@ def base_from_path(path, look_back_extra=0):
     )
 
 
-def associate_historical(
+@deprecated
+def associate_historical(*a, **kw):
+    return associate_parent(*a, **kw)
+
+
+def associate_parent(
     data_set=None,
     path=None,
     match_to='piControl',
-    activity_id='CMIP',
     look_back_extra=0,
     query_updates=None,
     search_kw=None,
     strict=True,
+    required_file='merged.nc',
 ):
     if data_set is None and path is None:
         raise ValueError(
@@ -215,24 +221,55 @@ def associate_historical(
         )  # pragma: no cover
     log = get_logger()
     path = path or data_set.attrs['path']  # type: ignore
+    assert os.path.exists(path)
+    if data_set is None:
+        from optim_esm_tools import load_glob
+
+        file = (
+            os.path.join(path, required_file)
+            if not path.endswith(required_file)
+            else path
+        )
+        data_set = load_glob(file)
+
     base = base_from_path(path, look_back_extra=look_back_extra)
-    search = folder_to_dict(path, strict=strict)
+    search = {
+        k.replace('parent_', ''):
+        # Filter out some institutes that ended up adding a bunch of spaces here?!
+        data_set.attrs.get(k, '*').replace(' ', '')
+        for k in 'parent_activity_id parent_experiment_id parent_source_id parent_variant_label'.split()
+    }
+    if all(v == '*' for v in search.values()) or search['source_id'] == '*':
+        raise ValueError(f'Unclear search for {path} - attributes are missing')
+    search.update(dict(variable_id=data_set.attrs['variable_id']))
+    if (
+        search['source_id'] == 'GISS-E2-1-G'
+        and data_set.attrs['source_id'] == 'GISS-E2-2-G'
+    ):
+        log.error(f'Hacking GISS-E2-1-G -> GISS-E2-2-G ?!!?!')
+        search['source_id'] = 'GISS-E2-2-G'
+        # print(search)
+    if search['source_id'] != data_set.attrs['source_id']:
+        log.critical(
+            f"Misalignment in source-ids for {path} got {search['source_id']} and {data_set.attrs['source_id']}",
+        )
+
+    if search['activity_id'] not in ['ScenarioMIP', 'CMIP']:
+        log.warning(
+            f"{search['activity_id']} seems invalid for {path}, trying wildcard!",
+        )
+        search['activity_id'] = '*'
     if search is None and not strict:
         log.warning('No search, but not breaking because strict is False')
         return
-    search['activity_id'] = activity_id  # type: ignore
-    if search['experiment_id'] == match_to:  # pragma: no cover  # type: ignore
-        message = f'Cannot match {match_to} to itself!'
-        if strict:
-            raise NotImplementedError(message)
-        log.warning(message)
-    search['experiment_id'] = match_to  # type: ignore
+
     if search_kw:
         search.update(search_kw)  # type: ignore
 
     if query_updates is None:
         # It's important to match the variant-label last, otherwise we get mismatched simulations
-        # from completely different ensamble members
+        # from completely different ensamble members. We used to accept such cases, but disabled
+        # this later as it gave funky results
         query_updates = [
             {},
             dict(version='*'),
@@ -242,10 +279,31 @@ def associate_historical(
 
     for try_n, update_query in enumerate(query_updates):
         if try_n:
-            message = f'No results after {try_n} try, retrying with {update_query}'
-            log.info(message)
+            if not strict:
+                message = f'No results after {try_n} try, retrying with {update_query}'
+                log.info(message)
+            else:
+                break
         search.update(update_query)  # type: ignore
         if this_try := find_matches(base, **search):  # type: ignore
+            if match_to == 'piControl' and search.get('experiment_id') == 'historical':
+                log.debug(
+                    f'Found historical, but we need to match to PiControl, recursively returning!',
+                )
+                results = [
+                    associate_parent(
+                        path=t,
+                        match_to=match_to,
+                        look_back_extra=look_back_extra,
+                        query_updates=query_updates,
+                        search_kw=search_kw,
+                        strict=strict,
+                    )
+                    for t in this_try
+                ]
+                # Return a flat array!
+                return [rr for r in results if r for rr in r]
+
             return this_try
     message = f'Looked for {search}, in {base} found nothing'
     if strict:

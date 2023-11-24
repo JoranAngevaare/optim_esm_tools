@@ -84,6 +84,7 @@ class VariableMerger:
             return self.data_set  # pragma: no cover
         new_ds = self._squash_variables()
         new_ds = self._merge_squash(new_ds)
+        self.data_set = new_ds
         return new_ds
 
     def get_common_mask(self, variable_id=None):

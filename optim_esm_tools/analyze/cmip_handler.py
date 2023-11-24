@@ -71,7 +71,7 @@ def add_conditions_to_ds(
 
 
 @oet.utils.add_load_kw
-@oet.utils.timed()
+@oet.utils.timed(_stacklevel=3)
 def read_ds(
     base: str,
     variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
