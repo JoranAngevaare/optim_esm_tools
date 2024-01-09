@@ -168,3 +168,8 @@ class IterStartEnd(_ThresholdIterator, ProductPercentiles):
             iter_mask_max_area=iter_mask_max_area,
             _mask_method='product_rank_past_threshold',
         )
+
+
+class IterSNR(IterStartEnd):
+    labels = ('i',)
+    criteria: ty.Tuple = (tipping_criteria.SNR,)

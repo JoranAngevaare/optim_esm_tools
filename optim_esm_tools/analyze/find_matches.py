@@ -136,12 +136,14 @@ def _get_head(path):
     return path
 
 
-def is_excluded(path):
+def is_excluded(path, exclude_too_short=True):
     from fnmatch import fnmatch
 
     path = _get_head(path)
-
-    for excluded in config['CMIP_files']['excluded'].split('\n'):
+    exlusion_list = config['CMIP_files']['excluded'].split('\n')
+    if exclude_too_short:
+        exlusion_list += config['CMIP_files']['too_short'].split('\n')
+    for excluded in exlusion_list:
         if not excluded:
             continue
         folders = excluded.split()

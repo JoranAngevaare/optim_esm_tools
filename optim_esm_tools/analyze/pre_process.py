@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import typing as ty
 
@@ -192,7 +193,9 @@ def _remove_duplicate_time_stamps(path):  # pragma: no cover
         with tempfile.TemporaryDirectory() as temp_dir:
             save_as = os.path.join(temp_dir, 'temp.nc')
             ds.to_netcdf(save_as)
-            os.rename(save_as, path)
+            # move the old file
+            os.rename(path, os.path.join(os.path.split(path)[0], 'faulty_merged.nc'))
+            shutil.copy2(save_as, path)
 
 
 def _remap_and_merge(

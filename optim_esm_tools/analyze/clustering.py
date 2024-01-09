@@ -24,7 +24,8 @@ def build_clusters(
     only_core: bool = True,
     min_samples: int = int(config['analyze']['clustering_min_neighbors']),
     cluster_opts: ty.Optional[dict] = None,
-) -> ty.List[np.ndarray]:
+    keep_masks: bool = False,
+) -> ty.Union[ty.List[np.ndarray], ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]]:
     """Build clusters based on a list of coordinates, use halfsine metric for
     spherical spatial data.
 
@@ -39,7 +40,31 @@ def build_clusters(
 
     Returns:
         ty.List[np.ndarray]: list of clustered points (in radians)
+        or
+        ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]]: list of clustered points (in radians) and list
+            of boolean masks with the same length as the input coordinates deg.
     """
+    cluster_coords, cluster_masks = _build_clusters(
+        coordinates_deg,
+        weights,
+        max_distance_km,
+        only_core,
+        min_samples,
+        cluster_opts,
+    )
+    if keep_masks:
+        return cluster_coords, cluster_masks
+    return cluster_coords
+
+
+def _build_clusters(
+    coordinates_deg: np.ndarray,
+    weights: ty.Optional[np.ndarray] = None,
+    max_distance_km: ty.Union[float, int] = 750,
+    only_core: bool = True,
+    min_samples: int = int(config['analyze']['clustering_min_neighbors']),
+    cluster_opts: ty.Optional[dict] = None,
+) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
     cluster_opts = cluster_opts or {}
     for class_label, v in dict(algorithm='ball_tree', metric='haversine').items():
         cluster_opts.setdefault(class_label, v)
@@ -70,7 +95,7 @@ def build_clusters(
     is_core_sample[db_fit.core_sample_indices_] = True
 
     return_masks = []
-
+    return_coord = []
     for class_label in unique_labels:
         is_noise = class_label == -1
         if is_noise:
@@ -82,9 +107,10 @@ def build_clusters(
             coord_mask &= is_core_sample
 
         masked_points = coordinates_rad[coord_mask]
-        return_masks.append(masked_points)
+        return_coord.append(masked_points)
+        return_masks.append(coord_mask)
 
-    return return_masks
+    return return_coord, return_masks
 
 
 @timed()
@@ -92,7 +118,7 @@ def build_cluster_mask(
     global_mask: np.ndarray,
     lat_coord: np.ndarray,
     lon_coord: np.ndarray,
-    show_tqdm: bool = False,
+    show_tqdm: bool = None,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
@@ -103,7 +129,6 @@ def build_cluster_mask(
         global_mask (np.ndarray): full 2d mask of the data
         lon_coord (np.array): all longitude values
         lat_coord (np.array): all latitude values
-        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
@@ -129,8 +154,9 @@ def build_cluster_mask(
         lat=lat,
         lon=lon,
         coordinates_deg=xy_data,
-        show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
+        global_mask=global_mask,
+        show_tqdm=show_tqdm,
         **kw,
     )
 
@@ -142,7 +168,7 @@ def build_weighted_cluster(
     weights: np.ndarray,
     lat_coord: np.ndarray,
     lon_coord: np.ndarray,
-    show_tqdm: bool = False,
+    show_tqdm: bool = None,
     threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
@@ -158,7 +184,6 @@ def build_weighted_cluster(
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
             Defaults to 'infer'.
-        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         threshold: float, min value of the passed weights. Defaults to 0.99.
 
     Returns:
@@ -200,26 +225,25 @@ def _check_input(data, lat_coord, lon_coord):
     return lat, lon
 
 
-def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
+def _build_cluster_with_kw(lat, lon, show_tqdm=None, global_mask=None, **cluster_kw):
     """Overlapping logic between functions to get the masks and clusters."""
     masks = []
-    clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
+    clusters, sub_masks = build_clusters(**cluster_kw, keep_masks=True)
+    if global_mask is None:
+        global_mask = np.ones(lat.shape, dtype=np.bool_)
+    clusters = [np.rad2deg(cluster) for cluster in clusters]
+    if show_tqdm is not None:
+        get_logger().warning(
+            'Calling "_build_cluster_with_kw" with show_tqdm is deprecated',
+        )
     if lat.shape != lon.shape:
         raise ValueError(
             f'Got inconsistent input {lat.shape} != {lon.shape}',
         )  # pragma: no cover
-    for cluster in clusters:
-        mask = np.zeros(lat.shape, np.bool_)
-        for coord_lat, coord_lon in tqdm(
-            cluster,
-            desc='fill_mask',
-            disable=not show_tqdm,
-        ):
-            # This is a bit blunt, but it's fast enough to regain the indexes such that we can build a 2d masked array.
-            mask_x = np.isclose(lon, coord_lon)
-            mask_y = np.isclose(lat, coord_lat)
-            mask |= mask_x & mask_y
-        masks.append(mask)
+    for sub_mask in sub_masks:
+        bla = np.zeros_like(global_mask)
+        bla[global_mask] = sub_mask
+        masks.append(bla)
     return masks, clusters
 
 

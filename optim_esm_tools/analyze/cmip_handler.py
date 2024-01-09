@@ -44,6 +44,7 @@ def add_conditions_to_ds(
             tipping_criteria.MaxJumpYearly,
             tipping_criteria.MaxDerivitive,
             tipping_criteria.MaxJumpAndStd,
+            tipping_criteria.SNR,
         )  # type: ignore
     if len(set(desc := (c.short_description for c in calculate_conditions))) != len(  # type: ignore
         calculate_conditions,  # type: ignore
@@ -57,7 +58,10 @@ def add_conditions_to_ds(
     for variable in oet.utils.to_str_tuple(variable_of_interest):
         assert calculate_conditions is not None
         for cls in calculate_conditions:
-            condition = cls(**condition_kwargs, variable=variable)  # type: ignore
+            condition = cls(**condition_kwargs, variable=variable, running_mean=_ma_window)  # type: ignore
+            oet.get_logger().debug(
+                f'{condition} from {cls} set ma= {condition.running_mean} ma={_ma_window}',
+            )
             condition_array = condition.calculate(ds)
             condition_array = condition_array.assign_attrs(
                 dict(

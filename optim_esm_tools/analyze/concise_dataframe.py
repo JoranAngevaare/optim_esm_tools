@@ -17,22 +17,30 @@ class ConciseDataFrame:
         group: ty.Optional[ty.Iterable] = None,
         tqdm: bool = False,
         match_overlap: bool = True,
+        sort_by: ty.Union[str, ty.Tuple] = (
+            'tips',
+            'institution_id',
+            'source_id',
+            'experiment_id',
+        ),
+        match_by: ty.Iterable = ('institution_id', 'source_id', 'experiment_id'),
         min_frac_overlap: float = 0.33,
         eager_mode=True,
+        disable_doubles: ty.Optional[ty.Iterable[str]] = None,
     ):
         # important to sort by tips == True first! As in match_rows there is a line that assumes
         # that all tipping rows are already merged!
+
         self.df = df.copy().sort_values(
-            by=['tips', 'institution_id', 'source_id', 'experiment_id'],
+            by=list(oet.utils.to_str_tuple(sort_by)),
             ascending=False,
         )
-        self.group = group or (
-            set(self.df.columns) - {'institution_id', 'source_id', 'experiment_id'}
-        )
+        self.group = group or (set(self.df.columns) - set(match_by))
         self.match_overlap = match_overlap
         self.tqdm = tqdm
         self.min_frac_overlap = min_frac_overlap
-        self.eager_mode = True
+        self.eager_mode = eager_mode
+        self.disable_doubles = disable_doubles
 
     def concise(self) -> pd.DataFrame:
         rows = [row.to_dict() for _, row in self.df.iterrows()]
@@ -50,11 +58,11 @@ class ConciseDataFrame:
     def combine_rows(rows: ty.Mapping, delimiter: str) -> ty.Dict[str, str]:
         ret = {}
         for k in rows[0].keys():
-            vals = list({r[k] for r in rows})
             try:
+                vals = list({r[k] for r in rows})
                 val = sorted(vals)
             except TypeError:
-                val = sorted([str(v) for v in vals])
+                val = sorted({str(v) for v in vals})
             ret[k] = val[0] if len(val) == 1 else delimiter.join([str(v) for v in val])
         return ret
 
@@ -96,6 +104,12 @@ class ConciseDataFrame:
                 disable=True,
             ):
                 if row == other_row:
+                    continue
+
+                if self.disable_doubles and any(
+                    row.get(d, 'no d?') == other_row.get(d, 'also no?')
+                    for d in oet.utils.to_str_tuple(self.disable_doubles)
+                ):
                     continue
 
                 if (not self.match_overlap) or (

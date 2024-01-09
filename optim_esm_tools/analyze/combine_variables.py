@@ -24,8 +24,8 @@ class VariableMerger:
 
     _independent_cmaps = imdict(
         zip(
-            ['siconc', 'sos', 'tas', 'tos'],
-            ['Blues_r', 'Greens_r', 'Reds_r', 'Purples_r'],
+            ['siconc', 'sos', 'tas', 'tos', 'msftbarot'],
+            ['Blues_r', 'Greens_r', 'Reds_r', 'Purples_r', 'Oranges_r'],
         ),
     )
     _independent_legend_kw = imdict(
@@ -190,7 +190,13 @@ class VariableMerger:
         if add_history:
             kw.setdefault('set_y_lim', False)
 
-        axes = self._make_fig(ds, fig_kw=fig_kw, add_histograms=add_histograms, **kw)
+        axes = self._make_fig(
+            ds,
+            fig_kw=fig_kw,
+            add_histograms=add_histograms,
+            add_summary=add_summary,
+            **kw,
+        )
         if add_history:
             kw.pop('add_summary', None)
             self._add_historical_period(axes, _historical_ds=_historical_ds, **kw)
@@ -233,14 +239,15 @@ class VariableMerger:
         ds: xr.Dataset,
         fig_kw: ty.Optional[ty.Mapping] = None,
         add_histograms: bool = False,
+        add_summary=False,
         **kw,
     ):
         variables = list(oet.utils.to_str_tuple(ds.attrs['variables']))
         mapping = {string.ascii_lowercase[i]: v for i, v in enumerate(variables)}
         keys = (
-            [f'{k}{k.upper()}' for k in mapping] + ['tt']
+            [f'{k}{k.upper()}' for k in mapping] + (['tt'] if add_summary else [])
             if add_histograms
-            else list(mapping) + ['t']
+            else list(mapping) + (['t'] if add_summary else [])
         )
         fig_kw = fig_kw or self._guess_fig_kw(keys, add_histograms)
 

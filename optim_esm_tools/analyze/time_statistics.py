@@ -211,6 +211,7 @@ def calculate_symmetry_test(
     nan_policy: str = 'omit',
     test_statistic: str = 'MI',
     n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
+    _fast_mode=True,
     **kw,
 ) -> np.float64:
     """The function `calculate_symmetry_test` calculates the symmetry test
@@ -244,12 +245,19 @@ def calculate_symmetry_test(
     else:  # pragma: no cover
         message = 'Not sure how to deal with nans other than omit'
         raise NotImplementedError(message)
-    return np.mean(
-        [
-            rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
-            for _ in range(n_repeat)
-        ],
+
+    results = [rsym.p_symmetry(values, test_statistic=test_statistic, **kw)]
+    # TODO documentation is lacking
+    if _fast_mode:
+        n_repeat = n_repeat - 1 if results[0] < 0.05 else 1
+    for _ in range(n_repeat):
+        if len(results) > 3 and np.std(results) <= np.mean(results) / 10:
+            break
+        results.append(rsym.p_symmetry(values, test_statistic=test_statistic, **kw))
+    oet.get_logger().debug(
+        f'Evaluated {test_statistic} {len(results)} times: {results}',
     )
+    return np.mean(results)
 
 
 def _get_tip_criterion(short_description):
@@ -312,9 +320,10 @@ def calculate_max_jump_in_std_history(
     field_pi_control='std detrended',
     _ds_hist=None,
     mask=None,
+    _ma_window=None,
     **kw,
 ):
-    ds_hist = _ds_hist or get_historical_ds(ds, **kw)
+    ds_hist = _ds_hist or get_historical_ds(ds, **kw, _ma_window=_ma_window)
     if ds_hist is None:
         return None  # pragma: no cover
     _get_mask = oet.analyze.xarray_tools.reverse_name_mask_coords
@@ -326,7 +335,20 @@ def calculate_max_jump_in_std_history(
     ds_hist = ds_hist_masked.mean(_coord)
     crit_scen = _get_tip_criterion(field)
     crit_hist = _get_tip_criterion(field_pi_control)
-    max_jump = float(crit_scen(variable=variable).calculate(ds))
-    std_year = float(crit_hist(variable=variable).calculate(ds_hist))
+    _ma_default = _ma_window or int(
+        oet.config.config['analyze']['moving_average_years'],
+    )
+    max_jump = float(
+        crit_scen(
+            variable=variable,
+            running_mean=ds.attrs.get('running_mean_period', _ma_default),
+        ).calculate(ds),
+    )
+    std_year = float(
+        crit_hist(
+            variable=variable,
+            running_mean=ds.attrs.get('running_mean_period', _ma_default),
+        ).calculate(ds_hist),
+    )
 
     return max_jump / std_year if std_year else np.inf

@@ -146,6 +146,7 @@ def mask_to_reduced_dataset(
     data_set: xr.Dataset,
     mask: ty.Union[xr.DataArray, np.ndarray],
     add_global_mask: bool = True,
+    _fall_back_field='cell_area',
 ) -> xr.Dataset:
     """Reduce data_set by dropping all data where mask is False. This greatly
     reduces the size (which is absolutely required for exporting time series
@@ -163,21 +164,25 @@ def mask_to_reduced_dataset(
     Returns:
         xr.Dataset: Original dataset where mask is True
     """
-    if isinstance(mask, xr.DataArray):
-        mask = mask.values
-    if mask.shape != (expected := data_set['cell_area'].shape):
+    if isinstance(mask, np.ndarray):
+        mask_da = data_set[_fall_back_field].astype(np.bool_).copy()
+        mask_da.data = mask
+        mask = mask_da
+    if mask.shape != (expected := data_set[_fall_back_field].shape):
         raise ValueError(
             f'Inconsistent dimensionality, expected {expected}, got {mask.shape}',
         )  # pragma: no cover
 
-    # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
-    # While we could make this more efficient (and only use the second step), the first step
-    # does only take ~10 ms
-    ds_masked = mask_xr_ds(data_set.copy(), mask)
-    bool_mask_data_array = ~ds_masked['cell_area'].isnull()
-    ds_masked = mask_xr_ds(ds_masked, bool_mask_data_array, drop=True)
+    if all(m in list(mask.coords) for m in default_rename_mask_dims_dict().values()):
+        from optim_esm_tools.config import get_logger
+
+        get_logger().debug(
+            f'Reversing coords {list(mask.coords)} != {list(data_set[_fall_back_field].coords)}',
+        )
+        mask = reverse_name_mask_coords(mask)
+    ds_masked = mask_xr_ds(data_set.copy(), mask, drop=True)
     if add_global_mask:
-        ds_masked = add_mask_renamed(ds_masked, bool_mask_data_array)
+        ds_masked = add_mask_renamed(ds_masked, mask)
     return ds_masked
 
 
@@ -205,8 +210,18 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
         if any(dim not in list(data_array.dims) for dim in masked_dims)
     ]
     data_set = data_set.drop_vars(dropped)
+    # if list(da_mask.coords) == ['lon_mask', 'lat_mask'] or list(da_mask.coords) == ['lat_mask', 'lon_mask']:
+    #     from optim_esm_tools.config import get_logger
+    #     get_logger().info(f'Reversing coords {list(da_mask.coords)} != lat lon')
+    #     da_mask = reverse_name_mask_coords(da_mask)
+    try:
+        data_set = data_set.where(da_mask.compute(), drop=True)
+    except ValueError:
+        from optim_esm_tools.config import get_logger
 
-    data_set = data_set.where(da_mask.compute(), drop=True)
+        get_logger().info(f'data_set {list(data_set.coords)}')
+        get_logger().info(f'da_mask {list(da_mask.coords)}')
+        raise
 
     # Restore ignored variables and attributes
     for k in dropped:  # pragma: no cover
