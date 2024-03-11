@@ -88,7 +88,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
     return data_var
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
+def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False, keep_keys=None):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
     if masked_dims is None:
@@ -96,7 +96,13 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
 
     ds_start = data_set.copy()
     func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
-    data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
+    data_set = func_by_drop(
+        data_set,
+        masked_dims,
+        ds_start,
+        da_mask,
+        keep_keys=keep_keys,
+    )
     data_set = data_set.assign_attrs(ds_start.attrs)
     return data_set
 
@@ -147,6 +153,7 @@ def mask_to_reduced_dataset(
     mask: ty.Union[xr.DataArray, np.ndarray],
     add_global_mask: bool = True,
     _fall_back_field='cell_area',
+    **kw,
 ) -> xr.Dataset:
     """Reduce data_set by dropping all data where mask is False. This greatly
     reduces the size (which is absolutely required for exporting time series
@@ -180,7 +187,7 @@ def mask_to_reduced_dataset(
             f'Reversing coords {list(mask.coords)} != {list(data_set[_fall_back_field].coords)}',
         )
         mask = reverse_name_mask_coords(mask)
-    ds_masked = mask_xr_ds(data_set.copy(), mask, drop=True)
+    ds_masked = mask_xr_ds(data_set.copy(), mask, drop=True, **kw)
     if add_global_mask:
         ds_masked = add_mask_renamed(ds_masked, mask)
     return ds_masked
@@ -195,7 +202,7 @@ def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):
     return data_set
 
 
-def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
+def _drop_by_mask(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
     """Drop values with masked_dims dimensions.
 
     Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
@@ -203,11 +210,13 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     (lon, lat). So we have to do some funny bookkeeping of which data
     vars we can drop with data_set.where.
     """
-
+    if keep_keys is None:
+        keep_keys = list(data_set.variables.keys())
     dropped = [
         k
         for k, data_array in data_set.data_vars.items()
         if any(dim not in list(data_array.dims) for dim in masked_dims)
+        or k not in keep_keys
     ]
     data_set = data_set.drop_vars(dropped)
     # if list(da_mask.coords) == ['lon_mask', 'lat_mask'] or list(da_mask.coords) == ['lat_mask', 'lon_mask']:
@@ -225,13 +234,17 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
 
     # Restore ignored variables and attributes
     for k in dropped:  # pragma: no cover
+        if k not in keep_keys:
+            continue
         data_set[k] = ds_start[k]
     return data_set
 
 
-def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
+def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
     """Rebuild data_set for each variable that has all masked_dims."""
     for k, data_array in data_set.data_vars.items():
+        if keep_keys is not None and k not in keep_keys:
+            continue
         if all(dim in list(data_array.dims) for dim in masked_dims):
             lat_lon = config['analyze']['lon_lat_dim'].split(',')[::-1]
             dim_incorrect = tuple(data_array.dims) not in [

@@ -1,3 +1,4 @@
+from ._base import MaskAll
 from .iter_ranges import *
 from .local_history import LocalHistory
 from .max_region import MaxRegion

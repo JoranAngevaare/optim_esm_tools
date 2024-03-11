@@ -46,13 +46,14 @@ class VariableMerger:
         tipping_thresholds: ty.Optional[ty.Mapping] = None,
         table_formats: ty.Optional[ty.Dict[str, str]] = None,
         use_cftime: bool = True,
+        load: bool = True,
     ) -> None:
         if data_set is None:
             assert paths, "Dataset specified, don't give paths"
         else:
             assert not paths, 'Dataset not specified, give paths!'  # pragma: no cover
         self.data_set = data_set
-
+        self.load = load
         self.mask_paths = paths
         self.other_paths = other_paths or []
 
@@ -111,7 +112,7 @@ class VariableMerger:
                 shared_mask = mask.astype(np.bool_) | shared_mask
             new_ds['data_vars']['common_mask'] = shared_mask
         for var, path in self.source_files.items():
-            _ds = oet.load_glob(path)
+            _ds = oet.load_glob(path, load=self.load)
             _ds['time'] = [int(d.year) for d in _ds['time'].values]
             for sub_variable in list(_ds.data_vars):
                 if var not in sub_variable:
@@ -376,7 +377,7 @@ class VariableMerger:
         source_files = {}
         variable_masks = {}
         for path in self.mask_paths:  # type: ignore
-            ds = oet.load_glob(path)
+            ds = oet.load_glob(path, load=self.load)
             variable_id = ds.attrs['variable_id']
             # Source files may be non-unique!
             source_files[variable_id] = ds.attrs['file']
@@ -400,7 +401,7 @@ class VariableMerger:
         for other_path in self.other_paths:
             if other_path == '':  # pragma: no cover
                 continue
-            ds = oet.load_glob(other_path)
+            ds = oet.load_glob(other_path, load=self.load)
             # Source files may be non-unique!
             var = ds.attrs['variable_id']
             if var not in source_files:
@@ -449,7 +450,7 @@ class VariableMerger:
             historical_ds = (
                 _historical_ds
                 or oet.analyze.time_statistics.get_historical_ds(
-                    oet.load_glob(path),
+                    oet.load_glob(path, load=self.load),
                     match_to=match_to,
                 )
             )
@@ -502,6 +503,10 @@ def change_plt_table_height(increase_by=1.5):
     matplotlib.table.Table._approx_text_height = _approx_text_height  # type: ignore
 
 
+def _always_false(*a):
+    return False
+
+
 def add_table(
     res_f,
     tips,
@@ -535,7 +540,14 @@ def result_table(res, thresholds=None, formats=None):
     is_tip = pd.DataFrame(
         {
             k: {
-                t: (thresholds[t][0](v, thresholds[t][1]) if v is not None else False)
+                t: (
+                    thresholds.get(t, [_always_false])[0](
+                        v,
+                        thresholds.get(t, [None, None])[1],
+                    )
+                    if v is not None
+                    else False
+                )
                 for t, v in d.items()
             }
             for k, d in res.items()
@@ -551,9 +563,11 @@ def result_table(res, thresholds=None, formats=None):
     )
     res_f = pd.DataFrame(res).T
     for k, f in formats.items():
+        if k not in res_f.keys():
+            continue
         res_f[k] = res_f[k].map(f'{{:,{f}}}'.format)
 
-    order = list(formats.keys())
+    order = [o for o in formats.keys() if o in res_f.keys()]
     return res_f[order], is_tip[order]
 
 
@@ -566,10 +580,10 @@ def summarize_stats(ds, field, path):
         ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
         'n_std_global': oet.analyze.time_statistics.n_times_global_std(
-            ds=oet.load_glob(path).where(ds['common_mask']),
+            ds=oet.load_glob(path, load=True).where(ds['common_mask']),
         ),
         'max_jump': oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-            ds=oet.load_glob(path).where(ds['common_mask']),
+            ds=oet.load_glob(path, load=True).where(ds['common_mask']),
             mask=ds['common_mask'],
         ),
     }

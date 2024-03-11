@@ -178,16 +178,15 @@ def get_values_from_data_set(ds, field, add=''):
     return da.values
 
 
-def calculate_dip_test(ds, field=None, nan_policy='omit'):
+def calculate_dip_test(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
+    nan_policy: str = 'omit',
+):
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
     import diptest
 
-    values = get_values_from_data_set(ds, field, add='')
-    if nan_policy == 'omit':
-        values = values[~np.isnan(values)]
-    else:
-        raise NotImplementedError(
-            'Not sure how to deal with nans other than omit',
-        )  # pragma: no cover
     if len(values) < 3:  # pragma: no cover
         # At least 3 samples are needed
         oet.config.get_logger().error('Dataset too short for diptest')
@@ -205,9 +204,47 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
     return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_symmetry_test(
-    ds: xr.Dataset,
+def _extract_values_from_sym_args(
+    values: np.ndarray = None,
+    ds: ty.Optional[xr.Dataset] = None,
     field: ty.Optional[str] = None,
+    nan_policy: str = 'omit',
+) -> np.ndarray:
+    _ds_args_are_none = ds is None and field is None
+    if values is not None:
+        if not _ds_args_are_none:
+            raise TypeError(
+                f'Got both values, dataset and field. Either provide values or ds and field.',
+            )
+        if not isinstance(values, np.ndarray):
+            try:
+                values = values.values
+            except Exception as error:
+                raise TypeError(
+                    f'values should be np.ndarray, got {type(values)}',
+                ) from error
+        if not len(values.shape) == 1:
+            raise TypeError(f'values have wrong shape {values.shape}, should be 1D')
+
+    else:
+        if _ds_args_are_none:
+            raise TypeError('No ds is provided or field is missing!')
+
+        values = get_values_from_data_set(ds, field, add='')
+
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:  # pragma: no cover
+        message = 'Not sure how to deal with nans other than omit'
+        raise NotImplementedError(message)
+
+    return values
+
+
+def calculate_symmetry_test(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
     nan_policy: str = 'omit',
     test_statistic: str = 'MI',
     n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
@@ -217,6 +254,8 @@ def calculate_symmetry_test(
     """The function `calculate_symmetry_test` calculates the symmetry test
     statistic for a given dataset and field using the R package `rpy_symmetry`.
 
+    :param values: A numpy array with the values to calculate the diptest on. Should be 1D, and `ds` and
+    `field` should be None
     :param ds: An xarray Dataset containing the data
     :type ds: xr.Dataset
     :param field: The `field` parameter is an optional string that specifies the field or variable from
@@ -239,12 +278,7 @@ def calculate_symmetry_test(
     """
     import rpy_symmetry as rsym
 
-    values = get_values_from_data_set(ds, field, add='')
-    if nan_policy == 'omit':
-        values = values[~np.isnan(values)]
-    else:  # pragma: no cover
-        message = 'Not sure how to deal with nans other than omit'
-        raise NotImplementedError(message)
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
 
     results = [rsym.p_symmetry(values, test_statistic=test_statistic, **kw)]
     # TODO documentation is lacking
@@ -350,5 +384,5 @@ def calculate_max_jump_in_std_history(
             running_mean=ds.attrs.get('running_mean_period', _ma_default),
         ).calculate(ds_hist),
     )
-
+    print(max_jump, std_year)
     return max_jump / std_year if std_year else np.inf
