@@ -8,5 +8,6 @@ scipy
 tqdm
 treelib
 xarray
+regionmask
 # Some submodules require additional optional packages
 # rpy_symmetry
