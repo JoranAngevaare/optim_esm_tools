@@ -1,4 +1,5 @@
 """Shared common methods for reprocessing, not useful in itself."""
+
 import configparser
 import logging
 import os
