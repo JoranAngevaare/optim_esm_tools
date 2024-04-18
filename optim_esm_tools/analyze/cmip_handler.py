@@ -12,7 +12,9 @@ from optim_esm_tools.analyze import tipping_criteria
 
 def add_conditions_to_ds(
     ds: xr.Dataset,
-    calculate_conditions: ty.Optional[ty.Tuple[tipping_criteria._Condition]] = None,
+    calculate_conditions: ty.Optional[
+        ty.Tuple[tipping_criteria._Condition, ...]
+    ] = None,
     condition_kwargs: ty.Optional[ty.Mapping] = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     _ma_window: ty.Optional[ty.Union[int, str]] = None,
@@ -79,8 +81,8 @@ def add_conditions_to_ds(
 def read_ds(
     base: str,
     variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
-    min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    max_time: ty.Optional[ty.Tuple[int, ...]] = _DEFAULT_MAX_TIME,
+    min_time: ty.Optional[ty.Tuple[int, ...]] = None,
     apply_transform: bool = True,
     pre_process: bool = True,
     strict: bool = True,
@@ -160,7 +162,7 @@ def read_ds(
         if strict:
             raise FileNotFoundError(message)
         log.warning(message)
-        return
+        return None
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
@@ -199,16 +201,26 @@ def read_ds(
 
     if _cache:
         log.info(f'Write {res_file}')
-        data_set.to_netcdf(res_file)
+        comp_kw = {}
+        if oet.config.config['CMIP_files']['compress'] == 'True':
+            comp_kw = dict(
+                format='NETCDF4',
+                engine='netcdf4',
+                encoding={
+                    k: {'zlib': True, 'complevel': 1} for k in data_set.data_vars
+                },
+            )
+
+        data_set.to_netcdf(res_file, **comp_kw)
 
     return data_set
 
 
 def _historical_file(
-    add_history,
-    base,
-    _file_name,
-    _historical_path,
+    add_history: bool,
+    base: str,
+    _file_name: str,
+    _historical_path: str,
 ) -> ty.Optional[str]:
     if add_history:
         historical_heads = oet.analyze.find_matches.associate_historical(
@@ -235,16 +247,16 @@ def _historical_file(
 
 def _name_cache_file(
     base,
-    variable_of_interest,
-    min_time,
-    max_time,
-    _ma_window,
-    is_historical,
-    version=None,
-):
+    variable_of_interest: str,
+    min_time: ty.Optional[ty.Tuple[int, ...]],
+    max_time: ty.Optional[ty.Tuple[int, ...]],
+    _ma_window: int,
+    is_historical: bool,
+    version: ty.Optional[str] = None,
+) -> str:
     """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = _ma_window or int(oet.config.config['analyze']['moving_average_years'])
     path = os.path.join(
         base,
         f'{variable_of_interest}'

@@ -302,6 +302,15 @@ class RegionExtractor:
         """
         return self.mask_area(mask).sum() >= min_area_sq
 
+    def mask_to_coord(self, mask):
+        ds = self.data_set
+        if not isinstance(mask, np.ndarray):
+            mask = mask.values
+        lats, lons = np.meshgrid(ds.lat.values, ds.lon.values)
+        lon_coords = lons.T[mask]
+        lat_coords = lats.T[mask]
+        return np.vstack([lon_coords, lat_coords]).T
+
     def filter_masks_and_clusters(
         self,
         masks_and_clusters: _mask_cluster_type,

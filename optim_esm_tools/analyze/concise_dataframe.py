@@ -8,8 +8,8 @@ import optim_esm_tools as oet
 
 
 class ConciseDataFrame:
-    delimiter = ', '
-    merge_postfix = '(s)'
+    delimiter: str = ', '
+    merge_postfix: str = '(s)'
 
     def __init__(
         self,
@@ -27,7 +27,7 @@ class ConciseDataFrame:
         min_frac_overlap: float = 0.33,
         eager_mode=True,
         disable_doubles: ty.Optional[ty.Iterable[str]] = None,
-    ):
+    ) -> None:
         # important to sort by tips == True first! As in match_rows there is a line that assumes
         # that all tipping rows are already merged!
 
