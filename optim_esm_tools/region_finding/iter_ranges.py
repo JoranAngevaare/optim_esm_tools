@@ -19,7 +19,7 @@ class _ThresholdIterator(ABC):
     _tqmd: bool = False
 
     data_set: xr.Dataset
-    _get_masks_weighted: ty.Callable
+
     _get_mask_function_and_kw: ty.Callable
     _force_continuity: ty.Callable
     mask_area: ty.Callable
@@ -97,6 +97,9 @@ class _ThresholdIterator(ABC):
 
         pbar.close()
         return masks, clusters
+
+    def _get_masks_weighted(self, *a, **kw):
+        raise NotImplementedError
 
 
 class IterProductPercentiles(_ThresholdIterator, ProductPercentiles):

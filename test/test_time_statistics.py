@@ -41,13 +41,21 @@ class Work(unittest.TestCase):
         mask[x // 2 :, y // 2 :] = True
         da_mask = xr.DataArray(mask, dims=ds[use_field_for_mask].dims)
         ds_masked = oet.analyze.xarray_tools.mask_to_reduced_dataset(ds, da_mask)
-        hist_file_name = os.path.split(get_path_for_ds('piControl', refresh=False))[-1]
+        pi_path = get_path_for_ds('piControl', refresh=False)
+        pi_folder, pi_file = os.path.split(pi_path)
+        ds_pi = oet.read_ds(
+            pi_folder,
+            _file_name=pi_file,
+            add_history=False,
+            max_time=None,
+            min_time=None,
+        )
         stat = oet.analyze.time_statistics.TimeStatistics(
             ds_masked,
             calculation_kwargs=dict(
                 n_breaks=dict(penalty=1),
-                max_jump=dict(_file_name=hist_file_name),
-                max_jump_yearly=dict(_file_name=hist_file_name),
+                max_jump=dict(_ds_hist=ds_pi),
+                max_jump_yearly=dict(_ds_hist=ds_pi),
             ),
         )
         result = stat.calculate_statistics()

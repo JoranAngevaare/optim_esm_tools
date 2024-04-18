@@ -198,6 +198,7 @@ def build_weighted_cluster(
 
     flat_weights = weights.flatten()
     mask = flat_weights > threshold
+    global_mask = weights > threshold
     masks, clusters = _build_cluster_with_kw(
         lat=lat,
         lon=lon,
@@ -205,6 +206,7 @@ def build_weighted_cluster(
         weights=flat_weights[mask],
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
+        global_mask=global_mask,
         **kw,
     )
 
@@ -294,6 +296,7 @@ def _build_cluster_with_kw(
     for sub_mask in sub_masks:
         full_2d_mask = np.zeros_like(global_mask)
         full_2d_mask[global_mask] = sub_mask
+
         masks.append(np.array(full_2d_mask))
 
     if force_continuity:
@@ -393,7 +396,7 @@ def _distance(coords: np.ndarray, force_math: bool = False) -> float:
 
             return geodesic(*coords).km
     if len(coords) != 4:
-        coords = [c for cc in coords for c in cc]
+        coords = np.array([c for cc in coords for c in cc])
     return _distance_bf_coord(*coords)
 
 

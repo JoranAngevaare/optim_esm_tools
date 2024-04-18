@@ -3,7 +3,6 @@ import numpy as np
 from ._base import _mask_cluster_type
 from ._base import _two_sigma_percent
 from ._base import apply_options
-from ._base import RegionExtractor
 from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.region_finding.local_history import _HistroricalLookup
 from optim_esm_tools.region_finding.percentiles import Percentiles
@@ -11,7 +10,7 @@ from optim_esm_tools.utils import deprecated
 
 
 @deprecated
-class PercentilesHistory(Percentiles, _HistroricalLookup):
+class PercentilesHistory(_HistroricalLookup, Percentiles):
     @apply_options
     def get_masks(
         self,

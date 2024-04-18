@@ -147,6 +147,7 @@ def n_times_global_std(
     return val / val_global if val_global else np.inf
 
 
+@oet.utils.deprecated
 def get_historical_ds(ds, match_to='piControl', _file_name=None, **kw):
     # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
@@ -357,7 +358,9 @@ def calculate_max_jump_in_std_history(
     _ma_window=None,
     **kw,
 ):
-    ds_hist = _ds_hist or get_historical_ds(ds, **kw, _ma_window=_ma_window)
+    if _ds_hist is None:
+        raise ValueError('No ds_pi provided!')
+    ds_hist = _ds_hist  # or get_historical_ds(ds, **kw, _ma_window=_ma_window)
     if ds_hist is None:
         return None  # pragma: no cover
     _get_mask = oet.analyze.xarray_tools.reverse_name_mask_coords

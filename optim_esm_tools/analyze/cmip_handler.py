@@ -128,7 +128,7 @@ def read_ds(
     """
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = _ma_window or int(oet.config.config['analyze']['moving_average_years'])
     data_path = os.path.join(base, _file_name)
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
@@ -220,20 +220,19 @@ def _historical_file(
     add_history: bool,
     base: str,
     _file_name: str,
-    _historical_path: str,
+    _historical_path: ty.Optional[str],
 ) -> ty.Optional[str]:
     if add_history:
+        if _historical_path is not None:
+            return _historical_path
         historical_heads = oet.analyze.find_matches.associate_historical(
             path=base,
             match_to='historical',
             strict=False,
         )
-        if not historical_heads and not _historical_path:
+        if not historical_heads:
             raise FileNotFoundError(f'No historical matches for {base}')
-        _historical_path = _historical_path or os.path.join(
-            historical_heads[0],  # type: ignore
-            _file_name,
-        )
+        _historical_path = os.path.join(historical_heads[0], _file_name)
         if not os.path.exists(_historical_path):  # pragma: no cover
             raise ValueError(
                 f'{_historical_path} not found, (check {historical_heads}?)',
