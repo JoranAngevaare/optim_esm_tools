@@ -535,6 +535,7 @@ def add_table(
     fontsize: int = 16,
     pass_color: ty.Tuple[float, ...] = (0.75, 1.0, 0.75),
     ha: str = 'bottom',
+    summary: None = None,
 ):
     ax = ax or plt.gcf().add_subplot(2, 2, 4)
     ax.axis('off')
@@ -560,7 +561,7 @@ def result_table(
     thresholds: ty.Optional[ty.Mapping] = None,
     formats: ty.Optional[ty.Mapping] = None,
 ):
-    thresholds = thresholds or default_thresholds()
+    thresholds = thresholds or {}
     is_tip = pd.DataFrame(
         {
             k: {
@@ -607,13 +608,6 @@ def summarize_stats(
             field=field,
         ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
-        'n_std_global': oet.analyze.time_statistics.n_times_global_std(
-            ds=oet.load_glob(path, load=True).where(ds['common_mask']),
-        ),
-        'max_jump': oet.analyze.time_statistics.calculate_max_jump_in_std_history(
-            ds=oet.load_glob(path, load=True).where(ds['common_mask']),
-            mask=ds['common_mask'],
-        ),
     }
 
 
