@@ -291,7 +291,7 @@ def associate_parent(
     data_set = _read_dataset(data_set=data_set, required_file=required_file, path=path)
     base = base_from_path(path, look_back_extra=look_back_extra)
     search = _get_search_kw(data_set)
-    search = _check_search_kw(search)
+    search = _check_search_kw(search=search, data_set=data_set, log=log, path=path)
 
     if all(v == '*' for v in search.values()) or search['source_id'] == '*':
         raise ValueError(f'Unclear search for {path} - attributes are missing')

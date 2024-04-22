@@ -10,8 +10,6 @@ import optim_esm_tools as oet
 from ._base import _mask_cluster_type
 from ._base import apply_options
 from optim_esm_tools.analyze.clustering import build_cluster_mask
-from optim_esm_tools.plotting.map_maker import HistoricalMapMaker
-from optim_esm_tools.plotting.map_maker import MapMaker
 from optim_esm_tools.region_finding.percentiles import Percentiles
 from optim_esm_tools.utils import check_accepts
 
@@ -101,23 +99,3 @@ class LocalHistory(_HistroricalLookup, Percentiles):
             lat_coord=self.data_set[lon_lat_dim[1]].values,
         )
         return masks, clusters
-
-    @apply_options
-    def _plot_basic_map(
-        self,
-        historical_normalizations=None,
-        read_ds_kw: ty.Optional[ty.Mapping] = None,
-    ) -> MapMaker:
-        read_ds_kw = read_ds_kw or {}
-        for k, v in dict(min_time=None, max_time=None).items():
-            read_ds_kw.setdefault(k, v)  # type: ignore
-        ds_historical = self.get_historical_ds(read_ds_kw=read_ds_kw)
-
-        mm = HistoricalMapMaker(
-            self.data_set,
-            ds_historical=ds_historical,
-            normalizations=historical_normalizations,
-        )
-        mm.plot_selected()
-        plt.suptitle(self.title, y=0.95)
-        return mm

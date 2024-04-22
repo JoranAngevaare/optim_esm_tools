@@ -17,13 +17,19 @@ from optim_esm_tools.utils import timed
 
 class _Condition(abc.ABC):
     short_description: str
-    defaults = immutabledict(
+    defaults: immutabledict = immutabledict(
         rename_to='long_name',
         unit='absolute',
         apply_abs=True,
     )
 
-    def __init__(self, variable='tas', running_mean=10, time_var='time', **kwargs):
+    def __init__(
+        self,
+        variable: str,
+        running_mean: int = 10,
+        time_var: str = 'time',
+        **kwargs,
+    ):
         self.variable = variable
         self.running_mean = running_mean
         self.time_var = time_var
@@ -44,10 +50,10 @@ class StartEndDifference(_Condition):
     short_description: str = 'start end difference'
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         return f'Difference of running mean ({self.running_mean} yr) between start and end of time series. Not detrended'
 
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         return running_mean_diff(
             data_set,
             variable=self.variable,  # type: ignore
@@ -62,14 +68,14 @@ class StdDetrended(_Condition):
     short_description: str = 'std detrended'
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         return f'Standard deviation of running mean ({self.running_mean} yr). Detrended'
 
     @property
-    def use_variable(self):
+    def use_variable(self) -> str:
         return '{variable}_detrend_run_mean_{running_mean}'
 
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         return running_mean_std(
             data_set,
             variable=self.variable,  # type: ignore
@@ -88,14 +94,14 @@ class MaxJump(_Condition):
         self.number_of_years = 10
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         return f'Max change in {self.number_of_years} yr in the running mean ({self.running_mean} yr). Not detrended'
 
     @property
-    def use_variable(self):
+    def use_variable(self) -> str:
         return '{variable}_run_mean_{running_mean}'
 
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         return max_change_xyr(
             data_set,
             variable=self.variable,  # type: ignore
@@ -115,7 +121,7 @@ class MaxJumpYearly(MaxJump):
         super().__init__(*args, **kwargs)
 
     @property
-    def use_variable(self):
+    def use_variable(self) -> str:
         assert self.running_mean == 1
         return '{variable}'
 
@@ -124,11 +130,11 @@ class StdDetrendedYearly(StdDetrended):
     short_description: str = 'std detrended yearly'
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         return 'Standard deviation. Detrended'
 
     @property
-    def use_variable(self):
+    def use_variable(self) -> str:
         return '{variable}_detrend'
 
 
@@ -136,10 +142,10 @@ class MaxDerivitive(_Condition):
     short_description: str = 'max derivative'
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         return f'Max value of the first order derivative of the running mean ({self.running_mean} yr). Not deterended'
 
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         return max_derivative(
             data_set,
             variable=self.variable,  # type: ignore
@@ -162,11 +168,11 @@ class MaxJumpAndStd(_Condition):
         return MaxJump, StdDetrended
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         p1, p2 = self.parents()
         return f'Product of {p1.short_description} and {p2.short_description}'
 
-    def get_parents_init(self):
+    def get_parents_init(self) -> ty.List[_Condition]:
         return [
             p(
                 variable=self.variable,
@@ -177,7 +183,7 @@ class MaxJumpAndStd(_Condition):
             for p in self.parents()
         ]
 
-    def get_parent_results(self, data_set):
+    def get_parent_results(self, data_set: xr.Dataset) -> ty.Dict[str, float]:
         super_1, super_2 = self.get_parents_init()
         da_1 = super_1.calculate(data_set)
         da_2 = super_2.calculate(data_set)
@@ -187,7 +193,7 @@ class MaxJumpAndStd(_Condition):
         )
         return {super_1: da_1, super_2: da_2}
 
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         da_1, da_2 = self.get_parent_results(data_set).values()
         combined_score = np.ones_like(da_1.values, dtype=np.float64)
         for da in [da_1, da_2]:
@@ -199,44 +205,22 @@ class MaxJumpAndStd(_Condition):
         )
 
 
-class SNR(_Condition):
+class SNR(MaxJumpAndStd):
     short_description: str = 'max jump div. std'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.number_of_years = 10
 
     @staticmethod
     def parents():
         return MaxJump, StdDetrended
 
     @property
-    def long_description(self):
+    def long_description(self) -> str:
         p1, p2 = self.parents()
         return f'Signal to noise ratio of {p1.short_description}/{p2.short_description}'
 
-    def get_parents_init(self):
-        return [
-            p(
-                variable=self.variable,
-                running_mean=self.running_mean,
-                time_var=self.time_var,
-                **self.defaults,
-            )
-            for p in self.parents()
-        ]
-
-    def get_parent_results(self, data_set):
-        super_1, super_2 = self.get_parents_init()
-        da_1 = super_1.calculate(data_set)
-        da_2 = super_2.calculate(data_set)
-        assert super_1.short_description != super_2.short_description, (
-            super_1.short_description,
-            super_2.short_description,
-        )
-        return {super_1: da_1, super_2: da_2}
-
-    def calculate(self, data_set):
+    def calculate(self, data_set: xr.Dataset):
         da_1, da_2 = self.get_parent_results(data_set).values()
         res = da_1 / da_2
         res.name = self.short_description

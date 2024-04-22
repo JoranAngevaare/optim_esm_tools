@@ -10,181 +10,20 @@ import xarray as xr
 import optim_esm_tools as oet
 
 
-class TimeStatistics:
-    calculation_kwargs: ty.Optional[ty.Mapping] = None
-
-    def __init__(self, data_set: xr.Dataset, calculation_kwargs=None) -> None:
-        # sourcery skip: dict-literal
-        self.data_set = data_set
-        self.calculation_kwargs = calculation_kwargs or {}
-        self.functions = self.default_calculations()
-        if any(k not in self.functions for k in self.calculation_kwargs):
-            bad = set(self.calculation_kwargs.keys()) - set(self.functions.keys())
-            message = f'One or more of {bad} are not used by any function'
-            raise ValueError(message)
-
-    def default_calculations(self) -> ty.Mapping:
-        return dict(
-            max_jump=calculate_max_jump_in_std_history,
-            max_jump_yearly=calculate_max_jump_in_std_history_yearly,
-            p_dip=calculate_dip_test,
-            p_skewness=calculate_skewtest,
-            p_symmetry=calculate_symmetry_test,
-            n_breaks=calculate_n_breaks,
-            n_std_global=n_times_global_std,
-        )
-
-    def calculate_statistics(self) -> ty.Dict[str, ty.Optional[float]]:
-        """
-        For a given dataset calculate the statistical properties of the dataset based on these
-        tests:
-            1. The max 10-year jump w.r.t. the standard deviation of the piControl (running means).
-            2. Same as 1. but based on yearly means.
-            3. The p-value of the "dip test" [1]
-            4. The p-value of the Skewness test [2]
-            5. The p-value of the symmetry test [3]
-            6. The number of breaks in the time series [4]
-            7. The fraction of the selected regions standard-deviation w.r.t. to the standard
-                deviation of the global average standard-deviation. Yearly means
-
-        Citations:
-            [1]:
-                Hartigan, P. M. (1985). Computation of the Dip Statistic to Test for Unimodality.
-                Journal of the Royal Statistical Society. Series C (Applied Statistics), 34(3),
-                320-325.
-                Code from:
-                https://pypi.org/project/diptest/
-            [2]:
-                R. B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using
-                powerful and informative tests of normality", American Statistician 44, pp.
-                316-321, 1990.
-                Code from:
-                https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
-            [3]:
-                Mira A (1999) Distribution-free test for symmetry based on Bonferroni's measure.
-                J Appl Stat 26(8):959–972. https://doi.org/10.1080/02664769921963
-                Code from:
-                https://cran.r-project.org/web/packages/symmetry
-                Code at:
-                https://github.com/JoranAngevaare/rpy_symmetry
-            [4]:
-                C. Truong, L. Oudre, N. Vayatis. Selective review of offline change point detection
-                methods. Signal Processing, 167:107299, 2020.
-                Code from:
-                https://centre-borelli.github.io/ruptures-docs/
-
-        Returns:
-            ty.Dict[ty.Optional[float]]: Mapping of test to result value
-        """
-        return {
-            k: partial(f, **self.calculation_kwargs.get(k, {}))(self.data_set)  # type: ignore
-            for k, f in self.functions.items()
-        }
-
-
-def default_thresholds(
-    max_jump=None,
-    p_dip=None,
-    p_symmetry=None,
-    n_breaks=None,
-    n_std_global=None,
-):
-    return dict(
-        max_jump=(
-            operator.ge,
-            max_jump or float(oet.config.config['tipping_thresholds']['max_jump']),
-        ),
-        p_dip=(
-            operator.le,
-            p_dip or float(oet.config.config['tipping_thresholds']['p_dip']),
-        ),
-        p_symmetry=(
-            operator.le,
-            p_symmetry or float(oet.config.config['tipping_thresholds']['p_symmetry']),
-        ),
-        n_breaks=(
-            operator.ge,
-            n_breaks or float(oet.config.config['tipping_thresholds']['n_breaks']),
-        ),
-        n_std_global=(
-            operator.ge,
-            n_std_global
-            or float(oet.config.config['tipping_thresholds']['n_std_global']),
-        ),
-    )
-
-
-def _get_ds_global(ds, **read_kw):
-    path = ds.attrs['file']
-    if os.path.exists(path):
-        result = oet.load_glob(path)
-        assert result is not None, path
-        return result
-    else:  # pragma: no cover
-        oet.get_logger().warning(f'fallback for {path}')
-        return oet.read_ds(os.path.split(path)[0], **read_kw)
-
-
-def n_times_global_std(
-    ds,
-    average_over=None,
-    criterion='std detrended',
-    _ds_global=None,
-    **read_kw,
-):
-    average_over = average_over or oet.config.config['analyze']['lon_lat_dim'].split(
-        ',',
-    )
-    ds_global = _ds_global or _get_ds_global(ds, **read_kw)
-    variable = ds.attrs['variable_id']
-    crit = _get_tip_criterion(criterion)(variable=variable)
-    val = float(crit.calculate(ds.mean(average_over)))
-    assert isinstance(
-        ds_global,
-        xr.Dataset,
-    ), f'Got type {type(_ds_global)} expected xr.Dataset. ({read_kw})'
-    val_global = float(crit.calculate(ds_global.mean(average_over)))
-    return val / val_global if val_global else np.inf
-
-
-@oet.utils.deprecated
-def get_historical_ds(ds, match_to='piControl', _file_name=None, **kw):
-    # sourcery skip: inline-immediately-returned-variable
-    find = oet.analyze.find_matches.associate_historical
-    find_kw = oet.utils.filter_keyword_arguments(kw, find, allow_varkw=False)  # type: ignore
-    read_kw = oet.utils.filter_keyword_arguments(kw, oet.read_ds, allow_varkw=False)  # type: ignore
-    if _file_name is not None:
-        find_kw['search_kw'] = dict(required_file=_file_name)
-        read_kw['_file_name'] = _file_name
-    try:
-        hist_path = oet.analyze.find_matches.associate_historical(
-            path=ds.attrs['path'],
-            match_to=match_to,
-            **find_kw,
-        )
-    except RuntimeError as e:  # pragma: no cover
-        print(e)
-        return
-    read_kw.setdefault('max_time', None)
-    read_kw.setdefault('min_time', None)
-    hist_ds = oet.read_ds(hist_path[0], **read_kw)  # type: ignore
-    return hist_ds
-
-
-def get_values_from_data_set(ds, field, add=''):
-    if field is None:
-        field = ds.attrs['variable_id'] + add
-    da = ds[field]
-    da = da.mean(set(da.dims) - {'time'})
-    return da.values
-
-
 def calculate_dip_test(
     ds: ty.Optional[xr.Dataset] = None,
     field: ty.Optional[str] = None,
     values: ty.Optional[np.ndarray] = None,
     nan_policy: str = 'omit',
 ):
+    """[citation]:
+
+    Hartigan, P. M. (1985). Computation of the Dip Statistic to Test for Unimodality.
+    Journal of the Royal Statistical Society. Series C (Applied Statistics), 34(3),
+    320-325.
+    Code from:
+    https://pypi.org/project/diptest/
+    """
     values = _extract_values_from_sym_args(values, ds, field, nan_policy)
     import diptest
 
@@ -196,8 +35,21 @@ def calculate_dip_test(
     return pval
 
 
-def calculate_skewtest(ds, field=None, nan_policy='omit'):
-    values = get_values_from_data_set(ds, field, add='')
+def calculate_skewtest(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
+    nan_policy: str = 'omit',
+):
+    """[citation] R.
+
+    B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using
+    powerful and informative tests of normality", American Statistician 44, pp.
+    316-321, 1990.
+    Code from:
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewtest.html
+    """
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
     if sum(~np.isnan(values)) < 8:  # pragma: no cover
         # At least 8 samples are needed
         oet.config.get_logger().error('Dataset too short for skewtest')
@@ -206,7 +58,7 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
 
 
 def _extract_values_from_sym_args(
-    values: np.ndarray = None,
+    values: ty.Optional[np.ndarray] = None,
     ds: ty.Optional[xr.Dataset] = None,
     field: ty.Optional[str] = None,
     nan_policy: str = 'omit',
@@ -231,7 +83,9 @@ def _extract_values_from_sym_args(
         if _ds_args_are_none:
             raise TypeError('No ds is provided or field is missing!')
 
-        values = get_values_from_data_set(ds, field, add='')
+        da = ds[field]
+        da = da.mean(set(da.dims) - {'time'})
+        values = da.values
 
     if nan_policy == 'omit':
         values = values[~np.isnan(values)]
@@ -282,6 +136,14 @@ def calculate_symmetry_test(
     :param _fast_min_repeat: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
 
     :return: The function `calculate_symmetry_test` returns a `np.float64` value.
+
+    [citation]:
+        Mira A (1999) Distribution-free test for symmetry based on Bonferroni's measure.
+        J Appl Stat 26(8):959–972. https://doi.org/10.1080/02664769921963
+        Code from:
+        https://cran.r-project.org/web/packages/symmetry
+        Code at:
+        https://github.com/JoranAngevaare/rpy_symmetry
     """
     import rpy_symmetry as rsym
 
@@ -300,44 +162,27 @@ def calculate_symmetry_test(
     return np.mean(results)
 
 
-def _get_tip_criterion(short_description):
-    for mod in oet.analyze.tipping_criteria.__dict__.values():  # type: ignore
-        if not isinstance(mod, type):
-            continue
-        if not issubclass(mod, oet.analyze.tipping_criteria._Condition):  # type: ignore
-            continue
-        if getattr(mod, 'short_description', None) == short_description:
-            return mod
-    raise ValueError(
-        f'No tipping criterion associated to {short_description}',
-    )  # pragma: no cover
-
-
-def calculate_max_jump_in_std_history_yearly(ds, **kw):
-    kw.setdefault('field', 'max jump yearly')
-    kw.setdefault('field_pi_control', 'std detrended yearly')
-    return calculate_max_jump_in_std_history(ds, **kw)
-
-
 def calculate_n_breaks(
-    ds,
-    penalty=None,
-    min_size=None,
-    jump=None,
-    model=None,
-    field=None,
-    nan_policy='omit',
-    method=None,
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
+    nan_policy: str = 'omit',
+    penalty: ty.Optional[float] = None,
+    min_size: ty.Optional[int] = None,
+    jump: ty.Optional[int] = None,
+    model: ty.Optional[str] = None,
+    method: ty.Optional[float] = None,
 ):
+    """[citation] C.
+
+    Truong, L. Oudre, N. Vayatis. Selective review of offline change point detection
+    methods. Signal Processing, 167:107299, 2020.
+    Code from:
+    https://centre-borelli.github.io/ruptures-docs/
+    """
     import ruptures as rpt
 
-    values = get_values_from_data_set(ds, field=field, add='')
-
-    if nan_policy == 'omit':
-        values = values[~np.isnan(values)]
-    else:  # pragma: no cover
-        message = 'Not sure how to deal with nans other than omit'
-        raise NotImplementedError(message)
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
 
     penalty = penalty or float(oet.config.config['analyze']['rpt_penalty'])
     min_size = min_size or int(oet.config.config['analyze']['rpt_min_size'])
@@ -352,45 +197,3 @@ def calculate_n_breaks(
     fit = algorithm.fit(values)
 
     return len(fit.predict(pen=penalty)) - 1
-
-
-def calculate_max_jump_in_std_history(
-    ds,
-    field='max jump',
-    field_pi_control='std detrended',
-    _ds_hist=None,
-    mask=None,
-    _ma_window=None,
-    **kw,
-):
-    if _ds_hist is None:
-        raise ValueError('No ds_pi provided!')
-    ds_hist = _ds_hist  # or get_historical_ds(ds, **kw, _ma_window=_ma_window)
-    if ds_hist is None:
-        return None  # pragma: no cover
-    _get_mask = oet.analyze.xarray_tools.reverse_name_mask_coords
-    mask = _get_mask(ds['global_mask']) if mask is None else mask
-    ds_hist_masked = oet.analyze.xarray_tools.mask_xr_ds(ds_hist, mask, drop=True)
-    _coord = oet.config.config['analyze']['lon_lat_dim'].split(',')
-    variable = ds.attrs['variable_id']
-    ds = ds.mean(_coord)
-    ds_hist = ds_hist_masked.mean(_coord)
-    crit_scen = _get_tip_criterion(field)
-    crit_hist = _get_tip_criterion(field_pi_control)
-    _ma_default = _ma_window or int(
-        oet.config.config['analyze']['moving_average_years'],
-    )
-    max_jump = float(
-        crit_scen(
-            variable=variable,
-            running_mean=ds.attrs.get('running_mean_period', _ma_default),
-        ).calculate(ds),
-    )
-    std_year = float(
-        crit_hist(
-            variable=variable,
-            running_mean=ds.attrs.get('running_mean_period', _ma_default),
-        ).calculate(ds_hist),
-    )
-    print(max_jump, std_year)
-    return max_jump / std_year if std_year else np.inf

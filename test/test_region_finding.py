@@ -66,13 +66,14 @@ class Work(unittest.TestCase):
                 dpi=25,
                 skip=skip_save,
             )
+            data_set = read_ds(
+                head,
+                _file_name=tail,
+                _cache=os.environ.get('_CACHE_TRUE', 0),
+                add_history=False,
+            )
             cls_kw = dict(
-                path=head,
-                read_ds_kw=dict(
-                    _file_name=tail,
-                    _cache=os.environ.get('_CACHE_TRUE', 0),
-                    add_history=False,
-                ),
+                data_set=data_set,
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )
@@ -81,8 +82,6 @@ class Work(unittest.TestCase):
             if (
                 'data_set_pic' in signature.args
                 or 'data_set_pic' in signature.kwonlyargs
-                # Deprecated function where __init__ is wrapped, distorting the signature
-                or make == 'PercentilesHistory'
             ):
                 pi_base, pi_file = os.path.split(
                     self.get_path('piControl', refresh=False),
@@ -112,12 +111,6 @@ class Work(unittest.TestCase):
 
     def test_start_end_continous(self):
         self.test_max_region('IterStartEnd', new_opt=dict(force_continuity=True))
-
-    def test_percentiles_history(self):
-        region_finder = self.test_max_region('PercentilesHistory')
-        with self.assertRaises(NotImplementedError):
-            # An old method that is now not used anymore
-            region_finder.find_historical('historical')
 
     def test_percentiles_product(self):
         self.test_max_region('ProductPercentiles', skip_save=False)

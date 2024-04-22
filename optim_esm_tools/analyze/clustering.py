@@ -280,12 +280,9 @@ def _build_cluster_with_kw(
     clusters, sub_masks = build_clusters(**cluster_kw, keep_masks=True)
 
     if global_mask is None:
-        global_mask = np.ones(lat.shape, dtype=np.bool_)
+        raise ValueError('global_mask is required')
     clusters = [np.rad2deg(cluster) for cluster in clusters]
-    if show_tqdm is not None:
-        get_logger().warning(
-            'Calling "_build_cluster_with_kw" with show_tqdm is deprecated',
-        )
+
     if lat.shape != lon.shape:
         raise ValueError(
             f'Got inconsistent input {lat.shape} != {lon.shape}',
@@ -327,33 +324,16 @@ def infer_max_step_size(
     """
     if off_by_factor is None:
         off_by_factor = float(config['analyze']['clustering_fudge_factor'])
-    if len(lat.shape) == 1:
-        return off_by_factor * np.max(calculate_distance_map(lat, lon))  # type: ignore
-
-    get_logger().info(
-        '(Irregular) grid, max_step_size based on first points above equator',
-    )
-    # We have to get two points from the potentially irregular grid and guess the distance from
-    # that. This is not as reliable as calculating this for a regular grid.
-
-    equator_idx = np.argmin(np.abs(np.mean(lat, axis=1)) - 90)
-    lon_0 = lon[0]
-    coords = [
-        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx][0], lon_0[1]]],
-        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx + 1][0], lon_0[0]]],
-        [[lat[equator_idx][0], lon_0[0]], [lat[equator_idx + 1][0], lon_0[1]]],
-    ]
-    # assert False, coords
-    # Return the distance between grid cells * off_by_factor
-    return off_by_factor * max(_distance(c) for c in coords)
+    assert len(lat.shape) == 1
+    # Simple 1D array
+    return off_by_factor * np.max(calculate_distance_map(lat, lon))
 
 
 def calculate_distance_map(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
     """For each point in a spanned lat lon grid, calculate the distance to the
     neighboring points."""
-    if isinstance(lat, xr.DataArray):
-        lat = lat.values
-        lon = lon.values
+    if isinstance(lat, xr.DataArray):  # pragma: no cover
+        raise ValueError('Numpy array required')
     return _calculate_distance_map(lat, lon)
 
 
