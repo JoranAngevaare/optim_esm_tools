@@ -7,6 +7,9 @@ from optim_esm_tools.config import get_logger
 from optim_esm_tools.utils import check_accepts
 from optim_esm_tools.utils import deprecated
 from optim_esm_tools.utils import timed
+import xarray as xr
+import logging
+import typing as ty
 
 
 @timed
@@ -27,21 +30,21 @@ from optim_esm_tools.utils import timed
 )
 def find_matches(
     base: str,
-    activity_id='ScenarioMIP',
-    institution_id='*',
-    source_id='*',
-    experiment_id='*',
-    variant_label='*',
-    domain='*',
-    variable_id='*',
-    grid_label='*',
-    version='*',
+    activity_id: str = 'ScenarioMIP',
+    institution_id: str = '*',
+    source_id: str = '*',
+    experiment_id: str = '*',
+    variant_label: str = '*',
+    domain: str = '*',
+    variable_id: str = '*',
+    grid_label: str = '*',
+    version: str = '*',
     max_versions: int = 1,
     max_members: int = 1,
-    required_file='merged.nc',
+    required_file: str = 'merged.nc',
     # Deprecated arg
     grid=None,
-) -> list:
+) -> ty.List[str]:
     """Follow synda folder format to find matches.
 
     Args:
@@ -87,7 +90,7 @@ def find_matches(
         ),
         key=_variant_label_id_and_version,
     )
-    seen = {}
+    seen: dict = {}
     for candidate in variants:
         folders = candidate.split(os.sep)
         group = folders[-7]
@@ -207,50 +210,34 @@ def associate_historical(*a, **kw):
     return associate_parent(*a, **kw)
 
 
-def associate_parent(
-    data_set=None,
-    path=None,
-    match_to='piControl',
-    look_back_extra=0,
-    query_updates=None,
-    search_kw=None,
-    strict=True,
-    required_file='merged.nc',
-):
-    if data_set is None and path is None:
-        raise ValueError(
-            'No dataset, no path, can\'t match if I don\'t know what I\'m looking for',
-        )  # pragma: no cover
-    log = get_logger()
-    path = path or data_set.attrs['path']  # type: ignore
-    assert os.path.exists(path)
-    if data_set is None:
-        from optim_esm_tools import load_glob
-
-        file = (
-            os.path.join(path, required_file)
-            if not path.endswith(required_file)
-            else path
-        )
-        data_set = load_glob(file)
-
-    base = base_from_path(path, look_back_extra=look_back_extra)
-    search = {
+def _get_search_kw(
+    data_set: xr.Dataset,
+    keep_keys: tuple = tuple(
+        'parent_activity_id parent_experiment_id parent_source_id parent_variant_label'.split(),
+    ),
+) -> dict:
+    return {
         k.replace('parent_', ''):
         # Filter out some institutes that ended up adding a bunch of spaces here?!
         data_set.attrs.get(k, '*').replace(' ', '')
-        for k in 'parent_activity_id parent_experiment_id parent_source_id parent_variant_label'.split()
+        for k in keep_keys
     }
-    if all(v == '*' for v in search.values()) or search['source_id'] == '*':
-        raise ValueError(f'Unclear search for {path} - attributes are missing')
-    search.update(dict(variable_id=data_set.attrs['variable_id']))
+
+
+def _check_search_kw(
+    search: dict,
+    data_set: xr.Dataset,
+    log: logging.Logger,
+    path: str,
+) -> dict:
     if (
         search['source_id'] == 'GISS-E2-1-G'
         and data_set.attrs['source_id'] == 'GISS-E2-2-G'
     ):
+        # I'm quite sure there has been some mixup here.
         log.error(f'Hacking GISS-E2-1-G -> GISS-E2-2-G ?!!?!')
         search['source_id'] = 'GISS-E2-2-G'
-        # print(search)
+
     if search['source_id'] != data_set.attrs['source_id']:
         log.critical(
             f"Misalignment in source-ids for {path} got {search['source_id']} and {data_set.attrs['source_id']}",
@@ -261,12 +248,58 @@ def associate_parent(
             f"{search['activity_id']} seems invalid for {path}, trying wildcard!",
         )
         search['activity_id'] = '*'
-    if search is None and not strict:
-        log.warning('No search, but not breaking because strict is False')
-        return
+
+    return search
+
+
+def _read_dataset(
+    data_set: ty.Optional[xr.Dataset],
+    required_file: ty.Optional[str],
+    path: str,
+) -> xr.Dataset:
+    if data_set is None and path is None:
+        raise ValueError(
+            'No dataset, no path, can\'t match if I don\'t know what I\'m looking for',
+        )  # pragma: no cover
+    path = path or data_set.attrs['path']  # type: ignore
+    assert os.path.exists(path)
+    if data_set is None:
+        from optim_esm_tools import load_glob
+
+        assert required_file is not None
+        file = (
+            os.path.join(path, required_file)
+            if not path.endswith(required_file)
+            else path
+        )
+        data_set = load_glob(file)
+    return data_set
+
+
+def associate_parent(
+    data_set=None,
+    path=None,
+    match_to='piControl',
+    look_back_extra=0,
+    query_updates=None,
+    search_kw=None,
+    strict=True,
+    required_file='merged.nc',
+):
+
+    log = get_logger()
+    data_set = _read_dataset(data_set=data_set, required_file=required_file, path=path)
+    base = base_from_path(path, look_back_extra=look_back_extra)
+    search = _get_search_kw(data_set)
+    search = _check_search_kw(search)
+
+    if all(v == '*' for v in search.values()) or search['source_id'] == '*':
+        raise ValueError(f'Unclear search for {path} - attributes are missing')
+
+    search.update(dict(variable_id=data_set.attrs['variable_id']))
 
     if search_kw:
-        search.update(search_kw)  # type: ignore
+        raise ValueError(f'Not used any more, got {search_kw}')
 
     if query_updates is None:
         # It's important to match the variant-label last, otherwise we get mismatched simulations
