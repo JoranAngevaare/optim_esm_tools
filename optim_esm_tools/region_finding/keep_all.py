@@ -2,6 +2,7 @@ from ._base import RegionExtractor, _mask_cluster_type
 import itertools
 import numpy as np
 
+
 class MaskAll(RegionExtractor):
     def get_masks(self) -> _mask_cluster_type:  # pragma: no cover
         mask_2d = ~self.data_set[self.variable].isnull().all(dim='time')
