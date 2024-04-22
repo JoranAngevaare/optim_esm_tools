@@ -289,7 +289,7 @@ def calculate_symmetry_test(
 
     results = [rsym.p_symmetry(values, test_statistic=test_statistic, **kw)]
     if _fast_mode:
-        n_repeat = n_repeat - 1 if results[0] < _fast_above else 1
+        n_repeat = n_repeat - 1 if results[0] < _fast_above else _fast_min_repeat - 1
     for _ in range(n_repeat):
         if len(results) > 3 and np.std(results) <= np.mean(results) / 10:
             break
