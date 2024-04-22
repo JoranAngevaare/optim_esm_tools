@@ -253,14 +253,13 @@ def _split_to_continous(
     return continous_masks
 
 
-def _find_coords_from_mask(
+def _find_lat_lon_values(
     mask_2d: np.ndarray,
     lats: np.ndarray,
     lons: np.ndarray,
 ) -> np.ndarray:
     lon_coords = lons[mask_2d]
     lat_coords = lats[mask_2d]
-    # TODO - this is consistent with what the clustering is otherwise returning but it doesn't make much sense to put the latitude first?
     return np.vstack([lat_coords, lon_coords]).T
 
 
@@ -302,7 +301,7 @@ def _build_cluster_with_kw(
     if force_continuity:
         masks = _split_to_continous(masks=masks)
 
-        clusters = [_find_coords_from_mask(m, lats=lat, lons=lon) for m in masks]
+        clusters = [_find_lat_lon_values(m, lats=lat, lons=lon) for m in masks]
 
     return masks, clusters
 
