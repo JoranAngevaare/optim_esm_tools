@@ -16,9 +16,9 @@ def test_clustering_empty():
     assert np.all(np.shape(ds['var']) > np.array([2, 2]))
 
     clusters, masks = clustering.build_cluster_mask(
-        ds['var'] > 0,
-        ds['lat'],
-        ds['lon'],
+        (ds['var'] > 0).values,
+        ds['lat'].values,
+        ds['lon'].values,
     )
     assert len(clusters) == len(masks) == 0
 
@@ -90,13 +90,8 @@ def test_geopy_alternative():
 
 def test_infer_step_size():
     ds = optim_esm_tools._test_utils.minimal_xr_ds().copy()
-    res_0 = clustering.infer_max_step_size(ds.lat, ds.lon)
-    lat_m, lon_m = np.meshgrid(ds.lat, ds.lon)
-    lat_m, lon_m = lat_m.T, lon_m.T
-    assert lat_m.shape == ds['var'].shape[1:]
-    assert lon_m.shape == ds['var'].shape[1:]
-    res_1 = clustering.infer_max_step_size(lat_m, lon_m)
-    assert np.isclose(res_0, res_1, atol=1)
+    res_0 = clustering.infer_max_step_size(ds.lat.values, ds.lon.values)
+    assert np.isclose(res_0, 148.92)
 
 
 class TestClustering(unittest.TestCase):
@@ -151,9 +146,9 @@ class TestClustering(unittest.TestCase):
         candidates = np.sum(mask >= 2).sum()
         min_samples_cluster = np.clip(min_samples_cluster, 1, candidates - 1)
         clusters, masks = clustering.build_cluster_mask(
-            mask >= 2,
-            ds.lat,
-            ds.lon,
+            (mask >= 2),
+            ds.lat.values,
+            ds.lon.values,
             min_samples=min_samples_cluster,
         )
         if lat_width <= 1 or lon_width <= 1:

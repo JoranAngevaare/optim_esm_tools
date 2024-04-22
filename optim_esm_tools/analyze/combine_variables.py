@@ -1,4 +1,3 @@
-import os
 import string
 import typing as ty
 from collections import defaultdict
@@ -11,7 +10,6 @@ from immutabledict import immutabledict as imdict
 from matplotlib.legend_handler import HandlerTuple
 
 import optim_esm_tools as oet
-from optim_esm_tools.analyze.time_statistics import default_thresholds
 
 
 class VariableMerger:

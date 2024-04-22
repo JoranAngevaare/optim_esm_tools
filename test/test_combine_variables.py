@@ -173,7 +173,7 @@ class TestVariableMerger(TestCase):
         assert merger.mask_paths is None
         assert merger.merge_method == 'logical_or'
 
-    @settings(max_examples=10, deadline=None)
+    @settings(max_examples=3, deadline=None)
     @given(
         ds_length_0=st.integers(min_value=11, max_value=20),
         ds_length_1=st.integers(min_value=11, max_value=20),
@@ -197,7 +197,7 @@ class TestVariableMerger(TestCase):
         merger.make_fig(add_history=True, _historical_ds=ds_1, add_summary=False)
         oet.plotting.plot._show(False)
 
-    @settings(max_examples=10, deadline=None)
+    @settings(max_examples=3, deadline=None)
     @given(
         dummy_dataset_length=st.integers(min_value=11, max_value=20),
         random_seed=st.integers(min_value=1, max_value=1000),

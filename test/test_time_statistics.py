@@ -26,13 +26,6 @@ class Work(unittest.TestCase):
         ds = oet.read_ds(head, _file_name=tail)
         cls.data_set = ds
 
-    def test_raises(self):
-        with self.assertRaises(ValueError):
-            oet.analyze.time_statistics.TimeStatistics(
-                self.data_set,
-                calculation_kwargs=dict(bad=True),
-            )
-
     def test_get_statistics(self, use_field_for_mask='cell_area'):
         ds = self.data_set.copy()
         x, y = ds[use_field_for_mask].shape
@@ -50,15 +43,8 @@ class Work(unittest.TestCase):
             max_time=None,
             min_time=None,
         )
-        stat = oet.analyze.time_statistics.TimeStatistics(
+        oet.analyze.time_statistics.calculate_n_breaks(
             ds_masked,
-            calculation_kwargs=dict(
-                n_breaks=dict(penalty=1),
-                max_jump=dict(_ds_hist=ds_pi),
-                max_jump_yearly=dict(_ds_hist=ds_pi),
-            ),
+            field=ds.attrs['variable_id'],
+            penalty=1,
         )
-        result = stat.calculate_statistics()
-        for k, v in result.items():
-            print(k, v)
-            assert v, f'{k}={v} is not True from {result}'

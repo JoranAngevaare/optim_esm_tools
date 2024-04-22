@@ -21,7 +21,7 @@ def _native_date_fmt(time_array: np.ndarray, date: ty.Tuple[int, int, int]):
     return _time_class(*date)
 
 
-def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
+def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs') -> ty.Callable:
     """Apply np.max() to output of function (if apply=True) Disable in the
     function kwargs by using the _disable_kw argument.
 
@@ -57,7 +57,7 @@ def apply_abs(apply=True, add_abs_to_name=True, _disable_kw='apply_abs'):
     return somedec_outer
 
 
-def _remove_any_none_times(da, time_dim, drop=True):
+def _remove_any_none_times(da: xr.DataArray, time_dim: bool, drop: bool = True) -> None:
     data_var = da.copy()
     time_null = data_var.isnull().all(dim=set(data_var.dims) - {time_dim})
     if np.all(time_null):
@@ -88,7 +88,13 @@ def _remove_any_none_times(da, time_dim, drop=True):
     return data_var
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False, keep_keys=None):
+def mask_xr_ds(
+    data_set: xr.Dataset,
+    da_mask: xr.DataArray,
+    masked_dims: ty.Optional[ty.Iterable[str]] = None,
+    drop: bool = False,
+    keep_keys: ty.Optional[ty.Iterable[str]] = None,
+):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
     if masked_dims is None:
@@ -107,7 +113,10 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False, keep_keys=None):
     return data_set
 
 
-def reverse_name_mask_coords(da_mask: xr.DataArray, rename_dict=None) -> xr.DataArray:
+def reverse_name_mask_coords(
+    da_mask: xr.DataArray,
+    rename_dict: ty.Optional[dict] = None,
+) -> xr.DataArray:
     rename_dict = rename_dict or {
         v: k for k, v in default_rename_mask_dims_dict().items()
     }
@@ -152,7 +161,7 @@ def mask_to_reduced_dataset(
     data_set: xr.Dataset,
     mask: ty.Union[xr.DataArray, np.ndarray],
     add_global_mask: bool = True,
-    _fall_back_field='cell_area',
+    _fall_back_field: str = 'cell_area',
     **kw,
 ) -> xr.Dataset:
     """Reduce data_set by dropping all data where mask is False. This greatly
@@ -193,16 +202,27 @@ def mask_to_reduced_dataset(
     return ds_masked
 
 
-def default_rename_mask_dims_dict():
+def default_rename_mask_dims_dict() -> ty.Dict:
     return {k: f'{k}_mask' for k in config['analyze']['lon_lat_dim'].split(',')}
 
 
-def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):
+def add_mask_renamed(
+    data_set: xr.Dataset,
+    da_mask: xr.DataArray,
+    mask_name: str = 'global_mask',
+    **kw,
+) -> xr.Dataset:
     data_set[mask_name] = rename_mask_coords(da_mask, **kw)
     return data_set
 
 
-def _drop_by_mask(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
+def _drop_by_mask(
+    data_set: xr.Dataset,
+    masked_dims: ty.Iterable[str],
+    ds_start: xr.Dataset,
+    da_mask: xr.DataArray,
+    keep_keys: ty.Optional[ty.Iterable[str]] = None,
+):
     """Drop values with masked_dims dimensions.
 
     Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
@@ -237,7 +257,13 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
     return data_set
 
 
-def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
+def _mask_xr_ds(
+    data_set: xr.Dataset,
+    masked_dims: ty.Optional[ty.Iterable[str]],
+    ds_start: xr.Dataset,
+    da_mask: xr.DataArray,
+    keep_keys: ty.Optional[ty.Iterable[str]] = None,
+):
     """Rebuild data_set for each variable that has all masked_dims."""
     for k, data_array in data_set.data_vars.items():
         if keep_keys is not None and k not in keep_keys:
@@ -257,48 +283,3 @@ def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
             data_set[k] = da
 
     return data_set
-
-
-def extend_indexes(mask_array, coord, cyclic=False, round_at=5):
-    """Temporary fix for making extended region masks rounded at 5 deg.
-
-    resolution
-    """
-    assert len(mask_array) == len(coord), (len(mask_array), len(coord))
-    for i, m in enumerate(mask_array):
-        idx_left = np.mod(i - 1, len(coord)) if cyclic else max(i - 1, 0)
-        idx_right = np.mod(i + 1, len(coord)) if cyclic else min(i + 1, len(coord) - 1)
-        goes_left = m != mask_array[idx_left]
-        goes_right = m != mask_array[idx_right]
-        if goes_left or goes_right:
-            prev_i = i
-            iterator = (
-                range(idx_left, 0, -1) if goes_left else range(idx_right, len(coord))
-            )
-            for next_i in iterator:
-                n = (
-                    np.ceil(coord[prev_i] / round_at)
-                    if goes_right
-                    else np.floor(coord[prev_i] / round_at)
-                )
-
-                remain = coord[prev_i] - round_at * n
-                next_remain = coord[next_i] - round_at * n
-                if abs(remain) <= abs(next_remain):
-                    break
-                mask_array[next_i] = True
-                prev_i = next_i
-    return mask_array
-
-
-def extract_extended_mask(da_mask):
-    mask = da_mask.values.copy()
-    inx_lat = extend_indexes(np.any(mask, axis=1), da_mask['lat_mask'])
-    inx_lon = extend_indexes(np.any(mask, axis=0), da_mask['lon_mask'], cyclic=True)
-    a, b = np.meshgrid(inx_lon, inx_lat)
-    return a & b
-
-
-def add_extended_mask(ds):
-    values = extract_extended_mask(ds['global_mask'])
-    ds['extended_mask'] = xr.DataArray(values, dims=ds['global_mask'].dims)

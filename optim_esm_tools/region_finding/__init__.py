@@ -5,5 +5,4 @@ from .max_region import MaxRegion
 from .named_region import Asia
 from .named_region import Medeteranian
 from .percentiles import Percentiles
-from .percentiles_history import PercentilesHistory
 from .product_percentiles import ProductPercentiles
