@@ -43,13 +43,16 @@ class Work(unittest.TestCase):
             max_time=None,
             min_time=None,
         )
-        oet.analyze.time_statistics.calculate_n_breaks(
-            ds_masked,
-            field=ds.attrs['variable_id'],
-            penalty=1,
+        self.assertIsNotNone(
+            oet.analyze.time_statistics.calculate_n_breaks(
+                ds_masked,
+                field=ds.attrs['variable_id'],
+                penalty=1,
+            ),
         )
-        oet.analyze.time_statistics.calculate_skewtest(
-            ds_masked,
-            field=ds.attrs['variable_id'],
-            penalty=1,
+        self.assertIsNotNone(
+            oet.analyze.time_statistics.calculate_skewtest(
+                ds_masked,
+                field=ds.attrs['variable_id'],
+            ),
         )
