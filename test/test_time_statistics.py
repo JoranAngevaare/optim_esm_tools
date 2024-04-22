@@ -48,3 +48,8 @@ class Work(unittest.TestCase):
             field=ds.attrs['variable_id'],
             penalty=1,
         )
+        oet.analyze.time_statistics.calculate_skewtest(
+            ds_masked,
+            field=ds.attrs['variable_id'],
+            penalty=1,
+        )

@@ -35,7 +35,12 @@ def calculate_dip_test(
     return pval
 
 
-def calculate_skewtest(ds, field=None, nan_policy='omit'):
+def calculate_skewtest(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
+    nan_policy: str = 'omit',
+):
     """[citation] R.
 
     B. D'Agostino, A. J. Belanger and R. B. D'Agostino Jr., "A suggestion for using
