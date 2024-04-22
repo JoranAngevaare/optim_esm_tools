@@ -85,12 +85,34 @@ class ConciseDataFrame:
     def overlaps_percent(arr1, arr2):
         return np.sum(arr1 & arr2) / min(np.sum(arr1), np.sum(arr2))
 
+    def _row_is_double(self, row: pd.Series, other_row: pd.Series) -> bool:
+        if not self.disable_doubles:
+            return False
+
+        return any(
+            row.get(d, 'no d?') == other_row.get(d, 'also no?')
+            for d in oet.utils.to_str_tuple(self.disable_doubles)
+        )
+
+    def _should_append_to_group(
+        self,
+        group: ty.List[pd.Series],
+        other_row: pd.Series,
+    ) -> bool:
+        return (not self.match_overlap) or (
+            any(
+                self.overlaps_enough(r['path'], other_row['path'])
+                for r in group
+                if r['tips']
+            )
+        )
+
     def match_rows(self, rows):
         df = pd.DataFrame(rows)
         match = sorted(set(df.columns) - set(self.group))
 
         groups = []
-        for row in oet.utils.tqdm(rows, desc='rows', disable=False):
+        for row in oet.utils.tqdm(rows, desc='rows', disable=self.tqdm):
             if any(row in g for g in groups):
                 continue
 
@@ -101,23 +123,14 @@ class ConciseDataFrame:
             for other_row in oet.utils.tqdm(
                 [row for m, row in zip(mask, rows) if m],
                 desc='subrows',
-                disable=True,
+                disable=self.tqdm,
             ):
                 if row == other_row:
                     continue
 
-                if self.disable_doubles and any(
-                    row.get(d, 'no d?') == other_row.get(d, 'also no?')
-                    for d in oet.utils.to_str_tuple(self.disable_doubles)
-                ):
+                if self._row_is_double(row, other_row):
                     continue
 
-                if (not self.match_overlap) or (
-                    any(
-                        self.overlaps_enough(r['path'], other_row['path'])
-                        for r in groups[-1]
-                        if r['tips']
-                    )
-                ):
+                if self._should_append_to_group(groups[-1], other_row):
                     groups[-1].append(other_row)
         return groups
