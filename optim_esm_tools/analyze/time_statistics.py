@@ -249,8 +249,9 @@ def calculate_symmetry_test(
     nan_policy: str = 'omit',
     test_statistic: str = 'MI',
     n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
-    _fast_mode=True,
-    **kw,
+    _fast_mode: bool = True,
+    _fast_above: float = 0.05,
+    _fast_min_repeat: int = 2**kw,
 ) -> np.float64:
     """The function `calculate_symmetry_test` calculates the symmetry test
     statistic for a given dataset and field using the R package `rpy_symmetry`.
@@ -275,6 +276,10 @@ def calculate_symmetry_test(
     repeated. The symmetry test in R does give non-deterministic results. As such repeat a test this
     many times and take the average
     :type n_repeat: int
+    :param _fast_mode: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+    :param _fast_above: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+    :param _fast_min_repeat: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+
     :return: The function `calculate_symmetry_test` returns a `np.float64` value.
     """
     import rpy_symmetry as rsym
@@ -282,9 +287,8 @@ def calculate_symmetry_test(
     values = _extract_values_from_sym_args(values, ds, field, nan_policy)
 
     results = [rsym.p_symmetry(values, test_statistic=test_statistic, **kw)]
-    # TODO documentation is lacking
     if _fast_mode:
-        n_repeat = n_repeat - 1 if results[0] < 0.05 else 1
+        n_repeat = n_repeat - 1 if results[0] < _fast_above else 1
     for _ in range(n_repeat):
         if len(results) > 3 and np.std(results) <= np.mean(results) / 10:
             break
