@@ -24,7 +24,8 @@ def build_clusters(
     only_core: bool = True,
     min_samples: int = int(config['analyze']['clustering_min_neighbors']),
     cluster_opts: ty.Optional[dict] = None,
-) -> ty.List[np.ndarray]:
+    keep_masks: bool = False,
+) -> ty.Union[ty.List[np.ndarray], ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]]:
     """Build clusters based on a list of coordinates, use halfsine metric for
     spherical spatial data.
 
@@ -36,10 +37,35 @@ def build_clusters(
         only_core (bool, optional): Use only core samples. Defaults to True.
         min_samples (int): Minimum number of samples in cluster. Defaults to 8.
         cluster_opts (ty.Optional[dict], optional): Additional options passed to sklearn.cluster.DBSCAN. Defaults to None.
+        keep_masks (bool): return a tuple with both the clusters (coords) and masks (2d boolean arrays)
 
     Returns:
         ty.List[np.ndarray]: list of clustered points (in radians)
+        or
+        ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]]: list of clustered points (in radians) and list
+            of boolean masks with the same length as the input coordinates deg.
     """
+    cluster_coords, cluster_masks = _build_clusters(
+        coordinates_deg,
+        weights,
+        max_distance_km,
+        only_core,
+        min_samples,
+        cluster_opts,
+    )
+    if keep_masks:
+        return cluster_coords, cluster_masks
+    return cluster_coords
+
+
+def _build_clusters(
+    coordinates_deg: np.ndarray,
+    weights: ty.Optional[np.ndarray] = None,
+    max_distance_km: ty.Union[float, int] = 750,
+    only_core: bool = True,
+    min_samples: int = int(config['analyze']['clustering_min_neighbors']),
+    cluster_opts: ty.Optional[dict] = None,
+) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
     cluster_opts = cluster_opts or {}
     for class_label, v in dict(algorithm='ball_tree', metric='haversine').items():
         cluster_opts.setdefault(class_label, v)
@@ -70,7 +96,7 @@ def build_clusters(
     is_core_sample[db_fit.core_sample_indices_] = True
 
     return_masks = []
-
+    return_coord = []
     for class_label in unique_labels:
         is_noise = class_label == -1
         if is_noise:
@@ -82,9 +108,10 @@ def build_clusters(
             coord_mask &= is_core_sample
 
         masked_points = coordinates_rad[coord_mask]
-        return_masks.append(masked_points)
+        return_coord.append(masked_points)
+        return_masks.append(coord_mask)
 
-    return return_masks
+    return return_coord, return_masks
 
 
 @timed()
@@ -92,7 +119,7 @@ def build_cluster_mask(
     global_mask: np.ndarray,
     lat_coord: np.ndarray,
     lon_coord: np.ndarray,
-    show_tqdm: bool = False,
+    show_tqdm: ty.Optional[bool] = None,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
 ) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
@@ -103,7 +130,6 @@ def build_cluster_mask(
         global_mask (np.ndarray): full 2d mask of the data
         lon_coord (np.array): all longitude values
         lat_coord (np.array): all latitude values
-        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         max_distance_km (ty.Union[str, float, int]): find an appropriate distance
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
@@ -129,8 +155,9 @@ def build_cluster_mask(
         lat=lat,
         lon=lon,
         coordinates_deg=xy_data,
-        show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
+        global_mask=global_mask,
+        show_tqdm=show_tqdm,
         **kw,
     )
 
@@ -142,7 +169,7 @@ def build_weighted_cluster(
     weights: np.ndarray,
     lat_coord: np.ndarray,
     lon_coord: np.ndarray,
-    show_tqdm: bool = False,
+    show_tqdm: ty.Optional[bool] = None,
     threshold: ty.Optional[float] = 0.99,
     max_distance_km: ty.Union[str, float, int] = 'infer',
     **kw,
@@ -158,7 +185,6 @@ def build_weighted_cluster(
             threshold for build_clusters' max_distance_km argument. If nothing is
             provided, make a guess based on the distance between grid cells.
             Defaults to 'infer'.
-        show_tqdm (bool, optional): use verbose progressbar. Defaults to False.
         threshold: float, min value of the passed weights. Defaults to 0.99.
 
     Returns:
@@ -172,6 +198,7 @@ def build_weighted_cluster(
 
     flat_weights = weights.flatten()
     mask = flat_weights > threshold
+    global_mask = weights > threshold
     masks, clusters = _build_cluster_with_kw(
         lat=lat,
         lon=lon,
@@ -179,13 +206,18 @@ def build_weighted_cluster(
         weights=flat_weights[mask],
         show_tqdm=show_tqdm,
         max_distance_km=max_distance_km,
+        global_mask=global_mask,
         **kw,
     )
 
     return masks, clusters
 
 
-def _check_input(data, lat_coord, lon_coord):
+def _check_input(
+    data: np.ndarray,
+    lat_coord: np.ndarray,
+    lon_coord: np.ndarray,
+) -> ty.Tuple[np.ndarray, np.ndarray]:
     """Check for consistency and if we need to convert the lon/lat coordinates
     to a meshgrid."""
     if len(lon_coord.shape) <= 1:
@@ -200,26 +232,77 @@ def _check_input(data, lat_coord, lon_coord):
     return lat, lon
 
 
-def _build_cluster_with_kw(lat, lon, show_tqdm=False, **cluster_kw):
-    """Overlapping logic between functions to get the masks and clusters."""
-    masks = []
-    clusters = [np.rad2deg(cluster) for cluster in build_clusters(**cluster_kw)]
+def _split_to_continous(
+    masks: ty.List,
+) -> ty.List[np.ndarray]:
+    no_group = -1
+    mask_groups = masks_array_to_coninuous_sets(masks, no_group_value=no_group)
+    continous_masks = []
+    for grouped_members in mask_groups:
+        for group_id in np.unique(grouped_members):
+            if group_id == no_group:
+                continue
+            continous_masks.append(grouped_members == group_id)
+
+    small_first = np.argsort([np.sum(c) for c in continous_masks])
+    large_first = small_first[::-1]
+    continous_masks = [
+        group for i in large_first for k, group in enumerate(continous_masks) if i == k
+    ]
+
+    return continous_masks
+
+
+def _find_lat_lon_values(
+    mask_2d: np.ndarray,
+    lats: np.ndarray,
+    lons: np.ndarray,
+) -> np.ndarray:
+    lon_coords = lons[mask_2d]
+    lat_coords = lats[mask_2d]
+    return np.vstack([lat_coords, lon_coords]).T
+
+
+def _build_cluster_with_kw(
+    lat: np.ndarray,
+    lon: np.ndarray,
+    show_tqdm=None,
+    global_mask=None,
+    force_continuity: bool = False,
+    **cluster_kw,
+) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
+    """Overlapping logic between functions to get the masks and clusters.
+
+    force_continuity (bool): split the masks until each is a continuous
+    set
+    """
+
+    clusters, sub_masks = build_clusters(**cluster_kw, keep_masks=True)
+
+    if global_mask is None:
+        global_mask = np.ones(lat.shape, dtype=np.bool_)
+    clusters = [np.rad2deg(cluster) for cluster in clusters]
+    if show_tqdm is not None:
+        get_logger().warning(
+            'Calling "_build_cluster_with_kw" with show_tqdm is deprecated',
+        )
     if lat.shape != lon.shape:
         raise ValueError(
             f'Got inconsistent input {lat.shape} != {lon.shape}',
         )  # pragma: no cover
-    for cluster in clusters:
-        mask = np.zeros(lat.shape, np.bool_)
-        for coord_lat, coord_lon in tqdm(
-            cluster,
-            desc='fill_mask',
-            disable=not show_tqdm,
-        ):
-            # This is a bit blunt, but it's fast enough to regain the indexes such that we can build a 2d masked array.
-            mask_x = np.isclose(lon, coord_lon)
-            mask_y = np.isclose(lat, coord_lat)
-            mask |= mask_x & mask_y
-        masks.append(mask)
+
+    masks: ty.List[np.ndarray] = []
+    for sub_mask in sub_masks:
+        full_2d_mask = np.zeros_like(global_mask)
+        full_2d_mask[global_mask] = sub_mask
+
+        masks.append(np.array(full_2d_mask))
+
+    if force_continuity:
+        masks = _split_to_continous(masks=masks)
+
+        clusters = [_find_lat_lon_values(m, lats=lat, lons=lon) for m in masks]
+
     return masks, clusters
 
 
@@ -265,7 +348,7 @@ def infer_max_step_size(
     return off_by_factor * max(_distance(c) for c in coords)
 
 
-def calculate_distance_map(lat, lon):
+def calculate_distance_map(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
     """For each point in a spanned lat lon grid, calculate the distance to the
     neighboring points."""
     if isinstance(lat, xr.DataArray):
@@ -275,7 +358,10 @@ def calculate_distance_map(lat, lon):
 
 
 @numba.njit
-def _calculate_distance_map(lat, lon):  # sourcery skip: use-itertools-product
+def _calculate_distance_map(
+    lat: np.ndarray,
+    lon: np.ndarray,
+) -> np.ndarray:  # sourcery skip: use-itertools-product
     n_lat = len(lat)
     n_lon = len(lon)
     distances = np.zeros((n_lat, n_lon))
@@ -301,7 +387,7 @@ def _calculate_distance_map(lat, lon):  # sourcery skip: use-itertools-product
     return distances
 
 
-def _distance(coords, force_math=False):
+def _distance(coords: np.ndarray, force_math: bool = False) -> float:
     """Wrapper for if geopy is not installed."""
     if not force_math:
         with contextlib.suppress(ImportError):
@@ -309,12 +395,12 @@ def _distance(coords, force_math=False):
 
             return geodesic(*coords).km
     if len(coords) != 4:
-        coords = [c for cc in coords for c in cc]
+        coords = np.array([c for cc in coords for c in cc])
     return _distance_bf_coord(*coords)
 
 
 @numba.njit
-def _distance_bf_coord(lat1, lon1, lat2, lon2):
+def _distance_bf_coord(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     lat1 = radians(lat1)
     lon1 = radians(lon1)
     lat2 = radians(lat2)
@@ -323,7 +409,7 @@ def _distance_bf_coord(lat1, lon1, lat2, lon2):
 
 
 @numba.njit
-def _distance_bf(lat1, lon1, lat2, lon2):
+def _distance_bf(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     # sourcery skip: inline-immediately-returned-variable
     # https://stackoverflow.com/a/19412565/18280620
 
@@ -339,3 +425,182 @@ def _distance_bf(lat1, lon1, lat2, lon2):
     distance = R * c
 
     return distance
+
+
+@numba.njit
+def _nb_clip(
+    a: ty.Union[float, int],
+    b: ty.Union[float, int],
+    c: ty.Union[float, int],
+) -> ty.Union[float, int]:
+    """Cheap numba alternative to np.clip."""
+    x = max(a, b)
+    return min(x, c)
+
+
+@numba.njit
+def _all_adjacent_indexes(
+    index: np.ndarray,
+    len_lon: int,
+    len_lat: int,
+    add_diagonal: bool = True,
+    add_double_lat: bool = False,
+    add_double_lon: bool = True,
+    add_90NS_bound: bool = True,
+) -> np.ndarray:
+    """For a given index, return an array of indexes that are adjacent.
+
+    There are several options to add points:
+        - add_diagonal: add diagonal elements seen from index
+        - add_double_lat: add items that are 2 steps from the index in the lat direction
+        - add_double_lon: add items that are 2 steps from the index in the lon direction
+        - add_90NS_bound: for items that are at the lat bound, add all lon at the same lat.
+    """
+    lat, lon = index
+    lat_up = _nb_clip(lat + 1, 0, len_lat - 1)
+    lat_do = _nb_clip(lat - 1, 0, len_lat - 1)
+    lon_up = np.mod(lon + 1, len_lon)
+    lon_do = np.mod(lon - 1, len_lon)
+
+    alt = [(lat_up, lon), (lat_do, lon), (lat, lon_up), (lat, lon_do)]
+
+    if add_diagonal:
+        alt = alt + [
+            (lat_up, lon_up),
+            (lat_do, lon_up),
+            (lat_up, lon_do),
+            (lat_do, lon_do),
+        ]
+    if add_double_lat:
+        lat_double_up = _nb_clip(lat + 2, 0, len_lat - 1)
+        lat_double_do = _nb_clip(lat - 2, 0, len_lat - 1)
+        alt = alt + [(lat_double_up, lon), (lat_double_do, lon)]
+    if add_double_lon:
+        lon_double_up = np.mod(lon + 2, len_lon)
+        lon_double_do = np.mod(lon - 2, len_lon)
+        alt = alt + [(lat, lon_double_up), (lat, lon_double_do)]
+    if add_90NS_bound and (lat == len_lat - 1 or lat == 0):
+        alt = alt + [(lat, i) for i in range(len_lon)]
+    return np.array([a for a in alt if ~np.array_equal(a, index)])
+
+
+@numba.njit
+def _indexes_to_2d_buffer(
+    indexes: np.ndarray,
+    buffer_2d: np.ndarray,
+    result_2d: np.ndarray,
+    only_if_val,
+) -> None:
+    """Fill elements in buffer2d with on indexes if they are not in
+    exclude_2d."""
+    for index in indexes:
+        if result_2d[index[0], index[1]] == only_if_val:
+            buffer_2d[index[0], index[1]] = True
+
+
+def masks_array_to_coninuous_sets(
+    masks: ty.List,
+    no_group_value: int = -1,
+    add_diagonal: bool = True,
+    **kw,
+) -> ty.List:
+    """Call _group_mask_in_continous_sets for a group of masks with the same
+    dimensions to reuse buffer arrays."""
+    if not masks:
+        return []
+
+    len_x, len_y = masks[0].shape
+
+    result_groups = np.ones_like(masks[0], dtype=np.int64) * no_group_value
+    check_buffer = np.zeros_like(masks[0], dtype=np.bool_)
+
+    # Warning, do notice that the result_buffer and check_buffer are modified in place! However, _group_mask_in_continous_sets does reset the buffer each time
+    # Therefore, we have to copy the result each time! Otherwise that result will be overwritten in the next iteration
+    return [
+        _group_mask_in_continous_sets(
+            mask=mask,
+            no_group_value=no_group_value,
+            add_diagonal=add_diagonal,
+            len_x=len_x,
+            len_y=len_y,
+            result_buffer=result_groups,
+            check_buffer=check_buffer,
+        ).copy()
+        for mask in masks
+    ]
+
+
+def group_mask_in_continous_sets(mask: np.ndarray, *a, **kw) -> np.ndarray:
+    return masks_array_to_coninuous_sets([mask])[0]
+
+
+@numba.njit
+def _group_mask_in_continous_sets(
+    mask: np.ndarray,
+    no_group_value: int,
+    len_x: int,
+    len_y: int,
+    result_buffer: np.ndarray,
+    check_buffer: np.ndarray,
+    add_diagonal: bool = True,
+    add_double_lat: bool = False,
+    add_double_lon: bool = True,
+    add_90NS_bound: bool = True,
+) -> np.ndarray:
+    # resetting the buffer is essential for calling `masks_array_to_coninuous_sets`
+    result_buffer[:] = no_group_value
+    check_buffer[:] = False
+    indexes_to_iterate = np.argwhere(mask)
+    group_id = 0
+
+    for index in indexes_to_iterate:
+        if result_buffer[index[0], index[1]] != no_group_value:
+            continue
+
+        group_id += 1
+        check_buffer[:] = False
+        adjacent_indexes = _all_adjacent_indexes(
+            index,
+            add_diagonal=add_diagonal,
+            add_double_lat=add_double_lat,
+            add_double_lon=add_double_lon,
+            add_90NS_bound=add_90NS_bound,
+            len_lat=len_x,
+            len_lon=len_y,
+        )
+        _indexes_to_2d_buffer(
+            adjacent_indexes,
+            check_buffer,
+            result_buffer,
+            only_if_val=no_group_value,
+        )
+
+        included_another_index = True
+        while included_another_index:
+            included_another_index = False
+            for another_index in np.argwhere(check_buffer):
+                i, j = another_index
+
+                if not mask[i][j]:
+                    continue
+                if result_buffer[i][j] == group_id:
+                    continue
+
+                included_another_index = True
+                result_buffer[i][j] = group_id
+                adjacent_indexes = _all_adjacent_indexes(
+                    another_index,
+                    add_diagonal=add_diagonal,
+                    add_double_lat=add_double_lat,
+                    add_double_lon=add_double_lon,
+                    add_90NS_bound=add_90NS_bound,
+                    len_lat=len_x,
+                    len_lon=len_y,
+                )
+                _indexes_to_2d_buffer(
+                    adjacent_indexes,
+                    check_buffer,
+                    result_buffer,
+                    only_if_val=no_group_value,
+                )
+    return result_buffer

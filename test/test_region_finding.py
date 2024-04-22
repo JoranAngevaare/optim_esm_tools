@@ -1,3 +1,4 @@
+import inspect
 import os
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ import numpy as np
 import optim_esm_tools._test_utils
 from optim_esm_tools.analyze import region_finding
 from optim_esm_tools.analyze.cmip_handler import read_ds
+from optim_esm_tools.analyze.io import load_glob
 
 
 class Work(unittest.TestCase):
@@ -64,19 +66,38 @@ class Work(unittest.TestCase):
                 dpi=25,
                 skip=skip_save,
             )
-
-            region_finder = cls(
+            cls_kw = dict(
                 path=head,
                 read_ds_kw=dict(
                     _file_name=tail,
                     _cache=os.environ.get('_CACHE_TRUE', 0),
+                    add_history=False,
                 ),
                 save_kw=save_kw,
                 extra_opt=extra_opt,
             )
+            signature = inspect.getfullargspec(cls.__init__)
+
+            if (
+                'data_set_pic' in signature.args
+                or 'data_set_pic' in signature.kwonlyargs
+                # Deprecated function where __init__ is wrapped, distorting the signature
+                or make == 'PercentilesHistory'
+            ):
+                pi_base, pi_file = os.path.split(
+                    self.get_path('piControl', refresh=False),
+                )
+                cls_kw['data_set_pic'] = read_ds(
+                    pi_base,
+                    _file_name=pi_file,
+                    max_time=None,
+                    min_time=None,
+                    add_history=False,
+                )
+            region_finder = cls(**cls_kw)
             region_finder.show = False
 
-            masks, _ = region_finder.workflow()
+            masks, _ = region_finder.get_masks()
             self._post_test_regions_no_overlap(masks)
             return region_finder
 
@@ -89,10 +110,13 @@ class Work(unittest.TestCase):
     def test_percentiles_weighted(self):
         self.test_max_region('Percentiles', new_opt=dict(cluster_method='weighted'))
 
+    def test_start_end_continous(self):
+        self.test_max_region('IterStartEnd', new_opt=dict(force_continuity=True))
+
     def test_percentiles_history(self):
         region_finder = self.test_max_region('PercentilesHistory')
-        with self.assertRaises(RuntimeError):
-            # We only have piControl (so this should fail)!
+        with self.assertRaises(NotImplementedError):
+            # An old method that is now not used anymore
             region_finder.find_historical('historical')
 
     def test_percentiles_product(self):
@@ -152,3 +176,12 @@ class Work(unittest.TestCase):
                 'IterStartEnd',
                 new_opt=dict(cluster_method='weighted'),
             )
+
+    def test_mask_all(self):
+        self.test_max_region('MaskAll')
+
+    def test_mask_asia(self):
+        self.test_max_region('Asia')
+
+    def test_mask_medeteranian(self):
+        self.test_max_region('Medeteranian')

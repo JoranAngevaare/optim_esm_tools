@@ -147,6 +147,7 @@ def n_times_global_std(
     return val / val_global if val_global else np.inf
 
 
+@oet.utils.deprecated
 def get_historical_ds(ds, match_to='piControl', _file_name=None, **kw):
     # sourcery skip: inline-immediately-returned-variable
     find = oet.analyze.find_matches.associate_historical
@@ -178,16 +179,15 @@ def get_values_from_data_set(ds, field, add=''):
     return da.values
 
 
-def calculate_dip_test(ds, field=None, nan_policy='omit'):
+def calculate_dip_test(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
+    nan_policy: str = 'omit',
+):
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
     import diptest
 
-    values = get_values_from_data_set(ds, field, add='')
-    if nan_policy == 'omit':
-        values = values[~np.isnan(values)]
-    else:
-        raise NotImplementedError(
-            'Not sure how to deal with nans other than omit',
-        )  # pragma: no cover
     if len(values) < 3:  # pragma: no cover
         # At least 3 samples are needed
         oet.config.get_logger().error('Dataset too short for diptest')
@@ -205,17 +205,60 @@ def calculate_skewtest(ds, field=None, nan_policy='omit'):
     return scipy.stats.skewtest(values, nan_policy=nan_policy).pvalue
 
 
-def calculate_symmetry_test(
-    ds: xr.Dataset,
+def _extract_values_from_sym_args(
+    values: np.ndarray = None,
+    ds: ty.Optional[xr.Dataset] = None,
     field: ty.Optional[str] = None,
+    nan_policy: str = 'omit',
+) -> np.ndarray:
+    _ds_args_are_none = ds is None and field is None
+    if values is not None:
+        if not _ds_args_are_none:
+            raise TypeError(
+                f'Got both values, dataset and field. Either provide values or ds and field.',
+            )
+        if not isinstance(values, np.ndarray):
+            try:
+                values = values.values
+            except Exception as error:
+                raise TypeError(
+                    f'values should be np.ndarray, got {type(values)}',
+                ) from error
+        if not len(values.shape) == 1:
+            raise TypeError(f'values have wrong shape {values.shape}, should be 1D')
+
+    else:
+        if _ds_args_are_none:
+            raise TypeError('No ds is provided or field is missing!')
+
+        values = get_values_from_data_set(ds, field, add='')
+
+    if nan_policy == 'omit':
+        values = values[~np.isnan(values)]
+    else:  # pragma: no cover
+        message = 'Not sure how to deal with nans other than omit'
+        raise NotImplementedError(message)
+
+    return values
+
+
+def calculate_symmetry_test(
+    ds: ty.Optional[xr.Dataset] = None,
+    field: ty.Optional[str] = None,
+    values: ty.Optional[np.ndarray] = None,
     nan_policy: str = 'omit',
     test_statistic: str = 'MI',
     n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
+    _fast_mode: bool = True,
+    _fast_above: float = 0.05,
+    _fast_min_repeat: int = 2,
     **kw,
 ) -> np.float64:
     """The function `calculate_symmetry_test` calculates the symmetry test
     statistic for a given dataset and field using the R package `rpy_symmetry`.
 
+    :param values: A numpy array with the values to calculate the diptest on. Should be 1D, and `ds` and
+    `field` should be None
     :param ds: An xarray Dataset containing the data
     :type ds: xr.Dataset
     :param field: The `field` parameter is an optional string that specifies the field or variable from
@@ -234,22 +277,27 @@ def calculate_symmetry_test(
     repeated. The symmetry test in R does give non-deterministic results. As such repeat a test this
     many times and take the average
     :type n_repeat: int
+    :param _fast_mode: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+    :param _fast_above: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+    :param _fast_min_repeat: if `_fast_mode` is activated only run the test `_fast_min_repeat` times if the first try is above `_fast_above`
+
     :return: The function `calculate_symmetry_test` returns a `np.float64` value.
     """
     import rpy_symmetry as rsym
 
-    values = get_values_from_data_set(ds, field, add='')
-    if nan_policy == 'omit':
-        values = values[~np.isnan(values)]
-    else:  # pragma: no cover
-        message = 'Not sure how to deal with nans other than omit'
-        raise NotImplementedError(message)
-    return np.mean(
-        [
-            rsym.p_symmetry(values, test_statistic=test_statistic, **kw)
-            for _ in range(n_repeat)
-        ],
+    values = _extract_values_from_sym_args(values, ds, field, nan_policy)
+
+    results = [rsym.p_symmetry(values, test_statistic=test_statistic, **kw)]
+    if _fast_mode:
+        n_repeat = n_repeat - 1 if results[0] < _fast_above else _fast_min_repeat - 1
+    for _ in range(n_repeat):
+        if len(results) > 3 and np.std(results) <= np.mean(results) / 10:
+            break
+        results.append(rsym.p_symmetry(values, test_statistic=test_statistic, **kw))
+    oet.get_logger().debug(
+        f'Evaluated {test_statistic} {len(results)} times: {results}',
     )
+    return np.mean(results)
 
 
 def _get_tip_criterion(short_description):
@@ -312,9 +360,12 @@ def calculate_max_jump_in_std_history(
     field_pi_control='std detrended',
     _ds_hist=None,
     mask=None,
+    _ma_window=None,
     **kw,
 ):
-    ds_hist = _ds_hist or get_historical_ds(ds, **kw)
+    if _ds_hist is None:
+        raise ValueError('No ds_pi provided!')
+    ds_hist = _ds_hist  # or get_historical_ds(ds, **kw, _ma_window=_ma_window)
     if ds_hist is None:
         return None  # pragma: no cover
     _get_mask = oet.analyze.xarray_tools.reverse_name_mask_coords
@@ -326,7 +377,20 @@ def calculate_max_jump_in_std_history(
     ds_hist = ds_hist_masked.mean(_coord)
     crit_scen = _get_tip_criterion(field)
     crit_hist = _get_tip_criterion(field_pi_control)
-    max_jump = float(crit_scen(variable=variable).calculate(ds))
-    std_year = float(crit_hist(variable=variable).calculate(ds_hist))
-
+    _ma_default = _ma_window or int(
+        oet.config.config['analyze']['moving_average_years'],
+    )
+    max_jump = float(
+        crit_scen(
+            variable=variable,
+            running_mean=ds.attrs.get('running_mean_period', _ma_default),
+        ).calculate(ds),
+    )
+    std_year = float(
+        crit_hist(
+            variable=variable,
+            running_mean=ds.attrs.get('running_mean_period', _ma_default),
+        ).calculate(ds_hist),
+    )
+    print(max_jump, std_year)
     return max_jump / std_year if std_year else np.inf

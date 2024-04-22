@@ -199,6 +199,50 @@ class MaxJumpAndStd(_Condition):
         )
 
 
+class SNR(_Condition):
+    short_description: str = 'max jump div. std'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.number_of_years = 10
+
+    @staticmethod
+    def parents():
+        return MaxJump, StdDetrended
+
+    @property
+    def long_description(self):
+        p1, p2 = self.parents()
+        return f'Signal to noise ratio of {p1.short_description}/{p2.short_description}'
+
+    def get_parents_init(self):
+        return [
+            p(
+                variable=self.variable,
+                running_mean=self.running_mean,
+                time_var=self.time_var,
+                **self.defaults,
+            )
+            for p in self.parents()
+        ]
+
+    def get_parent_results(self, data_set):
+        super_1, super_2 = self.get_parents_init()
+        da_1 = super_1.calculate(data_set)
+        da_2 = super_2.calculate(data_set)
+        assert super_1.short_description != super_2.short_description, (
+            super_1.short_description,
+            super_2.short_description,
+        )
+        return {super_1: da_1, super_2: da_2}
+
+    def calculate(self, data_set):
+        da_1, da_2 = self.get_parent_results(data_set).values()
+        res = da_1 / da_2
+        res.name = self.short_description
+        return res
+
+
 @timed
 @apply_abs()
 @check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))

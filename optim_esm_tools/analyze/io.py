@@ -30,4 +30,7 @@ def load_glob(
         decode_times=True,
     ).items():
         kw.setdefault(k, v)
-    return xr.open_mfdataset(pattern, **kw)
+    try:
+        return xr.open_mfdataset(pattern, **kw)
+    except ValueError as e:  # pragma: no cover
+        raise ValueError(f'Fatal error while reading {pattern}') from e

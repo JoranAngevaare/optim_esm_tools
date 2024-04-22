@@ -12,7 +12,9 @@ from optim_esm_tools.analyze import tipping_criteria
 
 def add_conditions_to_ds(
     ds: xr.Dataset,
-    calculate_conditions: ty.Optional[ty.Tuple[tipping_criteria._Condition]] = None,
+    calculate_conditions: ty.Optional[
+        ty.Tuple[tipping_criteria._Condition, ...]
+    ] = None,
     condition_kwargs: ty.Optional[ty.Mapping] = None,
     variable_of_interest: ty.Tuple[str] = ('tas',),
     _ma_window: ty.Optional[ty.Union[int, str]] = None,
@@ -44,6 +46,7 @@ def add_conditions_to_ds(
             tipping_criteria.MaxJumpYearly,
             tipping_criteria.MaxDerivitive,
             tipping_criteria.MaxJumpAndStd,
+            tipping_criteria.SNR,
         )  # type: ignore
     if len(set(desc := (c.short_description for c in calculate_conditions))) != len(  # type: ignore
         calculate_conditions,  # type: ignore
@@ -57,7 +60,10 @@ def add_conditions_to_ds(
     for variable in oet.utils.to_str_tuple(variable_of_interest):
         assert calculate_conditions is not None
         for cls in calculate_conditions:
-            condition = cls(**condition_kwargs, variable=variable)  # type: ignore
+            condition = cls(**condition_kwargs, variable=variable, running_mean=_ma_window)  # type: ignore
+            oet.get_logger().debug(
+                f'{condition} from {cls} set ma= {condition.running_mean} ma={_ma_window}',
+            )
             condition_array = condition.calculate(ds)
             condition_array = condition_array.assign_attrs(
                 dict(
@@ -71,12 +77,12 @@ def add_conditions_to_ds(
 
 
 @oet.utils.add_load_kw
-@oet.utils.timed()
+@oet.utils.timed(_stacklevel=3)
 def read_ds(
     base: str,
     variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
-    min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
+    max_time: ty.Optional[ty.Tuple[int, ...]] = _DEFAULT_MAX_TIME,
+    min_time: ty.Optional[ty.Tuple[int, ...]] = None,
     apply_transform: bool = True,
     pre_process: bool = True,
     strict: bool = True,
@@ -122,7 +128,7 @@ def read_ds(
     """
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = _ma_window or int(oet.config.config['analyze']['moving_average_years'])
     data_path = os.path.join(base, _file_name)
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
@@ -156,7 +162,7 @@ def read_ds(
         if strict:
             raise FileNotFoundError(message)
         log.warning(message)
-        return
+        return None
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
@@ -195,29 +201,38 @@ def read_ds(
 
     if _cache:
         log.info(f'Write {res_file}')
-        data_set.to_netcdf(res_file)
+        comp_kw = {}
+        if oet.config.config['CMIP_files']['compress'] == 'True':
+            comp_kw = dict(
+                format='NETCDF4',
+                engine='netcdf4',
+                encoding={
+                    k: {'zlib': True, 'complevel': 1} for k in data_set.data_vars
+                },
+            )
+
+        data_set.to_netcdf(res_file, **comp_kw)
 
     return data_set
 
 
 def _historical_file(
-    add_history,
-    base,
-    _file_name,
-    _historical_path,
+    add_history: bool,
+    base: str,
+    _file_name: str,
+    _historical_path: ty.Optional[str],
 ) -> ty.Optional[str]:
     if add_history:
+        if _historical_path is not None:
+            return _historical_path
         historical_heads = oet.analyze.find_matches.associate_historical(
             path=base,
             match_to='historical',
             strict=False,
         )
-        if not historical_heads and not _historical_path:
+        if not historical_heads:
             raise FileNotFoundError(f'No historical matches for {base}')
-        _historical_path = _historical_path or os.path.join(
-            historical_heads[0],  # type: ignore
-            _file_name,
-        )
+        _historical_path = os.path.join(historical_heads[0], _file_name)
         if not os.path.exists(_historical_path):  # pragma: no cover
             raise ValueError(
                 f'{_historical_path} not found, (check {historical_heads}?)',
@@ -231,16 +246,16 @@ def _historical_file(
 
 def _name_cache_file(
     base,
-    variable_of_interest,
-    min_time,
-    max_time,
-    _ma_window,
-    is_historical,
-    version=None,
-):
+    variable_of_interest: str,
+    min_time: ty.Optional[ty.Tuple[int, ...]],
+    max_time: ty.Optional[ty.Tuple[int, ...]],
+    _ma_window: int,
+    is_historical: bool,
+    version: ty.Optional[str] = None,
+) -> str:
     """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
-    _ma_window = _ma_window or oet.config.config['analyze']['moving_average_years']
+    _ma_window = _ma_window or int(oet.config.config['analyze']['moving_average_years'])
     path = os.path.join(
         base,
         f'{variable_of_interest}'

@@ -18,6 +18,11 @@ from optim_esm_tools.utils import check_accepts
 
 class _HistroricalLookup(abc.ABC):
     data_set: xr.Dataset
+    data_set_pic: ty.Optional[xr.Dataset]
+
+    def __init__(self, *a, data_set_pic: xr.Dataset, **kw) -> None:
+        super().__init__(*a, **kw)
+        self.data_set_pic: ty.Optional[xr.Dataset] = data_set_pic
 
     @apply_options
     def find_historical(
@@ -27,14 +32,8 @@ class _HistroricalLookup(abc.ABC):
         query_updates: ty.Optional[ty.Mapping] = None,
         search_kw: ty.Optional[ty.Mapping] = None,
     ) -> ty.Optional[ty.List[str]]:
-        path = self.data_set.attrs['path']
-        return oet.analyze.find_matches.associate_historical(
-            path=path,
-            data_set=None,
-            match_to=match_to,
-            look_back_extra=look_back_extra,
-            query_updates=query_updates,
-            search_kw=search_kw,
+        raise NotImplementedError(
+            'This behavior is deprecated, use data_set_pic at __init__ instead',
         )
 
     @apply_options
@@ -43,19 +42,14 @@ class _HistroricalLookup(abc.ABC):
         read_ds_kw: ty.Optional[ty.Mapping] = None,
         **kw,
     ) -> xr.Dataset:
-        read_ds_kw = read_ds_kw or {}
+        if self.data_set_pic is not None:
+            return self.data_set_pic
 
-        for k, v in dict(min_time=None, max_time=None).items():
-            read_ds_kw.setdefault(k, v)  # type: ignore
-        historical_path = self.find_historical(**kw)
-        if historical_path is None:
-            raise ValueError('No match found')  # pragma: no cover
-        res = oet.read_ds(historical_path[0], **read_ds_kw)
-        assert isinstance(res, xr.Dataset)
-        return res
+        # Which raises NotImplementedError
+        return self.find_historical()
 
 
-class LocalHistory(Percentiles, _HistroricalLookup):
+class LocalHistory(_HistroricalLookup, Percentiles):
     def _all_pass_historical(
         self,
         labels: ty.List[str],

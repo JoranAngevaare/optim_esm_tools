@@ -4,6 +4,7 @@ matplotlib
 numba
 numpy
 pandas
+regionmask
 scipy
 tqdm
 treelib

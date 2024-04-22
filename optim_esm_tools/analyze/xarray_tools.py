@@ -88,7 +88,7 @@ def _remove_any_none_times(da, time_dim, drop=True):
     return data_var
 
 
-def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
+def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False, keep_keys=None):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
     if masked_dims is None:
@@ -96,7 +96,13 @@ def mask_xr_ds(data_set, da_mask, masked_dims=None, drop=False):
 
     ds_start = data_set.copy()
     func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
-    data_set = func_by_drop(data_set, masked_dims, ds_start, da_mask)
+    data_set = func_by_drop(
+        data_set,
+        masked_dims,
+        ds_start,
+        da_mask,
+        keep_keys=keep_keys,
+    )
     data_set = data_set.assign_attrs(ds_start.attrs)
     return data_set
 
@@ -146,6 +152,8 @@ def mask_to_reduced_dataset(
     data_set: xr.Dataset,
     mask: ty.Union[xr.DataArray, np.ndarray],
     add_global_mask: bool = True,
+    _fall_back_field='cell_area',
+    **kw,
 ) -> xr.Dataset:
     """Reduce data_set by dropping all data where mask is False. This greatly
     reduces the size (which is absolutely required for exporting time series
@@ -163,21 +171,25 @@ def mask_to_reduced_dataset(
     Returns:
         xr.Dataset: Original dataset where mask is True
     """
-    if isinstance(mask, xr.DataArray):
-        mask = mask.values
-    if mask.shape != (expected := data_set['cell_area'].shape):
+    if isinstance(mask, np.ndarray):
+        mask_da = data_set[_fall_back_field].astype(np.bool_).copy()
+        mask_da.data = mask
+        mask = mask_da
+    if mask.shape != (expected := data_set[_fall_back_field].shape):
         raise ValueError(
             f'Inconsistent dimensionality, expected {expected}, got {mask.shape}',
         )  # pragma: no cover
 
-    # Mask twice, "mask" is a np.ndarray, whereas ds.where needs a xr.DataArray.
-    # While we could make this more efficient (and only use the second step), the first step
-    # does only take ~10 ms
-    ds_masked = mask_xr_ds(data_set.copy(), mask)
-    bool_mask_data_array = ~ds_masked['cell_area'].isnull()
-    ds_masked = mask_xr_ds(ds_masked, bool_mask_data_array, drop=True)
+    if all(m in list(mask.coords) for m in default_rename_mask_dims_dict().values()):
+        from optim_esm_tools.config import get_logger
+
+        get_logger().debug(
+            f'Reversing coords {list(mask.coords)} != {list(data_set[_fall_back_field].coords)}',
+        )
+        mask = reverse_name_mask_coords(mask)
+    ds_masked = mask_xr_ds(data_set.copy(), mask, drop=True, **kw)
     if add_global_mask:
-        ds_masked = add_mask_renamed(ds_masked, bool_mask_data_array)
+        ds_masked = add_mask_renamed(ds_masked, mask)
     return ds_masked
 
 
@@ -190,7 +202,7 @@ def add_mask_renamed(data_set, da_mask, mask_name='global_mask', **kw):
     return data_set
 
 
-def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
+def _drop_by_mask(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
     """Drop values with masked_dims dimensions.
 
     Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
@@ -198,25 +210,38 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask):
     (lon, lat). So we have to do some funny bookkeeping of which data
     vars we can drop with data_set.where.
     """
-
+    if keep_keys is None:
+        keep_keys = list(data_set.variables.keys())
     dropped = [
         k
         for k, data_array in data_set.data_vars.items()
         if any(dim not in list(data_array.dims) for dim in masked_dims)
+        or k not in keep_keys
     ]
     data_set = data_set.drop_vars(dropped)
 
-    data_set = data_set.where(da_mask.compute(), drop=True)
+    try:
+        data_set = data_set.where(da_mask.compute(), drop=True)
+    except ValueError:
+        from optim_esm_tools.config import get_logger
+
+        get_logger().info(f'data_set {list(data_set.coords)}')
+        get_logger().info(f'da_mask {list(da_mask.coords)}')
+        raise
 
     # Restore ignored variables and attributes
     for k in dropped:  # pragma: no cover
+        if k not in keep_keys:
+            continue
         data_set[k] = ds_start[k]
     return data_set
 
 
-def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask):
+def _mask_xr_ds(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
     """Rebuild data_set for each variable that has all masked_dims."""
     for k, data_array in data_set.data_vars.items():
+        if keep_keys is not None and k not in keep_keys:
+            continue
         if all(dim in list(data_array.dims) for dim in masked_dims):
             lat_lon = config['analyze']['lon_lat_dim'].split(',')[::-1]
             dim_incorrect = tuple(data_array.dims) not in [

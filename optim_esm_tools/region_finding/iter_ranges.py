@@ -15,12 +15,14 @@ from optim_esm_tools.analyze.clustering import build_cluster_mask
 from optim_esm_tools.region_finding._base import _mask_cluster_type
 
 
-class _ThresholdIterator:
-    data_set: xr.Dataset
+class _ThresholdIterator(ABC):
     _tqmd: bool = False
 
-    def _get_masks_weighted(self, *a):
-        raise NotImplementedError
+    data_set: xr.Dataset
+
+    _get_mask_function_and_kw: ty.Callable
+    _force_continuity: ty.Callable
+    mask_area: ty.Callable
 
     def _get_masks_masked(
         self,
@@ -29,6 +31,7 @@ class _ThresholdIterator:
         _mask_method: str = 'not_specified',
         iter_mask_min_area: float = 1e12,
         iter_mask_max_area: float = 999e12,
+        force_continuity: bool = False,
     ) -> _mask_cluster_type:
         """The function `_get_masks_masked` builds masks and clusters based on
         a given iterable range and a combination of masks, and returns the
@@ -77,6 +80,7 @@ class _ThresholdIterator:
                 all_mask,
                 lon_coord=self.data_set[lon_lat_dim[0]].values,
                 lat_coord=self.data_set[lon_lat_dim[1]].values,
+                force_continuity=force_continuity,
             )
             for m, c in zip(these_masks, these_clusters):
                 size = self.mask_area(m).sum()
@@ -94,6 +98,9 @@ class _ThresholdIterator:
         pbar.close()
         return masks, clusters
 
+    def _get_masks_weighted(self, *a, **kw):
+        raise NotImplementedError
+
 
 class IterProductPercentiles(_ThresholdIterator, ProductPercentiles):
     @apply_options
@@ -103,12 +110,14 @@ class IterProductPercentiles(_ThresholdIterator, ProductPercentiles):
         lon_lat_dim=('lon', 'lat'),
         iter_mask_min_area=1e12,
         iter_mask_max_area=999e12,
+        force_continuity=False,
     ) -> _mask_cluster_type:
         return super()._get_masks_masked(
             iterable_range=iterable_range,
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
             iter_mask_max_area=iter_mask_max_area,
+            force_continuity=force_continuity,
             _mask_method='product_rank_past_threshold',
         )
 
@@ -121,12 +130,14 @@ class IterLocalHistory(_ThresholdIterator, LocalHistory):
         lon_lat_dim=('lon', 'lat'),
         iter_mask_min_area=1e12,
         iter_mask_max_area=999e12,
+        force_continuity=False,
     ) -> _mask_cluster_type:
         return super()._get_masks_masked(
             iterable_range=iterable_range,
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
             iter_mask_max_area=iter_mask_max_area,
+            force_continuity=force_continuity,
             _mask_method='all_pass_historical',
         )
 
@@ -139,12 +150,14 @@ class IterPercentiles(_ThresholdIterator, Percentiles):
         lon_lat_dim=('lon', 'lat'),
         iter_mask_min_area=1e12,
         iter_mask_max_area=999e12,
+        force_continuity=False,
     ) -> _mask_cluster_type:
         return super()._get_masks_masked(
             iterable_range=iterable_range,
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
             iter_mask_max_area=iter_mask_max_area,
+            force_continuity=force_continuity,
             _mask_method='all_pass_percentile',
         )
 
@@ -160,11 +173,28 @@ class IterStartEnd(_ThresholdIterator, ProductPercentiles):
         lon_lat_dim=('lon', 'lat'),
         iter_mask_min_area=1e12,
         iter_mask_max_area=999e12,
+        force_continuity=False,
     ) -> _mask_cluster_type:
         return super()._get_masks_masked(
             iterable_range=iterable_range,
             lon_lat_dim=lon_lat_dim,
             iter_mask_min_area=iter_mask_min_area,
             iter_mask_max_area=iter_mask_max_area,
+            force_continuity=force_continuity,
             _mask_method='product_rank_past_threshold',
         )
+
+
+class IterSNR(IterStartEnd):
+    labels = ('i',)
+    criteria: ty.Tuple = (tipping_criteria.SNR,)
+
+
+class IterStd(IterStartEnd):
+    labels = ('ii',)
+    criteria: ty.Tuple = (tipping_criteria.StdDetrended,)
+
+
+class IterMJ(IterStartEnd):
+    labels = ('iii',)
+    criteria: ty.Tuple = (tipping_criteria.MaxJump,)

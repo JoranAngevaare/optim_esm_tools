@@ -360,6 +360,7 @@ def timed(
     _report: str = None,
     _args_max: int = 20,
     _fmt: str = '.2g',
+    _stacklevel=2,
 ):
     """Time a function and print if it takes more than <seconds>
 
@@ -395,7 +396,7 @@ def timed(
                 else:
                     from .config import get_logger
 
-                    getattr(get_logger(), _report)(message)
+                    getattr(get_logger(), _report)(message, stacklevel=_stacklevel)
             return res
 
         return timed_func
@@ -404,3 +405,20 @@ def timed(
         # Decorator that isn't closed
         return somedec_outer(a[0])
     return somedec_outer
+
+
+@check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))
+def logged_tqdm(*a, log=None, _report='warning', **kw):
+    log = log or get_logger()
+    pbar = tqdm(*a, **kw)
+    generator = iter(pbar)
+    while True:
+        try:
+            v = next(generator)
+            getattr(log, _report)(pbar, stacklevel=2)
+            yield v
+
+        except StopIteration:
+            pbar.close()
+            getattr(log, _report)(pbar, stacklevel=2)
+            return
