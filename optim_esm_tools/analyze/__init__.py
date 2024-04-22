@@ -2,7 +2,7 @@ from . import clustering
 from . import cmip_handler
 from . import combine_variables
 from . import concise_dataframe
-from . import direct_statistics
+
 from . import find_matches
 from . import io
 from . import pre_process

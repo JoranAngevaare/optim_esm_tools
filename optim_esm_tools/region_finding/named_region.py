@@ -9,24 +9,16 @@ from ._base import RegionExtractor
 from ._base import apply_options
 
 
-class NamedRegions(RegionExtractor):
+class _NamedRegions(RegionExtractor):
     region_database = regionmask.defined_regions.ar6.all
 
-    _default_regions: ty.Tuple[str, ...] = (
-        'S.W.South-America',
-        'W.North-America',
-        'N.Central-America',
-        'Mediterranean',
-        'S.Australia',
-        'W.Southern-Africa',
-        'E.Southern-Africa',
-    )
+    _default_regions: ty.Tuple[str, ...]
 
     @apply_options
     def get_masks(
         self,
         select_regions: ty.Optional[ty.Tuple[str, ...]] = None,
-    ) -> _mask_cluster_type:  # pragma: no cover
+    ) -> _mask_cluster_type:
         if select_regions is None:
             select_regions = self._default_regions
         mask_2d = ~self.data_set[self.variable].isnull().all(dim='time')
@@ -54,7 +46,19 @@ class NamedRegions(RegionExtractor):
         return masks_and_clusters
 
 
-class Asia(NamedRegions):
+class Medeteranian(_NamedRegions):
+    _default_regions: ty.Tuple[str, ...] = (
+        'S.W.South-America',
+        'W.North-America',
+        'N.Central-America',
+        'Mediterranean',
+        'S.Australia',
+        'W.Southern-Africa',
+        'E.Southern-Africa',
+    )
+
+
+class Asia(_NamedRegions):
     _default_regions: ty.Tuple[str, ...] = (
         'Russian-Far-East',
         'E.Asia',

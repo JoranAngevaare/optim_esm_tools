@@ -110,6 +110,9 @@ class Work(unittest.TestCase):
     def test_percentiles_weighted(self):
         self.test_max_region('Percentiles', new_opt=dict(cluster_method='weighted'))
 
+    def test_start_end_continous(self):
+        self.test_max_region('IterStartEnd', new_opt=dict(force_continuity=True))
+
     def test_percentiles_history(self):
         region_finder = self.test_max_region('PercentilesHistory')
         with self.assertRaises(NotImplementedError):
@@ -173,3 +176,12 @@ class Work(unittest.TestCase):
                 'IterStartEnd',
                 new_opt=dict(cluster_method='weighted'),
             )
+
+    def test_mask_all(self):
+        self.test_max_region('MaskAll')
+
+    def test_mask_asia(self):
+        self.test_max_region('Asia')
+
+    def test_mask_medeteranian(self):
+        self.test_max_region('Medeteranian')
