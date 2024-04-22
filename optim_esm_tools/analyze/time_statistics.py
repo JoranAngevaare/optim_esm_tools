@@ -251,7 +251,8 @@ def calculate_symmetry_test(
     n_repeat: int = int(oet.config.config['analyze']['n_repeat_sym_test']),
     _fast_mode: bool = True,
     _fast_above: float = 0.05,
-    _fast_min_repeat: int = 2**kw,
+    _fast_min_repeat: int = 2,
+    **kw,
 ) -> np.float64:
     """The function `calculate_symmetry_test` calculates the symmetry test
     statistic for a given dataset and field using the R package `rpy_symmetry`.

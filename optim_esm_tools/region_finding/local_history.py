@@ -35,15 +35,6 @@ class _HistroricalLookup(abc.ABC):
         raise NotImplementedError(
             'This behavior is deprecated, use data_set_pic at __init__ instead',
         )
-        path = self.data_set.attrs['path']
-        return oet.analyze.find_matches.associate_parent(
-            path=path,
-            data_set=None,
-            match_to=match_to,
-            look_back_extra=look_back_extra,
-            query_updates=query_updates,
-            search_kw=search_kw,
-        )
 
     @apply_options
     def get_historical_ds(
@@ -54,19 +45,8 @@ class _HistroricalLookup(abc.ABC):
         if self.data_set_pic is not None:
             return self.data_set_pic
 
-        # NotImplementedError
-        self.find_historical()
-
-        # read_ds_kw = read_ds_kw or {}
-
-        # for k, v in dict(min_time=None, max_time=None).items():
-        #     read_ds_kw.setdefault(k, v)  # type: ignore
-        # historical_path = self.find_historical(**kw)
-        # if historical_path is None:
-        #     raise ValueError('No match found')  # pragma: no cover
-        # res = oet.read_ds(historical_path[0], **read_ds_kw)
-        # assert isinstance(res, xr.Dataset)
-        # return res
+        # Which raises NotImplementedError
+        return self.find_historical()
 
 
 class LocalHistory(_HistroricalLookup, Percentiles):

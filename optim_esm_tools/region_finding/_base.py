@@ -302,7 +302,7 @@ class RegionExtractor:
         """
         return self.mask_area(mask).sum() >= min_area_sq
 
-    def mask_to_coord(self, mask):
+    def mask_to_lon_lat(self, mask):
         ds = self.data_set
         if not isinstance(mask, np.ndarray):
             mask = mask.values
@@ -465,37 +465,6 @@ class MaskAll(RegionExtractor):
                 this_mask[i][j] = True
                 masks.append(this_mask)
         return masks, coords
-
-        # def get_masks(self) -> _mask_cluster_type:  # pragma: no cover
-        # mask_2d = ~self.data_set[self.variable].isnull().all(dim='time')
-        # mask_values = mask_2d.values
-        # lats = self.data_set['lat'].values
-        # lons = self.data_set['lon'].values
-        # masks = []
-        # coords = []
-        # _current_coord = []
-        # _current_mask = np.zeros_like(mask_values)
-
-        # for i, j in itertools.product(range(mask_2d.shape[0]), range(mask_2d.shape[0])):
-        #     if not mask_values[i][j]:
-        #         if len(_current_coord):
-        #             coords.append(np.array(_current_coord))
-        #             masks.append(_current_mask)
-        #             _current_coord = []
-        #             _current_mask = np.zeros_like(mask_values)
-        #         continue
-
-        #     _current_coord.append([lats[i], lons[j]])
-        #     _current_mask[i][j]=True
-        #     if len(_current_coord) == 10:
-        #         coords.append(np.array(_current_coord))
-        #         masks.append(_current_mask)
-        #         _current_coord = []
-        #         _current_mask = np.zeros_like(mask_values)
-        # if _current_coord:
-        #     coords.append(np.array(_current_coord))
-        #     masks.append(_current_mask)
-        # return masks, coords
 
     def filter_masks_and_clusters(
         self,

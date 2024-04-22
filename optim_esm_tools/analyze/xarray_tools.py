@@ -219,10 +219,7 @@ def _drop_by_mask(data_set, masked_dims, ds_start, da_mask, keep_keys=None):
         or k not in keep_keys
     ]
     data_set = data_set.drop_vars(dropped)
-    # if list(da_mask.coords) == ['lon_mask', 'lat_mask'] or list(da_mask.coords) == ['lat_mask', 'lon_mask']:
-    #     from optim_esm_tools.config import get_logger
-    #     get_logger().info(f'Reversing coords {list(da_mask.coords)} != lat lon')
-    #     da_mask = reverse_name_mask_coords(da_mask)
+
     try:
         data_set = data_set.where(da_mask.compute(), drop=True)
     except ValueError:
