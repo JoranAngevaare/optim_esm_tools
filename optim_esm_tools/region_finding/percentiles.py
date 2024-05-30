@@ -227,7 +227,10 @@ class Percentiles(RegionExtractor):
         combined_score = np.ones_like(ds[labels[0]].values, dtype=np.float64)
 
         for label in labels:
-            combined_score *= tipping_criteria.rank2d(ds[label].values)
+            try:
+                combined_score *= tipping_criteria.rank2d(ds[label].values)
+            except ValueError:
+                raise ValueError(ds[label].values, label)
         return combined_score
 
     def _product_rank_past_threshold(
