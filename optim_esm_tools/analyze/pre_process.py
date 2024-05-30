@@ -286,7 +286,8 @@ def _drop_duplicates_carefully(ds, t_span, t_len, path):
     work_dir = os.path.split(path)[0]
     with tempfile.TemporaryDirectory(dir=work_dir) as temp_dir:
         keep_years = np.argwhere(np.diff([t.year for t in ds['time'].values]) == 1)[
-            :, 0
+            :,
+            0,
         ]
         keep_years = [0] + [int(i) + 1 for i in keep_years]
         saves = []
