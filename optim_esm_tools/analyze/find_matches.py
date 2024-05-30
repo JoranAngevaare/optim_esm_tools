@@ -127,7 +127,7 @@ def find_matches(
     ]
 
 
-def _get_head(path):
+def _get_head(path: str) -> str:
     log = get_logger()
     if path.endswith(os.sep):
         log.debug(f'Stripping tailing "/" from {path}')
@@ -139,7 +139,7 @@ def _get_head(path):
     return path
 
 
-def is_excluded(path, exclude_too_short=True):
+def is_excluded(path: str, exclude_too_short: bool = True) -> bool:
     from fnmatch import fnmatch
 
     path = _get_head(path)
@@ -158,7 +158,7 @@ def is_excluded(path, exclude_too_short=True):
     return False
 
 
-def _variant_label_id_and_version(full_path):
+def _variant_label_id_and_version(full_path: str) -> ty.Tuple[int, int]:
     run_variant_number = None
     grid_version = None
     for folder in full_path.split(os.sep):
@@ -180,7 +180,7 @@ def _variant_label_id_and_version(full_path):
     return -grid_version, run_variant_number
 
 
-def folder_to_dict(path, strict=True):
+def folder_to_dict(path: str, strict: bool = True) -> ty.Optional[ty.Dict[str, str]]:
     path = _get_head(path)
     folders = path.split(os.sep)
     if folders[-1][0] == 'v' and len(folders[-1]) == len('v20190731'):
@@ -193,9 +193,10 @@ def folder_to_dict(path, strict=True):
         raise NotImplementedError(
             f'folder {path} does not end with a version',
         )  # pragma: no cover
+    return None
 
 
-def base_from_path(path, look_back_extra=0):
+def base_from_path(path: str, look_back_extra: int = 0) -> str:
     path = _get_head(path)
     return os.path.join(
         os.sep,
@@ -215,7 +216,7 @@ def _get_search_kw(
     keep_keys: tuple = tuple(
         'parent_activity_id parent_experiment_id parent_source_id parent_variant_label'.split(),
     ),
-) -> dict:
+) -> ty.Dict[str, str]:
     return {
         k.replace('parent_', ''):
         # Filter out some institutes that ended up adding a bunch of spaces here?!
@@ -255,14 +256,17 @@ def _check_search_kw(
 def _read_dataset(
     data_set: ty.Optional[xr.Dataset],
     required_file: ty.Optional[str],
-    path: str,
+    path: ty.Optional[str],
 ) -> xr.Dataset:
     if data_set is None and path is None:
         raise ValueError(
             'No dataset, no path, can\'t match if I don\'t know what I\'m looking for',
         )  # pragma: no cover
-    path = path or data_set.attrs['path']  # type: ignore
-    assert os.path.exists(path)
+    if path is None:
+        assert data_set is not None
+        path = data_set.attrs['path']
+
+    assert isinstance(path, str) and os.path.exists(path), path
     if data_set is None:
         from optim_esm_tools import load_glob
 
@@ -277,18 +281,20 @@ def _read_dataset(
 
 
 def associate_parent(
-    data_set=None,
-    path=None,
-    match_to='piControl',
-    look_back_extra=0,
-    query_updates=None,
-    search_kw=None,
-    strict=True,
-    required_file='merged.nc',
+    data_set: ty.Optional[xr.Dataset] = None,
+    path: ty.Optional[str] = None,
+    match_to: str = 'piControl',
+    look_back_extra: int = 0,
+    query_updates: ty.Optional[ty.List[dict]] = None,
+    search_kw: ty.Optional[dict] = None,
+    strict: bool = True,
+    required_file: ty.Optional[str] = 'merged.nc',
 ):
 
     log = get_logger()
+
     data_set = _read_dataset(data_set=data_set, required_file=required_file, path=path)
+    path = path or data_set.attrs['path']
     base = base_from_path(path, look_back_extra=look_back_extra)
     search = _get_search_kw(data_set)
     search = _check_search_kw(search=search, data_set=data_set, log=log, path=path)
@@ -319,8 +325,8 @@ def associate_parent(
                 log.info(message)
             else:
                 break
-        search.update(update_query)  # type: ignore
-        if this_try := find_matches(base, **search):  # type: ignore
+        search.update(update_query)
+        if this_try := find_matches(base, **search):
             if match_to == 'piControl' and search.get('experiment_id') == 'historical':
                 log.debug(
                     f'Found historical, but we need to match to PiControl, recursively returning!',
