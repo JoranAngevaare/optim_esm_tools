@@ -463,6 +463,8 @@ class VariableMerger:
         _historical_ds: ty.Optional[xr.Dataset] = None,
         **plot_kw,
     ) -> None:
+        if _historical_ds is None:
+            raise NotImplementedError
         plot_kw.setdefault('lw', 1)
         plot_kw.setdefault('add_label', False)
         read_ds_kw = read_ds_kw or {}
