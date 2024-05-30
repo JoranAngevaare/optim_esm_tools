@@ -203,7 +203,8 @@ def read_ds(
         log.info(f'Write {res_file}')
         if oet.config.config['CMIP_files']['compress'] == 'True':
             oet.analyze.pre_process.save_nc(data_set, res_file)
-        data_set.to_netcdf(res_file)
+        else:
+            data_set.to_netcdf(res_file)
 
     return data_set
 
