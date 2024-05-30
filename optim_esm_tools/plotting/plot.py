@@ -9,9 +9,13 @@ from optim_esm_tools.config import get_logger
 
 
 def setup_map(
-    projection=None,
-    coastlines=True,
-    add_features=False,
+    projection: ty.Optional[str] = None,
+    coastlines: bool = True,
+    add_features: bool = False,
+    add_gridlines: bool = True,
+    coast_line_kw: ty.Optional[dict] = None,
+    gridline_kw: ty.Optional[dict] = None,
+    no_top_labels: bool = True,
     **projection_kwargs,
 ):
     plt.gcf().add_subplot(
@@ -19,7 +23,8 @@ def setup_map(
     )
     ax = plt.gca()
     if coastlines:
-        ax.coastlines()
+        coast_line_kw = coast_line_kw or dict()
+        ax.coastlines(**coast_line_kw)
     if add_features:
         import cartopy.feature as cfeature
 
@@ -27,9 +32,11 @@ def setup_map(
         for feat in oet.utils.to_str_tuple(add_features):
             assert feat.upper() in allowed, f'{feat} not in {allowed}'
             ax.add_feature(getattr(cfeature, feat.upper()))
-
-    gl = ax.gridlines(draw_labels=True)
-    gl.top_labels = False
+    if add_gridlines:
+        gridline_kw = gridline_kw or dict(draw_labels=True)
+        gl = ax.gridlines(**gridline_kw)
+        if no_top_labels:
+            gl.top_labels = False
 
 
 def _show(show):
@@ -40,7 +47,7 @@ def _show(show):
         plt.close()
 
 
-def default_variable_labels():
+def default_variable_labels() -> ty.Dict[str, str]:
     labels = dict(config['variable_label'].items())
     ma = config['analyze']['moving_average_years']
     for k, v in list(labels.items()):
@@ -50,7 +57,7 @@ def default_variable_labels():
     return labels
 
 
-def get_range(var):
+def get_range(var: str) -> ty.List[float]:
     r = (
         dict(oet.config.config['variable_range'].items())
         .get(var, 'None,None')
@@ -59,7 +66,7 @@ def get_range(var):
     return [(float(l) if l != 'None' else None) for l in r]
 
 
-def set_y_lim_var(var):
+def set_y_lim_var(var: str) -> None:
     d, u = get_range(var)
     cd, cu = plt.ylim()
     plt.ylim(
@@ -68,15 +75,19 @@ def set_y_lim_var(var):
     )
 
 
-def get_unit_da(da):
+def get_unit_da(da: xr.DataArray) -> str:
     return da.attrs.get('units', '?').replace('%', r'\%')
 
 
-def get_unit(ds, var):
+def get_unit(ds: xr.Dataset, var: str) -> str:
     return get_unit_da(ds[var])
 
 
-def get_cartopy_projection(projection=None, _field='projection', **projection_kwargs):
+def get_cartopy_projection(
+    projection: ty.Optional[ty.Any] = None,
+    _field: str = 'projection',
+    **projection_kwargs,
+) -> ty.Any:
     import cartopy.crs as ccrs
 
     projection = projection or config['cartopy'][_field]
@@ -85,7 +96,10 @@ def get_cartopy_projection(projection=None, _field='projection', **projection_kw
     return getattr(ccrs, projection)(**projection_kwargs)
 
 
-def get_cartopy_transform(projection=None, **projection_kwargs):
+def get_cartopy_transform(
+    projection: ty.Optional[ty.Any] = None,
+    **projection_kwargs,
+) -> ty.Any:
     return get_cartopy_projection(
         projection=projection,
         _field='transform',
@@ -94,7 +108,7 @@ def get_cartopy_transform(projection=None, **projection_kwargs):
 
 
 def get_xy_lim_for_projection(
-    projection=None,
+    projection: ty.Optional[str] = None,
 ) -> ty.Tuple[ty.Tuple[float, float], ty.Tuple[float, float]]:
     """Blunt hardcoding for the different projections.
 
@@ -125,7 +139,18 @@ def get_xy_lim_for_projection(
     return lims.get(projection, ((0, 360), (-90, 90)))
 
 
-def plot_da(da: xr.DataArray, projection: str = None, **kw):
+def plot_da(
+    da: xr.DataArray,
+    projection: ty.Optional[str] = None,
+    setup_kw: ty.Optional[dict] = None,
+    **kw,
+):
     """Simple wrapper for da.plot() with correct transforms and projections."""
-    setup_map(projection=projection)
+    setup_kw = setup_kw or dict()
+    setup_map(projection=projection, **setup_kw)
     da.plot(transform=get_cartopy_transform(), **kw)
+
+
+def get_ylabel(ds: xr.Dataset, var: ty.Optional[str] = None):
+    var = var or ds.attrs.get('variable_id', 'var')
+    return f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]'

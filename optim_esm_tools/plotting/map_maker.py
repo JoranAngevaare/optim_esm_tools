@@ -41,9 +41,7 @@ def plot_simple(
     if set_y_lim:
         set_y_lim_var(var)
     if add_label:
-        plt.ylabel(
-            f'{oet.plotting.plot.default_variable_labels().get(var, var)} [{get_unit(ds, var)}]',
-        )
+        plt.ylabel(oet.plotting.plot.get_ylabel(ds, var))
     plt.title('')
 
 
