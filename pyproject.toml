@@ -49,7 +49,7 @@ test = [
 script-files = ['bin/oet_plot']
 
 [tool.setuptools.package-data]
-optim_esm_tools = ['data/*', 'optim_esm_tools/*', '*.ini*']
+optim_esm_tools = ['data/*', 'optim_esm_tools/*', '*.ini*', 'py.typed']
 
 [tool.setuptools.packages.find]
 where = [".", "optim_esm_tools"]
