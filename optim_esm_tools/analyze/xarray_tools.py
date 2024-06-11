@@ -274,7 +274,7 @@ def _drop_by_mask(
 
 def _mask_xr_ds(
     data_set: xr.Dataset,
-    masked_dims: ty.Optional[ty.Iterable[str]],
+    masked_dims: ty.Iterable[str],
     ds_start: xr.Dataset,
     da_mask: xr.DataArray,
     keep_keys: ty.Optional[ty.Iterable[str]] = None,
@@ -300,21 +300,13 @@ def _mask_xr_ds(
     return data_set
 
 
-def _drop_by_mask_nb(
+def _prepare_dropped_dataset(
     data_set: xr.Dataset,
+    fall_back_key: str,
     masked_dims: ty.Iterable[str],
-    ds_start: xr.Dataset,
     da_mask: xr.DataArray,
     keep_keys: ty.Optional[ty.Iterable[str]] = None,
-    fall_back_key='cell_area',
-):
-    """Drop values with masked_dims dimensions.
-
-    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
-    bad results, for example for time_bnds (time, bnds) being dropped by
-    (lon, lat). So we have to do some funny bookkeeping of which data
-    vars we can drop with data_set.where.
-    """
+) -> ty.Tuple[xr.Dataset, ty.List[str], ty.List[str]]:
     assert fall_back_key in data_set
     if keep_keys is None:
         keep_keys = list(data_set.variables.keys())
@@ -322,7 +314,7 @@ def _drop_by_mask_nb(
         if not all(isinstance(k, str) for k in keep_keys):
             raise TypeError(f'Got one or more non-string keys {keep_keys}')
     dropped = [
-        k
+        str(k)
         for k, data_array in data_set.data_vars.items()
         if (
             any(dim not in list(data_array.dims) for dim in masked_dims)
@@ -337,6 +329,30 @@ def _drop_by_mask_nb(
     data_set = data_set.where(da_mask.compute(), drop=True)
 
     assert fall_back_key in data_set
+    return data_set, keep_keys, dropped
+
+
+def _drop_by_mask_nb(
+    data_set: xr.Dataset,
+    masked_dims: ty.Iterable[str],
+    ds_start: xr.Dataset,
+    da_mask: xr.DataArray,
+    keep_keys: ty.Optional[ty.Iterable[str]] = None,
+    fall_back_key='cell_area',
+) -> xr.Dataset:
+    """Drop values with masked_dims dimensions.
+
+    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
+    bad results, for example for time_bnds (time, bnds) being dropped by
+    (lon, lat). So we have to do some funny bookkeeping of which data
+    vars we can drop with data_set.where.
+    """
+    data_set, keep_keys, dropped = _prepare_dropped_dataset(
+        data_set,
+        fall_back_key,
+        masked_dims,
+        da_mask,
+    )
     x_map = map_array_to_index_array(ds_start.lat.values, data_set.lat.values)
     y_map = map_array_to_index_array(ds_start.lon.values, data_set.lon.values)
     mask_np = da_mask.values
@@ -441,7 +457,7 @@ def mapped_3d_mask(
     res = (
         np.zeros((len(source_values), result_shape[0], result_shape[1]), dtype) * np.nan
     )
-    for ti in range(len(source_values)):
+    for ti in range(source_values.shape[0]):
         res[ti] = mapped_2d_mask(
             source_values[ti],
             result_shape=result_shape,
