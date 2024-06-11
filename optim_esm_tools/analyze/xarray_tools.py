@@ -3,7 +3,7 @@ from functools import wraps
 
 import numpy as np
 import xarray as xr
-
+import numba
 from optim_esm_tools.config import config
 
 
@@ -94,14 +94,24 @@ def mask_xr_ds(
     masked_dims: ty.Optional[ty.Iterable[str]] = None,
     drop: bool = False,
     keep_keys: ty.Optional[ty.Iterable[str]] = None,
+    _use_method: ty.Optional[str] = None,
 ):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
     if masked_dims is None:
-        masked_dims = config['analyze']['lon_lat_dim'].split(',')
+        masked_dims = config['analyze']['lon_lat_dim'].split(',')[::-1]
 
     ds_start = data_set.copy()
-    func_by_drop = {True: _drop_by_mask, False: _mask_xr_ds}[drop]
+
+    drop_true_function: ty.Callable = (
+        _drop_by_mask
+        if (_use_method == 'xarray' or config['analyze']['use_drop_nb'] != 'True')
+        else _drop_by_mask_nb
+    )
+    func_by_drop = {
+        True: drop_true_function,
+        False: _mask_xr_ds,
+    }[drop]
     data_set = func_by_drop(
         data_set,
         masked_dims,
@@ -283,3 +293,165 @@ def _mask_xr_ds(
             data_set[k] = da
 
     return data_set
+
+
+def _drop_by_mask_nb(
+    data_set: xr.Dataset,
+    masked_dims: ty.Iterable[str],
+    ds_start: xr.Dataset,
+    da_mask: xr.DataArray,
+    keep_keys: ty.Optional[ty.Iterable[str]] = None,
+    fall_back_key='cell_area',
+):
+    """Drop values with masked_dims dimensions.
+
+    Unfortunately, data_set.where(da_mask, drop=True) sometimes leads to
+    bad results, for example for time_bnds (time, bnds) being dropped by
+    (lon, lat). So we have to do some funny bookkeeping of which data
+    vars we can drop with data_set.where.
+    """
+    assert fall_back_key in data_set
+    if keep_keys is None:
+        keep_keys = list(data_set.variables.keys())
+    else:
+        if not all(isinstance(k, str) for k in keep_keys):
+            raise TypeError(f'Got one or more non-string keys {keep_keys}')
+    dropped = [
+        k
+        for k, data_array in data_set.data_vars.items()
+        if (
+            any(dim not in list(data_array.dims) for dim in masked_dims)
+            or k not in keep_keys
+        )  # and k not in no_drop
+    ]
+    try:
+        data_set = data_set.drop_vars(
+            (set(dropped) | set(keep_keys)) - {*masked_dims, fall_back_key},
+        )
+    except TypeError as e:
+        message = dict()
+        for k in 'dropped keep_keys masked_dims fall_back_key'.split():
+            print(f'{k} {eval(k)}')
+            try:
+                set(k)
+            except TypeError:
+                print(k)
+        raise ValueError(message) from e
+    data_set = data_set.where(da_mask.compute(), drop=True)
+
+    assert fall_back_key in data_set
+    x_map = map_array_to_index_array(ds_start.lat.values, data_set.lat.values)
+    y_map = map_array_to_index_array(ds_start.lon.values, data_set.lon.values)
+    mask_np = da_mask.values
+    res_shape = data_set[fall_back_key].shape
+    from optim_esm_tools.config import get_logger
+
+    log = get_logger()
+
+    for mask_key in keep_keys:
+        if mask_key == fall_back_key:
+            continue
+
+        da = ds_start[mask_key]
+        if da.dims == tuple(masked_dims):
+            v = mapped_2d_mask(da.values, res_shape, mask_np, x_map, y_map)
+
+            try:
+                data_set[mask_key] = xr.DataArray(data=v, dims=da.dims, attrs=da.attrs)
+            except ValueError:
+                return dict(data_set=data_set, data=v, dims=da.dims, attrs=da.attrs)
+
+        elif da.dims[1:] == tuple(masked_dims):
+            v = mapped_3d_mask(da.values, res_shape, mask_np, x_map, y_map)
+            data_set[mask_key] = xr.DataArray(data=v, dims=da.dims, attrs=da.attrs)
+        elif mask_key not in masked_dims:
+            log.debug(
+                f'Skipping "{mask_key}" in masking as it\'s not following the {masked_dims} but has {da.dims}',
+            )
+            if any(m in da.dims for m in masked_dims):
+                data_set[mask_key] = ds_start[mask_key].where(da_mask, drop=True)
+            else:
+                data_set[mask_key] = ds_start[mask_key]
+
+    # Restore ignored variables and attributes
+    for k in dropped:  # pragma: no cover
+        if k not in keep_keys:
+            continue
+        data_set[k] = ds_start[k]
+    return data_set
+
+
+@numba.njit
+def map_array_to_index_array(x0, x1, nan_int=-1234):
+    """Map the indexes from x0 to x1, if there is no index in x1 that
+    corresponds to a value of x0, fill it with the nan_int value.
+
+    Example
+    ``
+    >>> arg_map_1d(np.array([1,2,3]), np.array([1,3]), nan_int=-1234)
+    array([    0, -1234,     1])
+    ``
+    """
+    res = np.ones(len(x0), dtype=np.int16) * nan_int
+    for i0, x0_i in enumerate(x0):
+        for i1, x1_i in enumerate(x1):
+            if not np.isclose(x0_i, x1_i):
+                continue
+            res[i0] = i1
+            break
+    return res
+
+
+@numba.njit
+def mapped_2d_mask(
+    source_values,
+    result_shape,
+    mask_2d,
+    index_map_x,
+    index_map_y,
+    dtype=np.float64,
+    nan_int=-1234,
+):
+    x, y = source_values.shape
+    res = np.zeros(result_shape, dtype) * np.nan
+
+    for i in range(x):
+        x_fill = index_map_x[i]
+        if x_fill == nan_int:
+            continue
+        for j in range(y):
+            y_fill = index_map_y[j]
+            if y_fill == nan_int:
+                continue
+            if not mask_2d[i][j]:
+                continue
+            res[x_fill][y_fill] = source_values[i][j]
+
+    return res
+
+
+@numba.njit
+def mapped_3d_mask(
+    source_values,
+    result_shape,
+    mask_2d,
+    index_map_x,
+    index_map_y,
+    dtype=np.float64,
+    nan_int=-1234,
+):
+    assert len(source_values.shape) == 3
+    res = (
+        np.zeros((len(source_values), result_shape[0], result_shape[1]), dtype) * np.nan
+    )
+    for ti in range(len(source_values)):
+        res[ti] = mapped_2d_mask(
+            source_values[ti],
+            result_shape=result_shape,
+            mask_2d=mask_2d,
+            index_map_x=index_map_x,
+            index_map_y=index_map_y,
+            dtype=dtype,
+            nan_int=nan_int,
+        )
+    return res
