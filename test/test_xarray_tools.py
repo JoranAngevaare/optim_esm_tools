@@ -53,13 +53,18 @@ class TestDrop(unittest.TestCase):
         )
         dropped_xr = oet.analyze.xarray_tools.mask_xr_ds(
             **kw,
-            _use_method='xarray',
+            drop_method='xarray',
         )
         dropped_nb = oet.analyze.xarray_tools.mask_xr_ds(
             **kw,
-            _use_method='numba',
+            drop_method='numba',
         )
         v_xr = dropped_xr['var'].values
         v_nb = dropped_nb['var'].values
         self.assertTrue(np.array_equal(v_xr[~np.isnan(v_xr)], v_nb[~np.isnan(v_nb)]))
         self.assertTrue(np.array_equal(np.isnan(v_xr), np.isnan(v_nb)))
+        with self.assertRaises(ValueError):
+            oet.analyze.xarray_tools.mask_xr_ds(
+                **kw,
+                drop_method='numpy_or_somthing',
+            )

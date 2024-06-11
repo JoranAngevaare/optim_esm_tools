@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 import numba
 from optim_esm_tools.config import config
+from optim_esm_tools.utils import check_accepts
 
 
 def _native_date_fmt(time_array: np.ndarray, date: ty.Tuple[int, int, int]):
@@ -88,13 +89,14 @@ def _remove_any_none_times(da: xr.DataArray, time_dim: bool, drop: bool = True) 
     return data_var
 
 
+@check_accepts(accepts=dict(drop_method=('xarray', 'numba')))
 def mask_xr_ds(
     data_set: xr.Dataset,
     da_mask: xr.DataArray,
     masked_dims: ty.Optional[ty.Iterable[str]] = None,
     drop: bool = False,
     keep_keys: ty.Optional[ty.Iterable[str]] = None,
-    _use_method: ty.Optional[str] = None,
+    drop_method: ty.Optional[str] = None,
 ):
     # Modify the ds in place - make a copy!
     data_set = data_set.copy()
@@ -105,7 +107,7 @@ def mask_xr_ds(
 
     drop_true_function: ty.Callable = (
         _drop_by_mask
-        if (_use_method == 'xarray' or config['analyze']['use_drop_nb'] != 'True')
+        if (drop_method == 'xarray' or config['analyze']['use_drop_nb'] != 'True')
         else _drop_by_mask_nb
     )
     func_by_drop = {
