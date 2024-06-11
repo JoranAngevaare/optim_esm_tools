@@ -43,7 +43,7 @@ class TestDrop(unittest.TestCase):
     def test_drop_by_mask(self):
         ds = oet._test_utils.minimal_xr_ds(len_x=8, len_y=9, len_time=10)
         ds['var'].data = np.random.randint(1, 10, size=ds['var'].shape)
-        mask = ds['var'].isel(time=0).drop('time') > 5
+        mask = ds['var'].isel(time=0).drop_vars('time') > 5
         kw = dict(
             data_set=ds,
             da_mask=mask,

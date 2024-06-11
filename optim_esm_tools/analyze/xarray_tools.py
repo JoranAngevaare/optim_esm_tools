@@ -329,19 +329,11 @@ def _drop_by_mask_nb(
             or k not in keep_keys
         )  # and k not in no_drop
     ]
-    try:
-        data_set = data_set.drop_vars(
-            (set(dropped) | set(keep_keys)) - {*masked_dims, fall_back_key},
-        )
-    except TypeError as e:
-        message = dict()
-        for k in 'dropped keep_keys masked_dims fall_back_key'.split():
-            print(f'{k} {eval(k)}')
-            try:
-                set(k)
-            except TypeError:
-                print(k)
-        raise ValueError(message) from e
+
+    data_set = data_set.drop_vars(
+        (set(dropped) | set(keep_keys)) - {*masked_dims, fall_back_key},
+    )
+
     data_set = data_set.where(da_mask.compute(), drop=True)
 
     assert fall_back_key in data_set
