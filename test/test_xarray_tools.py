@@ -51,13 +51,14 @@ class TestDrop(unittest.TestCase):
             drop=True,
             keep_keys=None,
         )
-        dropped_xr = oet.analyze.xarray_tools.mask_xr_ds(
-            **kw,
-            drop_method='xarray',
-        )
+        ds['cell_area'] = mask.astype(np.int64)
         dropped_nb = oet.analyze.xarray_tools.mask_xr_ds(
             **kw,
             drop_method='numba',
+        )
+        dropped_xr = oet.analyze.xarray_tools.mask_xr_ds(
+            **kw,
+            drop_method='xarray',
         )
         v_xr = dropped_xr['var'].values
         v_nb = dropped_nb['var'].values

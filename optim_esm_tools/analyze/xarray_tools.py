@@ -104,12 +104,15 @@ def mask_xr_ds(
         masked_dims = config['analyze']['lon_lat_dim'].split(',')[::-1]
 
     ds_start = data_set.copy()
-
     drop_true_function: ty.Callable = (
         _drop_by_mask
-        if (drop_method == 'xarray' or config['analyze']['use_drop_nb'] != 'True')
+        if (
+            drop_method == 'xarray'
+            or (drop_method is None and config['analyze']['use_drop_nb'] != 'True')
+        )
         else _drop_by_mask_nb
     )
+
     func_by_drop = {
         True: drop_true_function,
         False: _mask_xr_ds,
