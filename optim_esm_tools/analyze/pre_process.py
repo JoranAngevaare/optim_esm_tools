@@ -93,11 +93,11 @@ def _merge_sources(source_files: ty.List[str], f_tmp: str) -> None:  # pragma: n
     cdo_int.mergetime(input=source_files, output=f_tmp)
 
 
-def _year_mon_mean(input, output):
+def _year_mon_mean(input_file, output_file):
     import cdo
 
     cdo_int = cdo.Cdo()
-    cdo_int.yearmonmean(input=input, output=output)
+    cdo_int.yearmonmean(input=input_file, output=output_file)
 
 
 def save_nc(ds, path):
