@@ -24,6 +24,9 @@ jobs:
             python-version: '3.9'
           - test: full
             python-version: '3.10'
+          # Disabled in #183, as there is some recurring synda - issue
+          - test: full
+            python-version: '3.8'
           - test: full
             os: ubuntu-20.04
           - test: minimal
