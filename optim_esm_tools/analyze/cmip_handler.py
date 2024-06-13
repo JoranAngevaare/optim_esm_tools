@@ -166,7 +166,7 @@ def read_ds(
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
-            source=data_path,
+            sources=data_path,
             historical_path=_historical_path,
             max_time=max_time,
             min_time=min_time,
