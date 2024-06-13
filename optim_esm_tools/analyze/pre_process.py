@@ -11,8 +11,10 @@ from optim_esm_tools.analyze.xarray_tools import _native_date_fmt
 from optim_esm_tools.config import config
 from optim_esm_tools.config import get_logger
 from optim_esm_tools.utils import timed, check_accepts, to_str_tuple
+from pandas.util._decorators import deprecate_kwarg
 
 
+@deprecate_kwarg('source', 'sources')
 @check_accepts(dict(return_type=('path', 'data_set')))
 def get_preprocessed_ds(
     sources: ty.Union[str, tuple, list],
