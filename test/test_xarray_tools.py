@@ -3,6 +3,7 @@ import contextlib
 import numpy as np
 
 import optim_esm_tools as oet
+import unittest
 
 
 def test_remove_nan():
@@ -36,3 +37,35 @@ def test_global_mask():
         mask.dims,
         rev_renamed_mask.dims,
     )
+
+
+class TestDrop(unittest.TestCase):
+    def test_drop_by_mask(self):
+        ds = oet._test_utils.minimal_xr_ds(len_x=8, len_y=9, len_time=10)
+        ds['var'].data = np.random.randint(1, 10, size=ds['var'].shape)
+        mask = ds['var'].isel(time=0).drop_vars('time') > 5
+        kw = dict(
+            data_set=ds,
+            da_mask=mask,
+            masked_dims=list(mask.dims),
+            drop=True,
+            keep_keys=None,
+        )
+        ds['cell_area'] = mask.astype(np.int64)
+        dropped_nb = oet.analyze.xarray_tools.mask_xr_ds(
+            **kw,
+            drop_method='numba',
+        )
+        dropped_xr = oet.analyze.xarray_tools.mask_xr_ds(
+            **kw,
+            drop_method='xarray',
+        )
+        v_xr = dropped_xr['var'].values
+        v_nb = dropped_nb['var'].values
+        self.assertTrue(np.array_equal(v_xr[~np.isnan(v_xr)], v_nb[~np.isnan(v_nb)]))
+        self.assertTrue(np.array_equal(np.isnan(v_xr), np.isnan(v_nb)))
+        with self.assertRaises(ValueError):
+            oet.analyze.xarray_tools.mask_xr_ds(
+                **kw,
+                drop_method='numpy_or_somthing',
+            )
