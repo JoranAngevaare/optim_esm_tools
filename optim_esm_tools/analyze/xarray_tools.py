@@ -348,10 +348,11 @@ def _drop_by_mask_nb(
     vars we can drop with data_set.where.
     """
     data_set, keep_keys, dropped = _prepare_dropped_dataset(
-        data_set,
-        fall_back_key,
-        masked_dims,
-        da_mask,
+        data_set=data_set,
+        fall_back_key=fall_back_key,
+        masked_dims=masked_dims,
+        da_mask=da_mask,
+        keep_keys=keep_keys,
     )
     x_map = map_array_to_index_array(ds_start.lat.values, data_set.lat.values)
     y_map = map_array_to_index_array(ds_start.lon.values, data_set.lon.values)
