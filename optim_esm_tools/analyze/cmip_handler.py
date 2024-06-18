@@ -166,7 +166,7 @@ def read_ds(
 
     if pre_process:
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
-            source=data_path,
+            sources=data_path,
             historical_path=_historical_path,
             max_time=max_time,
             min_time=min_time,
@@ -201,17 +201,10 @@ def read_ds(
 
     if _cache:
         log.info(f'Write {res_file}')
-        comp_kw = {}
         if oet.config.config['CMIP_files']['compress'] == 'True':
-            comp_kw = dict(
-                format='NETCDF4',
-                engine='netcdf4',
-                encoding={
-                    k: {'zlib': True, 'complevel': 1} for k in data_set.data_vars
-                },
-            )
-
-        data_set.to_netcdf(res_file, **comp_kw)
+            oet.analyze.pre_process.save_nc(data_set, res_file)
+        else:
+            data_set.to_netcdf(res_file)
 
     return data_set
 
