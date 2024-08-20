@@ -119,6 +119,7 @@ def save_fig(
     save_in=root_folder,
     sub_dir='figures',
     skip=False,
+    remove_space=True,
     **kwargs,
 ):
     """Save a figure in the figures dir."""
@@ -126,7 +127,10 @@ def save_fig(
 
     kwargs.setdefault('dpi', 150)
     kwargs.setdefault('bbox_inches', 'tight')
-
+    if remove_space:
+        name = name.replace(' ', '_')
+        save_in = save_in.replace(' ', '')
+        sub_dir = sub_dir.replace(' ', '')
     if sub_dir is None:
         sub_dir = ''
     for file_type in file_types:
@@ -356,18 +360,18 @@ def _chopped_string(string, max_len):
 @check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))
 def timed(
     *a,
-    seconds: int = None,
-    _report: str = None,
+    seconds: ty.Optional[int] = None,
+    _report: ty.Optional[str] = None,
     _args_max: int = 20,
     _fmt: str = '.2g',
-    _stacklevel=2,
+    _stacklevel: int = 2,
 ):
     """Time a function and print if it takes more than <seconds>
 
     Args:
         seconds (int, optional): Defaults to 5.
         _report (str, optional): Method of reporting, either print or use the global logger. Defaults to 'print'.
-        _args_max (int, optional): Max number of characters in the message for the args and kwars of the function. Defaults to 10.
+        _args_max (int, optional): Max number of characters in the message for the args and kwars of the function. Defaults to 20.
         _fmt (str, optional): time format specification. Defaults to '.2g'.
     """
     if seconds is None or _report is None:
@@ -409,6 +413,8 @@ def timed(
 
 @check_accepts(accepts=dict(_report=('debug', 'info', 'warning', 'error', 'print')))
 def logged_tqdm(*a, log=None, _report='warning', **kw):
+    from .config import get_logger
+
     log = log or get_logger()
     pbar = tqdm(*a, **kw)
     generator = iter(pbar)

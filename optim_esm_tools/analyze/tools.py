@@ -1,5 +1,8 @@
 import numpy as np
 from scipy.interpolate import interp1d
+import statsmodels.api as sm
+import typing as ty
+import xarray as xr
 
 
 def _dinfo(a):
@@ -34,3 +37,53 @@ def rank2d(a):
     result[:] = np.nan
     result[~nan_mask] = itp(a_flat)
     return result
+
+
+def smooth_lowess(
+    *a: ty.Union[
+        ty.Tuple[np.ndarray, np.ndarray],
+        ty.Tuple[np.ndarray,],
+        ty.Tuple[xr.DataArray, xr.DataArray],
+        ty.Tuple[xr.DataArray,],
+    ],
+    **kw,
+) -> ty.Union[xr.DataArray, np.ndarray]:
+    if len(a) == 2:
+        x, y = a
+        ret_slice = slice(None, None)
+    elif len(a) == 1:
+        y = a[0]
+        x = np.arange(len(y))
+
+        ret_slice = slice(1, None)
+    else:
+        raise ValueError(len(a), a)
+    input_type = 'xr' if isinstance(y, xr.DataArray) else 'np'
+    assert isinstance(y, (xr.DataArray, np.ndarray)), f'{type(x)} not supported'
+    if input_type == 'xr':
+        _y = y.values
+        _x = x if isinstance(x, np.ndarray) else x.values
+    else:
+        _x, _y = x, y
+    assert isinstance(_y, type(_x)), f'{type(_x)} is not {type(_y)}'
+
+    res = _smooth_lowess(_x, _y, ret_slice, **kw)
+    if input_type == 'np':
+        return res
+
+    ret_y = y.copy()
+    if len(a) == 1:
+        ret_y.data = res
+        return ret_y
+
+    ret_x = x.copy()
+    ret_x.data, ret_y.data = res
+    return ret_x, ret_y
+
+
+def _smooth_lowess(x: np.ndarray, y: np.ndarray, ret_slice: slice, **kw) -> np.ndarray:
+    kw.setdefault('frac', 0.1)
+    kw.setdefault('missing', 'raise')
+
+    smoothed = sm.nonparametric.lowess(exog=x, endog=y, **kw)
+    return smoothed.T[ret_slice].squeeze()

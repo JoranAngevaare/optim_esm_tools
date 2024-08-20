@@ -174,6 +174,7 @@ def _variant_label_id_and_version(full_path: str) -> ty.Tuple[int, int]:
             ):
                 grid_version = int(folder[1:])
     if run_variant_number is None or grid_version is None:
+        return int(1e9), int(1e9)
         raise ValueError(
             f'could not find run and version from {full_path} {run_variant_number} {grid_version}',
         )  # pragma: no cover
@@ -216,13 +217,16 @@ def _get_search_kw(
     keep_keys: tuple = tuple(
         'parent_activity_id parent_experiment_id parent_source_id parent_variant_label'.split(),
     ),
+    required_file: str = 'merged.nc',
 ) -> ty.Dict[str, str]:
-    return {
+    query = {
         k.replace('parent_', ''):
         # Filter out some institutes that ended up adding a bunch of spaces here?!
         data_set.attrs.get(k, '*').replace(' ', '')
         for k in keep_keys
     }
+    query.update(dict(required_file=required_file))
+    return query
 
 
 def _check_search_kw(
@@ -296,7 +300,7 @@ def associate_parent(
     data_set = _read_dataset(data_set=data_set, required_file=required_file, path=path)
     path = path or data_set.attrs['path']
     base = base_from_path(path, look_back_extra=look_back_extra)
-    search = _get_search_kw(data_set)
+    search = _get_search_kw(data_set, required_file=required_file)
     search = _check_search_kw(search=search, data_set=data_set, log=log, path=path)
 
     if all(v == '*' for v in search.values()) or search['source_id'] == '*':

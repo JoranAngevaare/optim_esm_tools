@@ -11,6 +11,7 @@ dependencies = [
     "tqdm",
     "treelib",
     "xarray",
+    "statsmodels",
 ]
 readme = "README.md"
 requires-python = ">=3.8"

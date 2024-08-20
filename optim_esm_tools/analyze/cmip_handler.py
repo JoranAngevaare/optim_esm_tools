@@ -77,7 +77,7 @@ def add_conditions_to_ds(
 
 
 @oet.utils.add_load_kw
-@oet.utils.timed(_stacklevel=3)
+@oet.utils.timed(_stacklevel=3, _args_max=50)
 def read_ds(
     base: str,
     variable_of_interest: ty.Optional[ty.Tuple[str]] = None,
@@ -93,6 +93,7 @@ def read_ds(
     _file_name: ty.Optional[str] = None,
     _skip_folder_info: bool = False,
     _historical_path: ty.Optional[str] = None,
+    pre_proc_kw=None,
     **kwargs,
 ) -> ty.Optional[xr.Dataset]:
     """Read a dataset from a folder called "base".
@@ -140,7 +141,7 @@ def read_ds(
     if kwargs:
         log.error(f'Not really advised yet to call with {kwargs}')
         _cache = False
-    if not apply_transform:  # pragma: no cover
+    if not apply_transform and strict:  # pragma: no cover
         # Don't cache the partial ds
         _cache = False
 
@@ -165,6 +166,7 @@ def read_ds(
         return None
 
     if pre_process:
+        pre_proc_kw = pre_proc_kw or dict()
         data_set = oet.analyze.pre_process.get_preprocessed_ds(
             sources=data_path,
             historical_path=_historical_path,
@@ -172,6 +174,7 @@ def read_ds(
             min_time=min_time,
             _ma_window=_ma_window,
             variable_id=variable_of_interest,
+            **pre_proc_kw,
         )
     else:  # pragma: no cover
         message = 'Not preprocessing file is dangerous, dimensions may differ wildly!'
