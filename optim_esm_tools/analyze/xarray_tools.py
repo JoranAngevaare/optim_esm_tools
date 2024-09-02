@@ -469,3 +469,63 @@ def mapped_3d_mask(
             nan_int=nan_int,
         )
     return res
+
+
+def yearly_average(ds: xr.Dataset, time_dim='time')->xr.Dataset:
+    """
+    Simple and crude yearly averaging method
+    """
+    ds_new = ds.copy()
+    ds_new['year'] =  np.arange(ds[time_dim].values[0].year, ds[time_dim].values[-1].year+1)
+    time_bounds = [k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds_new]
+    time_bounds = None if not time_bounds else time_bounds[0]
+    
+    for var in list(ds.variables):
+        if time_dim in ds[var].dims:
+            if var == time_dim:
+                continue           
+            
+            del ds_new[var]
+            dtype=ds[var].dtype
+            if (
+                not isinstance(dtype, (np.floating, np.integer, int, float)
+                              ) 
+                and not np.issubdtype(dtype, np.floating)
+                and not np.issubdtype(dtype, np.integer)
+            ):
+                print(f'Skip {var} of dtype={dtype}')
+                continue
+            v_this_year = []
+            w_this_year = []
+            v_total = []
+            values = ds[var].values
+            times = ds[time_dim].values
+            for i, v in enumerate(values):
+                if time_bounds is not None:
+                    t0, t1 = ds[time_bounds].values[i]
+                    dt = (t1-t0).total_seconds()
+                elif i >= 1 and i < len(values)-1:
+                    dt = (times[i+1] - times[i-1]).total_seconds()/2
+                elif i == len(values) - 1:
+                    dt = (times[i] - times[i-1]).total_seconds()
+                elif i == 0:
+                    dt = (times[i+1] - times[0]).total_seconds()
+                else:
+                    raise ValueError(i, len(values))
+      
+                if i and times[i].year != times[i-1].year:
+
+                    v_total.append(np.sum(
+                        np.array(v_this_year)/np.sum(w_this_year)
+                    , axis=0))
+                    v_this_year = []
+                    w_this_year = []
+                v_this_year += [v*dt]
+                w_this_year += [dt]
+            v_total.append(np.sum(
+                        np.array(v_this_year)/np.sum(w_this_year)
+                    , axis=0))
+            
+            ds_new[var] = xr.DataArray(np.array(v_total), dims=['year'] + list(ds[var].dims)[1:])
+    del ds_new[time_dim]
+    return ds_new
