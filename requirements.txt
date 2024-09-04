@@ -4,11 +4,11 @@ matplotlib
 numba
 numpy
 pandas
+rasterio<1.3.10
 regionmask
 scipy
 tqdm
 treelib
 xarray
-rasterio<1.3.10
 # Some submodules require additional optional packages
 # rpy_symmetry
