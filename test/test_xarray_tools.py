@@ -84,7 +84,10 @@ class TestYearlyAverage(unittest.TestCase):
         # Create a time range with monthly data over 3 years
         if use_cftime:
             time = xr.cftime_range(
-                '2000-01-01', '2002-12-31', freq='M', calendar='noleap'
+                '2000-01-01',
+                '2002-12-31',
+                freq='M',
+                calendar='noleap',
             )
         else:
             time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
@@ -99,7 +102,7 @@ class TestYearlyAverage(unittest.TestCase):
         if with_time_bounds:
             time_bnds = xr.DataArray(
                 np.array(
-                    [pd.date_range(start, periods=2, freq='MS') for start in time]
+                    [pd.date_range(start, periods=2, freq='MS') for start in time],
                 ),
                 dims=['time', 'bnds'],
             )
@@ -183,8 +186,10 @@ class TestYearlyAverage(unittest.TestCase):
 
         # Check that the yearly averages are approximately equal
         xr.testing.assert_allclose(
-            ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas']
+            ds_yearly_with_bounds['tas'],
+            ds_yearly_without_bounds['tas'],
         )
         xr.testing.assert_allclose(
-            ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr']
+            ds_yearly_with_bounds['pr'],
+            ds_yearly_without_bounds['pr'],
         )
