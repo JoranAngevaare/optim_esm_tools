@@ -168,5 +168,3 @@ class TestYearlyAverage(unittest.TestCase):
         # Check that the yearly averages are approximately equal
         xr.testing.assert_allclose(ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas'])
         xr.testing.assert_allclose(ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr'])
-
-if __name__ == '
