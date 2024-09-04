@@ -471,73 +471,50 @@ def mapped_3d_mask(
     return res
 
 
+import xarray as xr
+import numpy as np
+import cftime
+
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
-    """Simple and crude yearly averaging method."""
-    ds_new = ds.copy()
-    ds_new['year'] = np.arange(
-        ds[time_dim].values[0].year,
-        ds[time_dim].values[-1].year + 1,
-    )
-    time_bounds = [k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds_new]
-    time_bounds = None if not time_bounds else time_bounds[0]
+    """Compute yearly averages for all variables in the dataset along the time dimension, handling both datetime and cftime objects."""
+    
+    def compute_weighted_mean(data, time):
+        """Helper function to compute weighted mean for a given array of data."""
+        if time_bounds is not None:
+            dt = np.diff(ds[time_bounds], axis=1).squeeze()
+        else:
+            if isinstance(time[0], cftime.datetime):
+                dt = np.array([time[i+1] - time[i] for i in range(len(time) - 1)])
+                dt = np.concatenate(([time[1] - time[0]], dt))
+            else:
+                dt = np.diff(time, prepend=time[0], append=time[-1])
+        
+        dt_seconds = np.array([t.total_seconds() for t in dt]) if isinstance(dt[0], np.timedelta64) else np.array([t.total_seconds() for t in dt])
 
-    for var in list(ds.variables):
+        weights = dt_seconds / dt_seconds.sum()
+        weighted_mean = (data * weights[:, None]).sum(axis=0)
+        return weighted_mean
+
+    # Handle time bounds if present
+    time_bounds = next((k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds), None)
+    
+    # Initialize a new dataset to hold the yearly averages
+    ds_yearly = xr.Dataset()
+    
+    # Loop through the variables in the dataset
+    for var in ds.data_vars:
         if time_dim in ds[var].dims:
-            if var == time_dim:
-                continue
-
-            del ds_new[var]
             dtype = ds[var].dtype
-            if (
-                not isinstance(
-                    dtype,
-                    (np.floating, np.integer, int, float),
-                )
-                and not np.issubdtype(dtype, np.floating)
-                and not np.issubdtype(dtype, np.integer)
-            ):
-                print(f'Skip {var} of dtype={dtype}')
+            
+            # Skip non-numeric data types
+            if not np.issubdtype(dtype, np.number):
+                print(f'Skipping {var} of dtype={dtype}')
                 continue
-            v_this_year = []
-            w_this_year = []
-            v_total = []
-            values = ds[var].values
-            times = ds[time_dim].values
-            for i, v in enumerate(values):
-                if time_bounds is not None:
-                    t0, t1 = ds[time_bounds].values[i]
-                    dt = (t1 - t0).total_seconds()
-                elif i >= 1 and i < len(values) - 1:
-                    dt = (times[i + 1] - times[i - 1]).total_seconds() / 2
-                elif i == len(values) - 1:
-                    dt = (times[i] - times[i - 1]).total_seconds()
-                elif i == 0:
-                    dt = (times[i + 1] - times[0]).total_seconds()
-                else:
-                    raise ValueError(i, len(values))
 
-                if i and times[i].year != times[i - 1].year:
-
-                    v_total.append(
-                        np.sum(
-                            np.array(v_this_year) / np.sum(w_this_year),
-                            axis=0,
-                        ),
-                    )
-                    v_this_year = []
-                    w_this_year = []
-                v_this_year += [v * dt]
-                w_this_year += [dt]
-            v_total.append(
-                np.sum(
-                    np.array(v_this_year) / np.sum(w_this_year),
-                    axis=0,
-                ),
-            )
-
-            ds_new[var] = xr.DataArray(
-                np.array(v_total),
-                dims=['year'] + list(ds[var].dims)[1:],
-            )
-    del ds_new[time_dim]
-    return ds_new
+            # Group by year and apply the weighted mean
+            grouped = ds[var].groupby(f'{time_dim}.year')
+            yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
+            
+            ds_yearly[var] = yearly_mean
+    
+    return ds_yearly
