@@ -9,8 +9,8 @@ hypothesis-numpy
 intake-esm
 numba
 pytest
+rasterio==1.3.10
 rpy_symmetry
 ruptures
 scikit-learn
 scipy
-rasterio==1.3.10
