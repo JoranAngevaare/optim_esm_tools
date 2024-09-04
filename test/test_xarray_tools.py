@@ -133,7 +133,7 @@ class TestYearlyAverage(unittest.TestCase):
 
     def test_yearly_average_with_time_bounds_and_cftime(self):
         ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
-        ds_yearly = yearly_average(ds, time_dim='time')
+        ds_yearly = oet.analyze.xarray_tools.yearly_average(ds, time_dim='time')
 
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
@@ -146,7 +146,7 @@ class TestYearlyAverage(unittest.TestCase):
 
     def test_yearly_average_without_time_bounds_and_cftime(self):
         ds = self.create_dataset(with_time_bounds=False, use_cftime=True)
-        ds_yearly = yearly_average(ds, time_dim='time')
+        ds_yearly = oet.analyze.xarray_tools.yearly_average(ds, time_dim='time')
 
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
@@ -161,7 +161,7 @@ class TestYearlyAverage(unittest.TestCase):
         ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
         ds['string_var'] = (('time',), np.array(['a'] * len(ds['time'])))
 
-        ds_yearly = yearly_average(ds, time_dim='time')
+        ds_yearly = oet.analyze.xarray_tools.yearly_average(ds, time_dim='time')
 
         # Ensure the non-numeric variable was skipped
         self.assertNotIn('string_var', ds_yearly)
@@ -170,7 +170,7 @@ class TestYearlyAverage(unittest.TestCase):
         ds = self.create_dataset(with_time_bounds=False, use_cftime=True)
         ds['string_var'] = (('time',), np.array(['a'] * len(ds['time'])))
 
-        ds_yearly = yearly_average(ds, time_dim='time')
+        ds_yearly = oet.analyze.xarray_tools.yearly_average(ds, time_dim='time')
 
         # Ensure the non-numeric variable was skipped
         self.assertNotIn('string_var', ds_yearly)
@@ -181,8 +181,8 @@ class TestYearlyAverage(unittest.TestCase):
         ds_with_bounds = self.create_dataset(with_time_bounds=True, use_cftime=True)
         ds_without_bounds = self.create_dataset(with_time_bounds=False, use_cftime=True)
 
-        ds_yearly_with_bounds = yearly_average(ds_with_bounds, time_dim='time')
-        ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
+        ds_yearly_with_bounds = oet.analyze.xarray_tools.yearly_average(ds_with_bounds, time_dim='time')
+        ds_yearly_without_bounds = oet.analyze.xarray_tools.yearly_average(ds_without_bounds, time_dim='time')
 
         # Check that the yearly averages are approximately equal
         xr.testing.assert_allclose(

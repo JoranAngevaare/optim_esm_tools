@@ -4,6 +4,7 @@ from functools import wraps
 import numpy as np
 import xarray as xr
 import numba
+import cftime
 from optim_esm_tools.config import config
 from optim_esm_tools.utils import check_accepts
 
@@ -469,11 +470,6 @@ def mapped_3d_mask(
             nan_int=nan_int,
         )
     return res
-
-
-import xarray as xr
-import numpy as np
-import cftime
 
 
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
