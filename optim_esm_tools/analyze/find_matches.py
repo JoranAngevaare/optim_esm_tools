@@ -174,10 +174,7 @@ def _variant_label_id_and_version(full_path: str) -> ty.Tuple[int, int]:
             ):
                 grid_version = int(folder[1:])
     if run_variant_number is None or grid_version is None:
-        return int(1e9), int(1e9)
-        raise ValueError(
-            f'could not find run and version from {full_path} {run_variant_number} {grid_version}',
-        )  # pragma: no cover
+        return int(1e9), int(1e9) # pragma: no cover
     return -grid_version, run_variant_number
 
 
