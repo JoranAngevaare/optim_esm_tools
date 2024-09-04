@@ -73,6 +73,7 @@ class TestDrop(unittest.TestCase):
 
 class TestYearlyAverage(unittest.TestCase):
     """From ChatGPT."""
+
     def setUp(self):
         # Create a time range with monthly data over 3 years
         self.time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
@@ -80,35 +81,47 @@ class TestYearlyAverage(unittest.TestCase):
         self.lon = [30.0, 40.0]
 
         # Create mock data variables (tas, pr) resembling CMIP6 data
-        self.tas_data = np.random.rand(len(self.time), len(self.lat), len(self.lon)) * 300  # temperature in K
-        self.pr_data = np.random.rand(len(self.time), len(self.lat), len(self.lon)) * 10  # precipitation in mm/day
+        self.tas_data = (
+            np.random.rand(len(self.time), len(self.lat), len(self.lon)) * 300
+        )  # temperature in K
+        self.pr_data = (
+            np.random.rand(len(self.time), len(self.lat), len(self.lon)) * 10
+        )  # precipitation in mm/day
 
     def create_dataset(self, with_time_bounds=True):
         if with_time_bounds:
             # Create time bounds assuming each time point represents a full month
             time_bnds = xr.DataArray(
-                np.array([pd.date_range(start, periods=2, freq='MS') for start in self.time]),
-                dims=['time', 'bnds']
+                np.array(
+                    [pd.date_range(start, periods=2, freq='MS') for start in self.time]
+                ),
+                dims=['time', 'bnds'],
             )
 
-            return xr.Dataset({
-                'tas': (('time', 'lat', 'lon'), self.tas_data),
-                'pr': (('time', 'lat', 'lon'), self.pr_data),
-                'time_bnds': (('time', 'bnds'), time_bnds)
-            }, coords={
-                'time': self.time,
-                'lat': self.lat,
-                'lon': self.lon
-            })
+            return xr.Dataset(
+                {
+                    'tas': (('time', 'lat', 'lon'), self.tas_data),
+                    'pr': (('time', 'lat', 'lon'), self.pr_data),
+                    'time_bnds': (('time', 'bnds'), time_bnds),
+                },
+                coords={
+                    'time': self.time,
+                    'lat': self.lat,
+                    'lon': self.lon,
+                },
+            )
         else:
-            return xr.Dataset({
-                'tas': (('time', 'lat', 'lon'), self.tas_data),
-                'pr': (('time', 'lat', 'lon'), self.pr_data)
-            }, coords={
-                'time': self.time,
-                'lat': self.lat,
-                'lon': self.lon
-            })
+            return xr.Dataset(
+                {
+                    'tas': (('time', 'lat', 'lon'), self.tas_data),
+                    'pr': (('time', 'lat', 'lon'), self.pr_data),
+                },
+                coords={
+                    'time': self.time,
+                    'lat': self.lat,
+                    'lon': self.lon,
+                },
+            )
 
     def test_yearly_average_with_time_bounds(self):
         ds = self.create_dataset(with_time_bounds=True)
@@ -117,7 +130,7 @@ class TestYearlyAverage(unittest.TestCase):
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
         self.assertNotIn('time', ds_yearly.dims)
-        
+
         # Check that the shape of the yearly averaged data is correct
         expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
         self.assertEqual(ds_yearly['tas'].shape, expected_shape)
@@ -130,7 +143,7 @@ class TestYearlyAverage(unittest.TestCase):
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
         self.assertNotIn('time', ds_yearly.dims)
-        
+
         # Check that the shape of the yearly averaged data is correct
         expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
         self.assertEqual(ds_yearly['tas'].shape, expected_shape)
@@ -155,7 +168,8 @@ class TestYearlyAverage(unittest.TestCase):
         self.assertNotIn('string_var', ds_yearly)
 
     def test_with_and_without_time_bounds(self):
-        """Combined test to check consistency between datasets with and without time bounds."""
+        """Combined test to check consistency between datasets with and without
+        time bounds."""
         ds_with_bounds = self.create_dataset(with_time_bounds=True)
         ds_without_bounds = self.create_dataset(with_time_bounds=False)
 
@@ -163,6 +177,9 @@ class TestYearlyAverage(unittest.TestCase):
         ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
 
         # Check that the yearly averages are approximately equal
-        xr.testing.assert_allclose(ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas'])
-        xr.testing.assert_allclose(ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr'])
-
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas']
+        )
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr']
+        )
