@@ -70,14 +70,16 @@ class TestDrop(unittest.TestCase):
                 drop_method='numpy_or_somthing',
             )
 
+
 class TestYearlyAverage(unittest.TestCase):
-    """From ChatGPT"""
+    """From ChatGPT."""
+
     def setUp(self):
         # Create a time range with monthly data over 3 years
         time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
         time_bnds = xr.DataArray(
             np.array([pd.date_range(start, periods=2, freq='MS') for start in time]),
-            dims=['time', 'bnds']
+            dims=['time', 'bnds'],
         )
 
         # Create mock data variables (tas, pr) resembling CMIP6 data
@@ -85,15 +87,18 @@ class TestYearlyAverage(unittest.TestCase):
         pr_data = np.random.rand(len(time), 2, 2) * 10  # precipitation in mm/day
 
         # Create a dataset
-        self.ds = xr.Dataset({
-            'tas': (('time', 'lat', 'lon'), tas_data),
-            'pr': (('time', 'lat', 'lon'), pr_data),
-            'time_bnds': (('time', 'bnds'), time_bnds)
-        }, coords={
-            'time': time,
-            'lat': [10.0, 20.0],
-            'lon': [30.0, 40.0]
-        })
+        self.ds = xr.Dataset(
+            {
+                'tas': (('time', 'lat', 'lon'), tas_data),
+                'pr': (('time', 'lat', 'lon'), pr_data),
+                'time_bnds': (('time', 'bnds'), time_bnds),
+            },
+            coords={
+                'time': time,
+                'lat': [10.0, 20.0],
+                'lon': [30.0, 40.0],
+            },
+        )
 
     def test_yearly_average(self):
         # Run the yearly averaging function
@@ -102,12 +107,12 @@ class TestYearlyAverage(unittest.TestCase):
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
         self.assertNotIn('time', ds_yearly.dims)
-        
+
         # Check that the shape of the yearly averaged data is correct
         expected_shape = (3, 2, 2)  # 3 years, 2 lat, 2 lon
         self.assertEqual(ds_yearly['tas'].shape, expected_shape)
         self.assertEqual(ds_yearly['pr'].shape, expected_shape)
-        
+
         # Additional checks could include verifying the correctness of the values
         # But for simplicity, we're focusing on dimensional checks here.
 

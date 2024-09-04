@@ -475,7 +475,8 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
     """Simple and crude yearly averaging method."""
     ds_new = ds.copy()
     ds_new['year'] = np.arange(
-        ds[time_dim].values[0].year, ds[time_dim].values[-1].year + 1
+        ds[time_dim].values[0].year,
+        ds[time_dim].values[-1].year + 1,
     )
     time_bounds = [k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds_new]
     time_bounds = None if not time_bounds else time_bounds[0]
@@ -535,7 +536,8 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
             )
 
             ds_new[var] = xr.DataArray(
-                np.array(v_total), dims=['year'] + list(ds[var].dims)[1:]
+                np.array(v_total),
+                dims=['year'] + list(ds[var].dims)[1:],
             )
     del ds_new[time_dim]
     return ds_new
