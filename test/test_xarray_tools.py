@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import optim_esm_tools as oet
 import unittest
-
+import xarray as xr
 import cftime
 
 
