@@ -75,6 +75,7 @@ class TestDrop(unittest.TestCase):
 
 class TestYearlyAverage(unittest.TestCase):
     """From ChatGPT."""
+
     def setUp(self):
         self.lat = [10.0, 20.0]
         self.lon = [30.0, 40.0]
@@ -82,36 +83,50 @@ class TestYearlyAverage(unittest.TestCase):
     def create_dataset(self, with_time_bounds=True, use_cftime=False):
         # Create a time range with monthly data over 3 years
         if use_cftime:
-            time = xr.cftime_range('2000-01-01', '2002-12-31', freq='M', calendar='noleap')
+            time = xr.cftime_range(
+                '2000-01-01', '2002-12-31', freq='M', calendar='noleap'
+            )
         else:
             time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
 
-        tas_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 300  # temperature in K
-        pr_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 10  # precipitation in mm/day
+        tas_data = (
+            np.random.rand(len(time), len(self.lat), len(self.lon)) * 300
+        )  # temperature in K
+        pr_data = (
+            np.random.rand(len(time), len(self.lat), len(self.lon)) * 10
+        )  # precipitation in mm/day
 
         if with_time_bounds:
             time_bnds = xr.DataArray(
-                np.array([pd.date_range(start, periods=2, freq='MS') for start in time]),
-                dims=['time', 'bnds']
+                np.array(
+                    [pd.date_range(start, periods=2, freq='MS') for start in time]
+                ),
+                dims=['time', 'bnds'],
             )
-            return xr.Dataset({
-                'tas': (('time', 'lat', 'lon'), tas_data),
-                'pr': (('time', 'lat', 'lon'), pr_data),
-                'time_bnds': (('time', 'bnds'), time_bnds)
-            }, coords={
-                'time': time,
-                'lat': self.lat,
-                'lon': self.lon
-            })
+            return xr.Dataset(
+                {
+                    'tas': (('time', 'lat', 'lon'), tas_data),
+                    'pr': (('time', 'lat', 'lon'), pr_data),
+                    'time_bnds': (('time', 'bnds'), time_bnds),
+                },
+                coords={
+                    'time': time,
+                    'lat': self.lat,
+                    'lon': self.lon,
+                },
+            )
         else:
-            return xr.Dataset({
-                'tas': (('time', 'lat', 'lon'), tas_data),
-                'pr': (('time', 'lat', 'lon'), pr_data)
-            }, coords={
-                'time': time,
-                'lat': self.lat,
-                'lon': self.lon
-            })
+            return xr.Dataset(
+                {
+                    'tas': (('time', 'lat', 'lon'), tas_data),
+                    'pr': (('time', 'lat', 'lon'), pr_data),
+                },
+                coords={
+                    'time': time,
+                    'lat': self.lat,
+                    'lon': self.lon,
+                },
+            )
 
     def test_yearly_average_with_time_bounds_and_cftime(self):
         ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
@@ -158,7 +173,8 @@ class TestYearlyAverage(unittest.TestCase):
         self.assertNotIn('string_var', ds_yearly)
 
     def test_with_and_without_time_bounds_and_cftime(self):
-        """Combined test to check consistency between datasets with and without time bounds using cftime."""
+        """Combined test to check consistency between datasets with and without
+        time bounds using cftime."""
         ds_with_bounds = self.create_dataset(with_time_bounds=True, use_cftime=True)
         ds_without_bounds = self.create_dataset(with_time_bounds=False, use_cftime=True)
 
@@ -166,5 +182,9 @@ class TestYearlyAverage(unittest.TestCase):
         ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
 
         # Check that the yearly averages are approximately equal
-        xr.testing.assert_allclose(ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas'])
-        xr.testing.assert_allclose(ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr'])
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas']
+        )
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr']
+        )
