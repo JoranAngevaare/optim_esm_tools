@@ -120,7 +120,7 @@ class TestYearlyAverage(unittest.TestCase):
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
         self.assertNotIn('time', ds_yearly.dims)
-        
+
         # Check that the shape of the yearly averaged data is correct
         expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
         self.assertEqual(ds_yearly['tas'].shape, expected_shape)
@@ -133,7 +133,7 @@ class TestYearlyAverage(unittest.TestCase):
         # Check if the output dataset has a 'year' dimension instead of 'time'
         self.assertIn('year', ds_yearly.dims)
         self.assertNotIn('time', ds_yearly.dims)
-        
+
         # Check that the shape of the yearly averaged data is correct
         expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
         self.assertEqual(ds_yearly['tas'].shape, expected_shape)

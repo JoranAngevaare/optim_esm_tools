@@ -504,7 +504,8 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
 
     # Handle time bounds if present
     time_bounds = next(
-        (k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds), None
+        (k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds),
+        None,
     )
 
     # Initialize a new dataset to hold the yearly averages
