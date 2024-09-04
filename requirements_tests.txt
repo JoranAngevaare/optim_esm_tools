@@ -13,3 +13,4 @@ rpy_symmetry
 ruptures
 scikit-learn
 scipy
+rasterio==1.3.10
