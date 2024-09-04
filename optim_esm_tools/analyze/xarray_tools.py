@@ -475,37 +475,46 @@ import xarray as xr
 import numpy as np
 import cftime
 
+
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
-    """Compute yearly averages for all variables in the dataset along the time dimension, handling both datetime and cftime objects."""
-    
+    """Compute yearly averages for all variables in the dataset along the time
+    dimension, handling both datetime and cftime objects."""
+
     def compute_weighted_mean(data, time):
-        """Helper function to compute weighted mean for a given array of data."""
+        """Helper function to compute weighted mean for a given array of
+        data."""
         if time_bounds is not None:
             dt = np.diff(ds[time_bounds], axis=1).squeeze()
         else:
             if isinstance(time[0], cftime.datetime):
-                dt = np.array([time[i+1] - time[i] for i in range(len(time) - 1)])
+                dt = np.array([time[i + 1] - time[i] for i in range(len(time) - 1)])
                 dt = np.concatenate(([time[1] - time[0]], dt))
             else:
                 dt = np.diff(time, prepend=time[0], append=time[-1])
-        
-        dt_seconds = np.array([t.total_seconds() for t in dt]) if isinstance(dt[0], np.timedelta64) else np.array([t.total_seconds() for t in dt])
+
+        dt_seconds = (
+            np.array([t.total_seconds() for t in dt])
+            if isinstance(dt[0], np.timedelta64)
+            else np.array([t.total_seconds() for t in dt])
+        )
 
         weights = dt_seconds / dt_seconds.sum()
         weighted_mean = (data * weights[:, None]).sum(axis=0)
         return weighted_mean
 
     # Handle time bounds if present
-    time_bounds = next((k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds), None)
-    
+    time_bounds = next(
+        (k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds), None
+    )
+
     # Initialize a new dataset to hold the yearly averages
     ds_yearly = xr.Dataset()
-    
+
     # Loop through the variables in the dataset
     for var in ds.data_vars:
         if time_dim in ds[var].dims:
             dtype = ds[var].dtype
-            
+
             # Skip non-numeric data types
             if not np.issubdtype(dtype, np.number):
                 print(f'Skipping {var} of dtype={dtype}')
@@ -514,7 +523,7 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
             # Group by year and apply the weighted mean
             grouped = ds[var].groupby(f'{time_dim}.year')
             yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
-            
+
             ds_yearly[var] = yearly_mean
-    
+
     return ds_yearly
