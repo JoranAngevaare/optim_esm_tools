@@ -69,3 +69,70 @@ class TestDrop(unittest.TestCase):
                 **kw,
                 drop_method='numpy_or_somthing',
             )
+
+
+import numpy as np
+import xarray as xr
+from hypothesis import given
+from hypothesis import settings
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
+from scipy.stats import percentileofscore
+
+import optim_esm_tools as oet
+
+
+@given(arrays(np.float16, shape=(2, 100)))
+def test_smooth_lowess_2d(a):
+    x, y = a
+    x_da = xr.DataArray(x)
+    y_da = xr.DataArray(y)
+
+    try:
+        res = oet.analyze.tools.smooth_lowess(x, y)
+    except ValueError as e:
+        if np.any(np.isnan(y) | np.isnan(x) | ~np.isfinite(x) | ~np.isfinite(y)):
+            # This is fine, the data is not in the proper format!
+            return
+        raise e
+    assert all(isinstance(z, np.ndarray) for z in res)
+    try:
+        res_da = oet.analyze.tools.smooth_lowess(x_da, y_da)
+    except ValueError as e:
+        if np.any(np.isnan(y) | np.isnan(x) | ~np.isfinite(x) | ~np.isfinite(y)):
+            return
+        raise e
+
+    assert all(isinstance(z, xr.DataArray) for z in res_da)
+
+    assert np.array(res).shape == a.shape
+
+    assert np.array_equal(res[0], res_da[0].values)
+    assert np.array_equal(res[1], res_da[1].values)
+
+
+@given(arrays(np.float16, shape=(100)))
+def test_smooth_lowess_1d(y):
+    y_da = xr.DataArray(y)
+
+    try:
+        res = oet.analyze.tools.smooth_lowess(y)
+    except ValueError as e:
+        if np.any(np.isnan(y) | ~np.isfinite(y)):
+            # This is fine, the data is not in the proper format!
+            return
+        raise e
+    assert isinstance(res, np.ndarray)
+    try:
+        res_da = oet.analyze.tools.smooth_lowess(y_da)
+    except ValueError as e:
+        if np.any(np.isnan(y) | ~np.isfinite(y)):
+            return
+        raise e
+
+    assert isinstance(res_da, xr.DataArray)
+
+    assert res.shape == y.shape
+    assert res_da.shape == y.shape
+
+    assert np.array_equal(res, res_da.values)

@@ -37,7 +37,8 @@ def get_preprocessed_ds(
     if return_type == 'path':
         assert 'save_as' in kw
         store_final = kw.pop('save_as')
-
+    if temp_dir_location is None and os.path.exists('/data/volume_2/temp'):
+        temp_dir_location = '/data/volume_2/temp'
     with tempfile.TemporaryDirectory(dir=temp_dir_location) as temp_dir:
         if year_mean:
             old_sources = to_str_tuple(sources)
@@ -124,7 +125,7 @@ def pre_process(
     source: str,
     historical_path: ty.Optional[str] = None,
     target_grid: ty.Union[None, str, bool] = None,
-    max_time: ty.Optional[ty.Tuple[int, int, int]] = _DEFAULT_MAX_TIME,
+    max_time: ty.Optional[ty.Tuple[int, ...]] = _DEFAULT_MAX_TIME,
     min_time: ty.Optional[ty.Tuple[int, int, int]] = None,
     save_as: ty.Optional[str] = None,
     clean_up: bool = True,
@@ -227,10 +228,11 @@ def pre_process(
     if do_regrid:
         cdo_int.remapbil(target_grid, input=next_source, output=f_regrid)  # type: ignore
         cdo_int.gridarea(input=f_regrid, output=f_area)  # type: ignore
-        next_source = f_regrid
-        input_files = [next_source, f_area]
+        input_files = [f_regrid, f_area]
     else:
-        input_files = [next_source]
+        input_files = [f_regrid]
+        os.rename(next_source, f_regrid)
+    next_source = f_regrid
 
     if do_detrend:
         var_det = f'{var}_detrend'
@@ -258,7 +260,7 @@ def pre_process(
         cdo_int.detrend(input=f_rm, output=f_tmp)  # type: ignore
         cdo_int.chname(f'{var_rm},{var_det_rm}', input=f_tmp, output=f_det_rm)  # type: ignore
         input_files += [f_det_rm]
-    get_logger().warning(f'Join {input_files} to {save_as}')
+    get_logger().info(f'Join {input_files} to {save_as}')
     cdo_int.merge(input=' '.join(input_files), output=save_as)  # type: ignore
 
     if clean_up:  # pragma: no cover
