@@ -83,7 +83,7 @@ def smooth_lowess(
 
 
 smooth_lowess.__doc__ = """wrapper for statsmodels.api.nonparametric.lowess. For kwargs read\n\n: {doc}""".format(
-    doc=sm.nonparametric.lowess.__doc__
+    doc=sm.nonparametric.lowess.__doc__,
 )
 
 
