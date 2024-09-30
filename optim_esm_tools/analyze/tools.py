@@ -48,6 +48,7 @@ def smooth_lowess(
     ],
     **kw,
 ) -> ty.Union[xr.DataArray, np.ndarray]:
+
     if len(a) == 2:
         x, y = a
         ret_slice = slice(None, None)
@@ -81,7 +82,19 @@ def smooth_lowess(
     return ret_x, ret_y
 
 
+smooth_lowess.__doc__ = """wrapper for statsmodels.api.nonparametric.lowess. For kwargs read\n\n: {doc}""".format(
+    doc=sm.nonparametric.lowess.__doc__
+)
+
+
 def _smooth_lowess(x: np.ndarray, y: np.ndarray, ret_slice: slice, **kw) -> np.ndarray:
+    kw = kw.copy()
+    if 'window' in kw:
+        assert 'frac' not in kw, 'Provide either frac or window, not both!'
+        window = kw.pop('window')
+        assert window > 0 and window <= len(y)
+        kw['frac'] = window / len(y)
+
     kw.setdefault('frac', 0.1)
     kw.setdefault('missing', 'raise')
 
