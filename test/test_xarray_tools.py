@@ -182,10 +182,12 @@ class TestYearlyAverage(unittest.TestCase):
         ds_without_bounds = self.create_dataset(with_time_bounds=False, use_cftime=True)
 
         ds_yearly_with_bounds = oet.analyze.xarray_tools.yearly_average(
-            ds_with_bounds, time_dim='time'
+            ds_with_bounds,
+            time_dim='time',
         )
         ds_yearly_without_bounds = oet.analyze.xarray_tools.yearly_average(
-            ds_without_bounds, time_dim='time'
+            ds_without_bounds,
+            time_dim='time',
         )
 
         # Check that the yearly averages are approximately equal
