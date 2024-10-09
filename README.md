@@ -9,7 +9,7 @@
 J.R. Angevaare (KNMI)
 
 ## Software
-This software is used in the scope of the [OptimESM](https://cordis.europa.eu/project/id/101081193) project. 
+This software is used in the scope of the [OptimESM](https://cordis.europa.eu/project/id/101081193) project.
 The scientific aim is to isolate regions of three dimensional earth science data from CMIP6 and identify regions of dramatic changes as function of time.
 
 ## Setup
