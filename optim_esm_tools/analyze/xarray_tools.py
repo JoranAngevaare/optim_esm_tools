@@ -485,7 +485,7 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
             if isinstance(time[0], cftime.datetime):
                 dt = np.array(
                     [(time[i + 1] - time[i]).days for i in range(len(time) - 1)]
-                    + [(time[-1] - time[-2]).days]
+                    + [(time[-1] - time[-2]).days],
                 )
             else:
                 dt = np.diff(time, prepend=time[0], append=time[-1])

@@ -13,6 +13,7 @@ from hypothesis.extra.numpy import arrays
 from scipy.stats import percentileofscore
 from optim_esm_tools.analysis.xarray_tools import yearly_average
 
+
 def test_remove_nan():
     ds = oet._test_utils.minimal_xr_ds(len_x=8, len_y=9, len_time=10)
     var = ds['var'].values.astype(np.float64)
@@ -87,7 +88,10 @@ class TestYearlyAverage(unittest.TestCase):
     def create_dataset(self, with_time_bounds=True, use_cftime=False):
         if use_cftime:
             time = xr.cftime_range(
-                '2000-01-01', '2002-12-31', freq='M', calendar='noleap'
+                '2000-01-01',
+                '2002-12-31',
+                freq='M',
+                calendar='noleap',
             )
         else:
             time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
@@ -107,7 +111,7 @@ class TestYearlyAverage(unittest.TestCase):
                         [
                             [pd.Timestamp(t), pd.Timestamp(t + pd.DateOffset(months=1))]
                             for t in time
-                        ]
+                        ],
                     ),
                     dims=['time', 'bnds'],
                 )
@@ -174,10 +178,12 @@ class TestYearlyAverage(unittest.TestCase):
         ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
 
         xr.testing.assert_allclose(
-            ds_yearly_with_bounds['tas'], ds_yearly_without_bounds['tas']
+            ds_yearly_with_bounds['tas'],
+            ds_yearly_without_bounds['tas'],
         )
         xr.testing.assert_allclose(
-            ds_yearly_with_bounds['pr'], ds_yearly_without_bounds['pr']
+            ds_yearly_with_bounds['pr'],
+            ds_yearly_without_bounds['pr'],
         )
 
 
