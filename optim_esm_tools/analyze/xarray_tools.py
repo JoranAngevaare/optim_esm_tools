@@ -473,29 +473,23 @@ def mapped_3d_mask(
 
 
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
-    """Compute yearly averages for all variables in the dataset along the time
-    dimension, handling both datetime and cftime objects."""
+    """Compute yearly averages for all variables in the dataset along the time dimension, handling both datetime and cftime objects."""
 
     def compute_weighted_mean(data, time):
-        """Helper function to compute weighted mean for a given array of
-        data."""
+        """Helper function to compute weighted mean for a given array of data."""
         if time_bounds is not None:
-            dt = np.diff(ds[time_bounds], axis=1).squeeze()
+            dt = np.diff(ds[time_bounds].values, axis=1).squeeze()
         else:
             if isinstance(time[0], cftime.datetime):
-                dt = np.array([time[i + 1] - time[i] for i in range(len(time) - 1)])
-                dt = np.concatenate(([time[1] - time[0]], dt))
+                dt = np.array([(time[i + 1] - time[i]).days for i in range(len(time) - 1)] + [(time[-1] - time[-2]).days])
             else:
                 dt = np.diff(time, prepend=time[0], append=time[-1])
 
-        dt_seconds = (
-            np.array([t.total_seconds() for t in dt])
-            if isinstance(dt[0], np.timedelta64)
-            else np.array([t.total_seconds() for t in dt])
-        )
-
+        dt_seconds = dt * 86400  # Convert days to seconds if cftime
         weights = dt_seconds / dt_seconds.sum()
-        weighted_mean = (data * weights[:, None]).sum(axis=0)
+
+        # Apply weighted mean over time axis
+        weighted_mean = (data * weights[:, None, None]).sum(axis=0)
         return weighted_mean
 
     # Handle time bounds if present
@@ -518,7 +512,12 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
                 continue
 
             # Group by year and apply the weighted mean
-            grouped = ds[var].groupby(f'{time_dim}.year')
+            if isinstance(ds[time_dim].values[0], cftime.datetime):
+                years = [t.year for t in ds[time_dim].values]
+            else:
+                years = ds[time_dim].dt.year
+
+            grouped = ds[var].groupby(('time.year'))
             yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
 
             ds_yearly[var] = yearly_mean
