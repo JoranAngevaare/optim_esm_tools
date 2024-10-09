@@ -473,15 +473,20 @@ def mapped_3d_mask(
 
 
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
-    """Compute yearly averages for all variables in the dataset along the time dimension, handling both datetime and cftime objects."""
+    """Compute yearly averages for all variables in the dataset along the time
+    dimension, handling both datetime and cftime objects."""
 
     def compute_weighted_mean(data, time):
-        """Helper function to compute weighted mean for a given array of data."""
+        """Helper function to compute weighted mean for a given array of
+        data."""
         if time_bounds is not None:
             dt = np.diff(ds[time_bounds].values, axis=1).squeeze()
         else:
             if isinstance(time[0], cftime.datetime):
-                dt = np.array([(time[i + 1] - time[i]).days for i in range(len(time) - 1)] + [(time[-1] - time[-2]).days])
+                dt = np.array(
+                    [(time[i + 1] - time[i]).days for i in range(len(time) - 1)]
+                    + [(time[-1] - time[-2]).days]
+                )
             else:
                 dt = np.diff(time, prepend=time[0], append=time[-1])
 
@@ -517,7 +522,7 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
             else:
                 years = ds[time_dim].dt.year
 
-            grouped = ds[var].groupby(('time.year'))
+            grouped = ds[var].groupby('time.year')
             yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
 
             ds_yearly[var] = yearly_mean
