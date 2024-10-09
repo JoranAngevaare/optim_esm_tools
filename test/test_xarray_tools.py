@@ -11,7 +11,7 @@ from hypothesis import settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 from scipy.stats import percentileofscore
-from optim_esm_tools.analysis.xarray_tools import yearly_average
+from optim_esm_tools.analyze.xarray_tools import yearly_average
 
 
 def test_remove_nan():
