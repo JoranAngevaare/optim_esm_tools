@@ -11,7 +11,7 @@ from hypothesis import settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 from scipy.stats import percentileofscore
-
+from optim_esm_tools.analysis.xarray_tools import yearly_average
 
 def test_remove_nan():
     ds = oet._test_utils.minimal_xr_ds(len_x=8, len_y=9, len_time=10)
@@ -115,7 +115,7 @@ class TestYearlyAverage(unittest.TestCase):
                 {
                     'tas': (('time', 'lat', 'lon'), tas_data),
                     'pr': (('time', 'lat', 'lon'), pr_data),
-                    'time_bnds': (('time', 'bnds'), time_bnds),
+                    'time_bnds': (('time', 'bnds'), time_bnds.values),
                 },
                 coords={
                     'time': time,
