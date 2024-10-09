@@ -286,6 +286,7 @@ def running_mean_diff(
         result = result / result.std()
         result.name = fr't[-1] - t[0] for {name} [$\sigma$]'
         return result
+    raise ValueError(f'{unit} is invalid')
 
 
 @timed
