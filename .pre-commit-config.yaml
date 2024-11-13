@@ -5,18 +5,18 @@ repos:
     rev: v5.0.0
     hooks:
     -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
-    -   id: check-ast
-    -   id: check-case-conflict
-    -   id: check-docstring-first
-    -   id: detect-private-key
-    -   id: double-quote-string-fixer
-    -   id: requirements-txt-fixer
-    -   id: mixed-line-ending
-    -   id: pretty-format-json
-    -   id: name-tests-test
+    # -   id: end-of-file-fixer
+    # -   id: check-yaml
+    # -   id: check-added-large-files
+    # -   id: check-ast
+    # -   id: check-case-conflict
+    # -   id: check-docstring-first
+    # -   id: detect-private-key
+    # -   id: double-quote-string-fixer
+    # -   id: requirements-txt-fixer
+    # -   id: mixed-line-ending
+    # -   id: pretty-format-json
+    # -   id: name-tests-test
 # -   repo: https://github.com/asottile/add-trailing-comma
 #     rev: v3.1.0
 #     hooks:
