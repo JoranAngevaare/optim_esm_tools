@@ -1,9 +1,11 @@
 import contextlib
-
-import numpy as np
-
 import optim_esm_tools as oet
 import unittest
+import numpy as np
+import xarray as xr
+
+from hypothesis import given
+from hypothesis.extra.numpy import arrays
 
 
 def test_remove_nan():
@@ -71,15 +73,7 @@ class TestDrop(unittest.TestCase):
             )
 
 
-import numpy as np
-import xarray as xr
-from hypothesis import given
-from hypothesis import settings
-from hypothesis import strategies as st
-from hypothesis.extra.numpy import arrays
-from scipy.stats import percentileofscore
 
-import optim_esm_tools as oet
 
 
 @given(arrays(np.float16, shape=(2, 100)))
@@ -136,3 +130,13 @@ def test_smooth_lowess_1d(y):
     assert res_da.shape == y.shape
 
     assert np.array_equal(res, res_da.values)
+
+def test_set_time_int():
+    ds = oet._test_utils.minimal_xr_ds(len_x=2, len_y=2, len_time=2)
+    assert not isinstance(ds['time'].values[0], int)
+    oet.analyze.xarray_tools.set_time_int(ds)
+    assert isinstance(ds['time'].values[0], int)
+    
+    ds2 = oet.analyze.xarray_tools.set_time_int(ds)
+    assert isinstance(ds2['time'].values[0], int)
+    
