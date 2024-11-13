@@ -12,7 +12,7 @@ repos:
     -   id: check-case-conflict
     -   id: check-docstring-first
     -   id: detect-private-key
-    # -   id: double-quote-string-fixer
+    -   id: double-quote-string-fixer
     # -   id: requirements-txt-fixer
     # -   id: mixed-line-ending
     # -   id: pretty-format-json
