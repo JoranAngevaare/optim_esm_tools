@@ -528,3 +528,14 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
             ds_yearly[var] = yearly_mean
 
     return ds_yearly
+
+  
+def set_time_int(ds: xr.Dataset) -> xr.Dataset:
+    if not isinstance(ds['time'].values[0], (int, np.int_)):
+        years = [t.year for t in ds['time'].values]
+        assert (
+            np.unique(years, return_counts=True)[1].max() == 1
+        ), 'Data has one or more non-unique years!'
+        ds['time'] = years
+    return ds
+

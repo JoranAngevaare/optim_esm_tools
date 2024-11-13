@@ -1,11 +1,11 @@
 import contextlib
-
 import numpy as np
 import pandas as pd
 import optim_esm_tools as oet
 import unittest
 import xarray as xr
 import cftime
+
 from hypothesis import given
 from hypothesis import settings
 from hypothesis import strategies as st
@@ -241,3 +241,14 @@ def test_smooth_lowess_1d(y):
     assert res_da.shape == y.shape
 
     assert np.array_equal(res, res_da.values)
+
+
+def test_set_time_int():
+    ds = oet._test_utils.complete_ds(len_x=2, len_y=2, len_time=2)
+    assert not isinstance(ds['time'].values[0], int)
+    oet.analyze.xarray_tools.set_time_int(ds)
+    assert isinstance(ds['time'].values[0], np.integer)
+
+    ds2 = oet._test_utils.complete_ds(len_x=2, len_y=2, len_time=2)
+    ds3 = oet.analyze.xarray_tools.set_time_int(ds2)
+    assert isinstance(ds3['time'].values[0], np.integer)

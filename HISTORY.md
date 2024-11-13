@@ -11,7 +11,7 @@
 ## Patch
 * Clean v2.0.0 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/172
 * Skip check-builtin-literals by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/178
-* Raise NotImplementedError for depricated syntax by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/179
+* Raise NotImplementedError for deprecated syntax by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/179
 * Disable full synda test by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/183
 * Pin few python3.8 requirements by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/189
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/173
@@ -31,7 +31,7 @@ This is an intermediate stage and will be finetuned in the following pull reques
 * Work towards version 3 by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/171
 
 ## Patch
-* Surpress scipy warnings in `rank2d` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/164
+* Suppress scipy warnings in `rank2d` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/164
 
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/163
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/166
