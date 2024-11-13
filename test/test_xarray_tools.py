@@ -133,8 +133,8 @@ def test_set_time_int():
     ds = oet._test_utils.complete_ds(len_x=2, len_y=2, len_time=2)
     assert not isinstance(ds['time'].values[0], int)
     oet.analyze.xarray_tools.set_time_int(ds)
-    assert isinstance(ds['time'].values[0], int)
+    assert isinstance(ds['time'].values[0], np.integer)
 
     ds2 = oet._test_utils.complete_ds(len_x=2, len_y=2, len_time=2)
     ds3 = oet.analyze.xarray_tools.set_time_int(ds2)
-    assert isinstance(ds3['time'].values[0], int)
+    assert isinstance(ds3['time'].values[0], np.integer)
