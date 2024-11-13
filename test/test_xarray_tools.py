@@ -73,9 +73,6 @@ class TestDrop(unittest.TestCase):
             )
 
 
-
-
-
 @given(arrays(np.float16, shape=(2, 100)))
 def test_smooth_lowess_2d(a):
     x, y = a
@@ -131,13 +128,13 @@ def test_smooth_lowess_1d(y):
 
     assert np.array_equal(res, res_da.values)
 
+
 def test_set_time_int():
     ds = oet._test_utils.minimal_xr_ds(len_x=2, len_y=2, len_time=2)
     assert not isinstance(ds['time'].values[0], int)
     oet.analyze.xarray_tools.set_time_int(ds)
     assert isinstance(ds['time'].values[0], int)
-    
+
     ds2 = oet._test_utils.minimal_xr_ds(len_x=2, len_y=2, len_time=2)
     ds3 = oet.analyze.xarray_tools.set_time_int(ds2)
     assert isinstance(ds3['time'].values[0], int)
-    
