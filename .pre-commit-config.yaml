@@ -29,11 +29,11 @@ repos:
     rev: 24.8.0
     hooks:
     -   id: black
-# -   repo: https://github.com/awebdeveloper/pre-commit-stylelint
-#     rev: '0.0.2'
-#     hooks:
-#     -   id: stylelint
-#         additional_dependencies: ['stylelint@13.2.1', 'stylelint-config-standard@20.0.0']
+-   repo: https://github.com/awebdeveloper/pre-commit-stylelint
+    rev: '0.0.2'
+    hooks:
+    -   id: stylelint
+        additional_dependencies: ['stylelint@13.2.1', 'stylelint-config-standard@20.0.0']
 # -   repo: https://github.com/PyCQA/docformatter
 #     rev: 'v1.7.5'
 #     hooks:
