@@ -171,11 +171,9 @@ def calculate_n_breaks(
     min_size: ty.Optional[int] = None,
     jump: ty.Optional[int] = None,
     model: ty.Optional[str] = None,
-    method: ty.Optional[float] = None,
+    method: ty.Optional[str] = None,
 ):
-    """[citation] C.
-
-    Truong, L. Oudre, N. Vayatis. Selective review of offline change point detection
+    """[citation] C. Truong, L. Oudre, N. Vayatis. Selective review of offline change point detection
     methods. Signal Processing, 167:107299, 2020.
     Code from:
     https://centre-borelli.github.io/ruptures-docs/
