@@ -19,7 +19,7 @@ class TestShouldMerge(unittest.TestCase):
                 [1, 1, 0, 0],
                 [0, 0, 0, 0],
                 [0, 0, 0, 0],
-            ]
+            ],
         )
 
         self.grid2 = np.array(
@@ -28,7 +28,7 @@ class TestShouldMerge(unittest.TestCase):
                 [0, 0, 1, 1],
                 [0, 0, 0, 0],
                 [0, 0, 0, 0],
-            ]
+            ],
         )
 
         self.overlapping_grid = np.array(
@@ -37,7 +37,7 @@ class TestShouldMerge(unittest.TestCase):
                 [1, 1, 1, 0],
                 [0, 0, 0, 0],
                 [0, 0, 0, 0],
-            ]
+            ],
         )
 
         self.xr_grid1 = xr.DataArray(self.grid1)
@@ -52,7 +52,9 @@ class TestShouldMerge(unittest.TestCase):
         ):
             self.assertTrue(
                 should_merge(
-                    self.xr_grid1, self.xr_overlapping_grid, min_frac_overlap=0.5
+                    self.xr_grid1,
+                    self.xr_overlapping_grid,
+                    min_frac_overlap=0.5,
                 ),
             )
 
@@ -68,7 +70,10 @@ class TestShouldMerge(unittest.TestCase):
             ):
                 self.assertTrue(
                     should_merge(
-                        self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=100
+                        self.grid1,
+                        self.grid2,
+                        min_border_frac=0.05,
+                        min_n_adjacent=100,
                     ),
                 )
 
@@ -84,7 +89,10 @@ class TestShouldMerge(unittest.TestCase):
             ):
                 self.assertFalse(
                     should_merge(
-                        self.grid1, self.grid2, min_frac_overlap=0.5, min_n_adjacent=100
+                        self.grid1,
+                        self.grid2,
+                        min_frac_overlap=0.5,
+                        min_n_adjacent=100,
                     ),
                 )
 
@@ -102,13 +110,19 @@ class TestShouldMerge(unittest.TestCase):
         # Test the adjacency calculation
         self.assertTrue(
             _should_merge_adjacent(
-                self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=2
+                self.grid1,
+                self.grid2,
+                min_border_frac=0.05,
+                min_n_adjacent=2,
             ),
         )
 
         self.assertFalse(
             _should_merge_adjacent(
-                self.grid1, self.grid2, min_border_frac=1, min_n_adjacent=100
+                self.grid1,
+                self.grid2,
+                min_border_frac=1,
+                min_n_adjacent=100,
             ),
         )
 
