@@ -6,15 +6,25 @@ import typing as ty
 
 import xarray as xr
 import functools
-from optim_esm_tools.analyze.tools import running_mean, running_mean_array
 from optim_esm_tools.analyze.tools import (
     weighted_mean_array,
     _weighted_mean_array_numba,
+    running_mean,
+    running_mean_array,
 )
 import scipy
 
 
-class Calculator:
+class RegionPropertyCalculator:
+    """
+    For a given region, calculate properties that can be used to assess how special a given region is.
+
+    For this purpose, three essential elements are required:
+     - The dataset of interest (ds_global)
+     - The pi-control dataset of interest (ds_pi)
+     - The region of interest (mask)
+    """
+
     def __init__(
         self,
         ds_global: xr.Dataset,
@@ -462,7 +472,7 @@ def summarize_stats(
     mask: ty.Union[np.ndarray, xr.DataArray],
     field: str,
 ) -> ty.Dict[str, ty.Union[str, int, float, bool]]:
-    return Calculator(
+    return RegionPropertyCalculator(
         ds_global=ds_global,
         ds_pi=ds_pi,
         mask=mask,
