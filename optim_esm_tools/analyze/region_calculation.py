@@ -36,8 +36,20 @@ class RegionPropertyCalculator:
         _tropic_lat: ty.Union[int, float] = float(
             oet.config.config["analyze"]["tropics_latitude"],
         ),
-        _rm_years: int = 10,
+        _rm_years: int = int(oet.config.config["analyze"]["moving_average_years"]),
     ):
+        """
+
+        Args:
+            ds_global (xr.Dataset): dataset of interest
+            ds_pi (xr.Dataset): pi-control dataset corresponding to ds_global
+            mask (ty.Union[np.ndarray, xr.DataArray]): region of interest in the dataset of interest
+            field (ty.Optional[str], optional): variable_id in the dataset to extract. Defaults to None in which case we read it from ds_global.
+            ds_local (ty.Optional[xr.Dataset], optional): Masked ds_global. Defaults to None, and we compute the masked dataset using ds_global and mask.
+            ds_pi_local (ty.Optional[xr.Dataset], optional): Masked ds_pi. Defaults to, similar to ds_local for the pi-control dataset.
+            _tropic_lat (ty.Union[int, float], optional): Value of tropics to use. Defaults to float( oet.config.config["analyze"]["tropics_latitude"], ).
+            _rm_years (int, optional): Number of years for running mean-calculations. Defaults to int(oet.config.config["analyze"]["moving_average_years"]).
+        """
         self._tropic_lat = _tropic_lat
         self._rm_years = _rm_years
         self.ds_global = ds_global
@@ -81,7 +93,19 @@ class RegionPropertyCalculator:
         self,
         mask: ty.Union[np.ndarray, xr.DataArray],
         fall_back_field: str = "cell_area",
-    ):
+    )->xr.DataArray:
+        """Handle masks of either numpy or xarray types and make sure an xarray.DataArray is returned
+
+        Args:
+            mask (ty.Union[np.ndarray, xr.DataArray]): _description_
+            fall_back_field (str, optional): _description_. Defaults to "cell_area".
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            _type_: _description_
+        """
         if isinstance(mask, xr.DataArray):
             return mask
         if isinstance(mask, np.ndarray):
@@ -111,15 +135,18 @@ class RegionPropertyCalculator:
         return self._cache[k]
 
     def _calc_max_end(self) -> float:
+        """Calculte the difference between the end and the maximum calue in the default moving average filtered time series"""
         _m = self.weigthed_mean_cached(self.field_rm, "ds_local")
         _rm_years = int(self._rm_years)
         end = _m[-_rm_years // 2]
         return max(np.abs(np.nanmax(_m) - end), np.abs(np.nanmin(_m) - end))
 
     def _calc_std_trop(self, **kw) -> float:
+        """Calculte the average standard deviation in the scenario dataset"""
         return self._calc_std_trop_inner(**kw, values_from="scenario")
 
     def _calc_pi_std_trop(self, **kw) -> float:
+        """Calculte the average standard deviation in the pi-control dataset"""
         return self._calc_std_trop_inner(**kw, values_from="pi")
 
     @oet.utils.check_accepts(accepts=dict(values_from=["scenario", "pi"]))
@@ -287,9 +314,10 @@ class RegionPropertyCalculator:
                 raise e
             return np.nan
 
-    def _calc_jump_n_years(self, n_years=10) -> float:
+    def _calc_jump_n_years(self, n_years:int=10, rm_years:ty.Optional[int]=None) -> float:
         a = self.weigthed_mean_cached(self.field, data_set="ds_local")
-        a_rm = running_mean(a, n_years)
+        rm_years = rm_years or self._rm_years
+        a_rm = running_mean(a, rm_years)
         return np.nanmax(np.abs(a_rm[n_years:] - a_rm[:-n_years]))
 
     def _calc_max_end_rmx(self, rm_alt=50, apply_max=True) -> float:
@@ -636,8 +664,8 @@ def calculate_norm(
     return max(t0["max_in_sel"], t1["max_in_sel"])
 
 
-def jump_n_years(field: str, ds_local: xr.Dataset, n_years: int = 10) -> np.float64:
-    ma = int(oet.config.config["analyze"]["moving_average_years"])
+def jump_n_years(field: str, ds_local: xr.Dataset, n_years: int = 10, moving_average_years:ty.Optional[int] = None) -> np.float64:
+    ma = moving_average_years or int(oet.config.config["analyze"]["moving_average_years"])
     use_field = f"{field}_run_mean_{ma}"
     a = ds_local[use_field].mean("lat lon".split()).values
 
