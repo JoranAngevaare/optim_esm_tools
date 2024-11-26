@@ -317,7 +317,10 @@ def _drop_duplicates_carefully(ds, t_span, t_len, path):
 
 def _remove_duplicate_time_stamps(path):  # pragma: no cover
     ds = load_glob(path)
-    if (t_len := len(ds['time'])) > (
+    t_len = len(ds['time'])
+    if t_len <= 1:
+        raise ValueError(f'No time length in {path}')
+    if t_len > (
         t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)
     ) + 1:
         get_logger().warning(
