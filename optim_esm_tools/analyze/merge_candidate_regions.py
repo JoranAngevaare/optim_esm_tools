@@ -93,13 +93,6 @@ def _should_merge_adjacent(
     return (n_ad / n_border) > min_border_frac or n_ad > min_n_adjacent
 
 
-def get_lat_lon_coordinates_of_mask(ds, field='global_mask'):
-    mask = ds[field].values.T
-    x, y = np.meshgrid(ds.lat_mask.values, ds.lon_mask.values)
-    x, y = x[mask], y[mask]
-    return np.array(list(zip(x, y)))
-
-
 @numba.njit
 def _n_adjacent(ar1: np.ndarray, ar2: np.ndarray):
     _n_adjacent = 0
@@ -148,7 +141,7 @@ class Merger:
         common_mother: ty.Optional[xr.Dataset] = None,
         common_pi: ty.Optional[xr.Dataset] = None,
         merge_options: ty.Optional[dict] = None,
-        merge_method: str = 'naive',
+        merge_method: str = "independent",
     ):
         assert data_sets, 'datasets'
         assert isinstance(pass_criteria, ty.Callable)
@@ -323,53 +316,14 @@ class Merger:
         self.log.warning(
             f"Merging would lead to failed test, going over items one by one",
         )
-        if self.merge_method == 'naive':
-            return self._iter_mergable_candidates_naive(
-                candidates,
-                merge_to_current,
-                summary_kw,
-            )
-        else:
-            return self._iter_mergable_candidates(
-                candidates,
-                merge_to_current,
-                summary_kw,
-            )
+        if self.merge_method != 'independent':
+            raise NotImplementedError
 
-    def _iter_mergable_candidates_naive(
-        self,
-        candidates: ty.List[xr.Dataset],
-        merge_to_current: ty.Iterable,
-        summary_kw: ty.Mapping,
-    ) -> ty.Dict[str, ty.Union[ty.Mapping, xr.Dataset, ty.List]]:
-        global_masks = {
-            i: ds['global_mask'].load().copy() for i, ds in enumerate(candidates)
-        }
-        current_global_mask = global_masks.pop(0)
-        do_merge = []
-        for merge in merge_to_current:
-            self.log.info(f"Try merging {merge}")
-            candidate_mask = current_global_mask.copy() | global_masks[merge]
-            candidate_ds = oet.analyze.xarray_tools.mask_to_reduced_dataset(
-                self.common_mother.load().copy(),
-                oet.analyze.xarray_tools.reverse_name_mask_coords(candidate_mask),
-            )
-            candidate_stat = self.summary_calculation(**summary_kw, mask=candidate_mask)
-            if not self.pass_criteria(**candidate_stat):
-                self.log.info(f"Merge {merge} failed, lead to {candidate_stat}")
-                break
-            current_global_mask = candidate_mask
-            ds_merged = candidate_ds
-            stat = candidate_stat
-            do_merge += [merge]
-        self.log.info(f"Merging {do_merge} from {merge_to_current}")
-        if not do_merge:
-            single_stat = self.summary_calculation(
-                **summary_kw,
-                mask=candidates[0]['global_mask'],
-            )
-            return dict(stats=single_stat, ds=candidates[0], merged=[0])
-        return dict(stats=stat, ds=ds_merged, merged=[0] + do_merge)
+        return self._iter_mergable_candidates(
+            candidates,
+            merge_to_current,
+            summary_kw,
+        )
 
     def _iter_mergable_candidates(
         self,
@@ -446,60 +400,6 @@ class Merger:
     def log(self):
         self._log = self._log or oet.get_logger()
         return self._log
-
-
-def merge_from_df(df, pass_func, save_to='/data/volume_2/test'):
-    df_remaining = df[df.tips].copy()
-    new_cols = []
-    pbar = oet.utils.tqdm(total=len(df_remaining), desc='building merges')
-    while len(df_remaining):
-        pbar.n = np.sum(df.tips) - len(df_remaining)
-        pbar.display()
-        sel = df_remaining.iloc[0]
-        mask = np.ones(len(df_remaining), dtype=np.bool_)
-        keep_keys = 'institution_id source_id experiment_id variant_label variable_id method tips version'.split()
-        for k in keep_keys:
-            mask &= df_remaining[k] == sel[k]
-        matches = df_remaining[mask]
-        df_remaining = df_remaining[~mask]
-
-        paths = list(matches['path'])
-
-        ds_common = oet.load_glob(oet.load_glob(paths[0]).attrs['file'])
-        me = Merger(
-            pass_criteria=pass_func,
-            data_sets=[oet.load_glob(p) for p in paths],
-            common_mother=ds_common,
-        )
-        import logging
-
-        me.log.setLevel(logging.DEBUG)
-        res = me.merge_datasets()
-        me.log.setLevel(logging.WARNING)
-        for i, r in enumerate(res):
-            # so complex for so simple, adjust later
-            new_fmt = paths[0].split('_cluster-')
-            new_fmt[1] = new_fmt[1].split('_')[1]
-
-            new_fmt.insert(1, (f'supercluster_{i}_n{len(r["merged"])}'))
-            _, name = os.path.split('_'.join(new_fmt))
-            if not os.path.exists(save_to):
-                os.makedirs(save_to)
-            p = os.path.join(save_to, name)
-
-            r['ds'].to_netcdf(p)
-            doc = sel[keep_keys].to_dict()
-            if r.get('stats'):
-                doc.update(r['stats'])
-            ordered_doc = {k: doc.get(k, np.nan) for k in df.columns}
-            ordered_doc['tips'] = True
-            ordered_doc['path'] = p
-            new_cols.append(ordered_doc)
-    pbar.n = np.sum(df.tips)
-    pbar.close()
-    new_df = pd.DataFrame(new_cols)
-
-    return pd.concat([new_df, df[~df.tips]])
 
 
 class MergerCached(Merger):

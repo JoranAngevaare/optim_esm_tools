@@ -275,6 +275,114 @@ class TestMerger(unittest.TestCase):
         self.assertTrue('stats' in group_result)
         self.assertIsInstance(group_result['ds'], xr.Dataset)
 
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
+    def test_merger_merge_one_skip_one(self, mock_load_glob, mock_get_logger):
+        """
+        merging logic of merging one and failing one.
+        """
+        mock_ds1 = create_mock_dataset(
+            [
+                [1, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        mock_ds2 = create_mock_dataset(
+            [
+                [0, 1, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        mock_ds3 = create_mock_dataset(
+            [
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 1],
+            ],
+        )
+        mock_load_glob.return_value = mock_ds1
+
+        def mock_pass_criteria(**kwargs):
+            return True
+
+        def mock_summary_calculation(**kwargs):
+            return {'stat': 1}
+
+        common_dummy = self.get_dummy_common(mock_ds1)
+
+        merger = Merger(
+            pass_criteria=mock_pass_criteria,
+            summary_calculation=mock_summary_calculation,
+            data_sets=[mock_ds1, mock_ds2, mock_ds3],
+            common_mother=common_dummy,
+            common_pi=common_dummy,
+        )
+        res = merger.merge_datasets()
+
+        assert len(res) == 2
+
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
+    def test_merger_pass_one_fail_one(self, mock_load_glob, mock_get_logger):
+        """
+        test if passfunc does what it is supposed to do
+        """
+        mock_ds1 = create_mock_dataset(
+            [
+                [1, 0, 0],
+                [1, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        mock_ds2 = create_mock_dataset(
+            [
+                [0, 1, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        mock_ds3 = create_mock_dataset(
+            [
+                [0, 0, 0],
+                [0, 0, 0],
+                [1, 0, 0],
+            ],
+        )
+        mock_load_glob.return_value = mock_ds1
+
+        def mock_pass_criteria(passes, **kw):
+            return passes
+
+        def mock_summary_calculation(mask, **kwargs):
+            return dict(
+                passes=(mask.values[:, 0].sum() > 1) & (mask.values[:, 1].sum() == 0),
+            )
+
+        common_dummy = self.get_dummy_common(mock_ds1)
+
+        merger = Merger(
+            pass_criteria=mock_pass_criteria,
+            summary_calculation=mock_summary_calculation,
+            data_sets=[mock_ds1, mock_ds2, mock_ds3],
+            common_mother=common_dummy,
+            common_pi=common_dummy,
+        )
+        res = merger.merge_datasets()
+
+        assert len(res) == 1
+        xr.testing.assert_allclose(
+            res[0]['ds']['global_mask'],
+            create_mock_dataset(
+                [
+                    [1, 0, 0],
+                    [1, 0, 0],
+                    [1, 0, 0],
+                ],
+            )['global_mask'],
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
