@@ -636,7 +636,7 @@ def calculate_norm(
     return max(t0["max_in_sel"], t1["max_in_sel"])
 
 
-def jump_n_years(field: str, ds_local: xr.Dataset, n_years: int = 10) -> np.float_:
+def jump_n_years(field: str, ds_local: xr.Dataset, n_years: int = 10) -> np.float64:
     ma = int(oet.config.config["analyze"]["moving_average_years"])
     use_field = f"{field}_run_mean_{ma}"
     a = ds_local[use_field].mean("lat lon".split()).values
