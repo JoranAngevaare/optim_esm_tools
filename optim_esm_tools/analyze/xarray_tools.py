@@ -471,6 +471,7 @@ def mapped_3d_mask(
         )
     return res
 
+
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
     """Compute yearly averages for all variables in the dataset along the time
     dimension, handling both datetime and cftime objects."""
@@ -495,7 +496,9 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
         years = [d.year for d in data[time_dim].values]
         if isinstance(time[0], cftime.datetime):
             keep_idx = np.array([t.year in years for t in time])
-        elif isinstance(time, xr.DataArray) and isinstance (time.values[0], cftime.datetime):
+        elif isinstance(time, xr.DataArray) and isinstance(
+            time.values[0], cftime.datetime
+        ):
             keep_idx = np.array([t.year in years for t in time.values])
         else:
             raise TypeError(type(time))

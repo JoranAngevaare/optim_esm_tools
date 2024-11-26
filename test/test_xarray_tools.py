@@ -103,7 +103,7 @@ class TestYearlyAverage(unittest.TestCase):
                     dims=['time', 'bnds'],
                 )
                 # Now, we have make the time stamps in the middle of each time bound
-                time = np.array([t[0] + (t[1]-t[0])/2 for t in time_bnds.values])
+                time = np.array([t[0] + (t[1] - t[0]) / 2 for t in time_bnds.values])
                 assert len(time_bnds) == len(time)
             else:
                 time_bnds = xr.DataArray(
@@ -115,11 +115,10 @@ class TestYearlyAverage(unittest.TestCase):
                     ),
                     dims=['time', 'bnds'],
                 )
-                
-        
+
         tas_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 300
         pr_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 10
-        ds =  xr.Dataset(
+        ds = xr.Dataset(
             {
                 'tas': (('time', 'lat', 'lon'), tas_data),
                 'pr': (('time', 'lat', 'lon'), pr_data),
