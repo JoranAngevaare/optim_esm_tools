@@ -8,7 +8,6 @@ import pandas as pd
 import xarray as xr
 
 
-
 def should_merge(
     ds1: ty.Union[xr.DataArray, np.ndarray],
     ds2: ty.Union[xr.DataArray, np.ndarray],
