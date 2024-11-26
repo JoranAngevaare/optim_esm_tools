@@ -362,7 +362,7 @@ class TestMerger(unittest.TestCase):
 
         common_dummy = self.get_dummy_common(mock_ds1)
 
-        merger = Merger(
+        merger = MergerCached(
             pass_criteria=mock_pass_criteria,
             summary_calculation=mock_summary_calculation,
             data_sets=[mock_ds1, mock_ds2, mock_ds3],
