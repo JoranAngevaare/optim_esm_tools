@@ -1,11 +1,17 @@
 import contextlib
+import numpy as np
+import pandas as pd
 import optim_esm_tools as oet
 import unittest
-import numpy as np
 import xarray as xr
+import cftime
 
 from hypothesis import given
+from hypothesis import settings
+from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
+from scipy.stats import percentileofscore
+from optim_esm_tools.analyze.xarray_tools import yearly_average
 
 
 def test_remove_nan():
@@ -71,6 +77,110 @@ class TestDrop(unittest.TestCase):
                 **kw,
                 drop_method='numpy_or_somthing',
             )
+
+
+class TestYearlyAverage(unittest.TestCase):
+
+    def setUp(self):
+        self.lat = [10.0, 20.0]
+        self.lon = [30.0, 40.0]
+
+    def create_dataset(self, with_time_bounds=True, use_cftime=False):
+        if use_cftime:
+            time = xr.cftime_range(
+                '2000-01-01',
+                '2002-12-31',
+                freq='M',
+                calendar='noleap',
+            )
+        else:
+            time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
+
+        if with_time_bounds:
+            if use_cftime:
+                time_bnds = xr.DataArray(
+                    np.array([[time[i], time[i + 1]] for i in range(len(time) - 1)]),
+                    dims=['time', 'bnds'],
+                )
+                # Now, we have make the time stamps in the middle of each time bound
+                time = np.array([t[0] + (t[1] - t[0]) / 2 for t in time_bnds.values])
+                assert len(time_bnds) == len(time)
+            else:
+                time_bnds = xr.DataArray(
+                    np.array(
+                        [
+                            [pd.Timestamp(t), pd.Timestamp(t + pd.DateOffset(months=1))]
+                            for t in time
+                        ],
+                    ),
+                    dims=['time', 'bnds'],
+                )
+
+        tas_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 300
+        pr_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 10
+        ds = xr.Dataset(
+            {
+                'tas': (('time', 'lat', 'lon'), tas_data),
+                'pr': (('time', 'lat', 'lon'), pr_data),
+            },
+            coords={
+                'time': time,
+                'lat': self.lat,
+                'lon': self.lon,
+            },
+        )
+        if with_time_bounds:
+            ds['time_bnds'] = time_bnds
+        return ds
+
+    def test_yearly_average_with_time_bounds_and_cftime(self):
+        ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
+        ds_yearly = yearly_average(ds, time_dim='time')
+
+        self.assertIn('year', ds_yearly.dims)
+        self.assertNotIn('time', ds_yearly.dims)
+
+        expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
+        self.assertEqual(ds_yearly['tas'].shape, expected_shape)
+        self.assertEqual(ds_yearly['pr'].shape, expected_shape)
+
+    def test_yearly_average_without_time_bounds_and_cftime(self):
+        ds = self.create_dataset(with_time_bounds=False, use_cftime=True)
+        ds_yearly = yearly_average(ds, time_dim='time')
+
+        self.assertIn('year', ds_yearly.dims)
+        self.assertNotIn('time', ds_yearly.dims)
+
+        expected_shape = (3, len(self.lat), len(self.lon))  # 3 years, 2 lat, 2 lon
+        self.assertEqual(ds_yearly['tas'].shape, expected_shape)
+        self.assertEqual(ds_yearly['pr'].shape, expected_shape)
+
+    def test_skip_non_numeric_variable_with_time_bounds_and_cftime(self):
+        ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
+        ds['string_var'] = (('time',), np.array(['a'] * len(ds['time'])))
+
+        ds_yearly = yearly_average(ds, time_dim='time')
+
+        self.assertNotIn('string_var', ds_yearly)
+
+    def test_with_and_without_time_bounds_and_cftime(self):
+        ds_with_bounds = self.create_dataset(with_time_bounds=True, use_cftime=True)
+        ds_without_bounds = ds_with_bounds.copy()
+        del ds_without_bounds['time_bnds']
+
+        ds_yearly_with_bounds = yearly_average(ds_with_bounds, time_dim='time')
+        ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
+
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['tas'],
+            ds_yearly_without_bounds['tas'],
+            rtol=1 / 29,  # Max one day/month off
+        )
+        xr.testing.assert_allclose(
+            ds_yearly_with_bounds['pr'],
+            ds_yearly_without_bounds['pr'],
+            rtol=1 / 29,  # Max one day/month off
+        )
 
 
 @given(arrays(np.float16, shape=(2, 100)))

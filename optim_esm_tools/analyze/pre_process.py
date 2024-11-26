@@ -320,9 +320,7 @@ def _remove_duplicate_time_stamps(path):  # pragma: no cover
     t_len = len(ds['time'])
     if t_len <= 1:
         raise ValueError(f'No time length in {path}')
-    if t_len > (
-        t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)
-    ) + 1:
+    if t_len > (t_span := (ds['time'].values[-1].year - ds['time'].values[0].year)) + 1:
         get_logger().warning(
             f'Finding {t_len} timestamps in {t_span} years - removing duplicates',
         )

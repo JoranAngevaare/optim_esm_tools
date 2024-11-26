@@ -4,6 +4,7 @@ from functools import wraps
 import numpy as np
 import xarray as xr
 import numba
+import cftime
 from optim_esm_tools.config import config
 from optim_esm_tools.utils import check_accepts
 
@@ -469,6 +470,73 @@ def mapped_3d_mask(
             nan_int=nan_int,
         )
     return res
+
+
+def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
+    """Compute yearly averages for all variables in the dataset along the time
+    dimension, handling both datetime and cftime objects."""
+
+    def compute_weighted_mean(data, time):
+        """Helper function to compute weighted mean for a given array of
+        data."""
+        if time_bounds is not None:
+            dt = np.diff(ds[time_bounds].values, axis=1).squeeze()
+        else:
+            if isinstance(time[0], cftime.datetime):
+                dt = np.array(
+                    [(time[i + 1] - time[i]).days for i in range(len(time) - 1)]
+                    + [(time[-1] - time[-2]).days],
+                )
+            else:
+                # poor man solution, let's just assume that the last time-interval is as long as the second to last interval
+                dt = np.diff(time)
+                dt = np.concatenate([dt, [dt[-1]]])
+        if len(time) != len(dt):
+            raise ValueError(f'Inconsistent time lengths {len(time)} != {len(dt)}')
+        years = [d.year for d in data[time_dim].values]
+        if isinstance(time[0], cftime.datetime):
+            keep_idx = np.array([t.year in years for t in time])
+        elif isinstance(time, xr.DataArray) and isinstance(
+            time.values[0],
+            cftime.datetime,
+        ):
+            keep_idx = np.array([t.year in years for t in time.values])
+        else:
+            raise TypeError(type(time))
+
+        dt = dt[keep_idx]
+        dt_seconds = dt * 86400  # Convert days to seconds if cftime
+        weights = dt_seconds / dt_seconds.sum()
+
+        # Apply weighted mean over time axis
+        weighted_mean = (data * weights[:, None, None]).sum(axis=0)
+        return weighted_mean
+
+    # Handle time bounds if present
+    time_bounds = next(
+        (k for k in [f'{time_dim}_bounds', f'{time_dim}_bnds'] if k in ds),
+        None,
+    )
+
+    # Initialize a new dataset to hold the yearly averages
+    ds_yearly = xr.Dataset()
+
+    # Loop through the variables in the dataset
+    for var in ds.data_vars:
+        if time_dim in ds[var].dims:
+            dtype = ds[var].dtype
+
+            # Skip non-numeric data types
+            if not np.issubdtype(dtype, np.number):
+                print(f'Skipping {var} of dtype={dtype}')
+                continue
+
+            grouped = ds[var].groupby('time.year')
+            yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
+
+            ds_yearly[var] = yearly_mean.astype(ds[var].dtype)
+
+    return ds_yearly
 
 
 def set_time_int(ds: xr.Dataset) -> xr.Dataset:
