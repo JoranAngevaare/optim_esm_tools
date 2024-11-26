@@ -93,7 +93,7 @@ class RegionPropertyCalculator:
         self,
         mask: ty.Union[np.ndarray, xr.DataArray],
         fall_back_field: str = "cell_area",
-    )->xr.DataArray:
+    ) -> xr.DataArray:
         """Handle masks of either numpy or xarray types and make sure an xarray.DataArray is returned
 
         Args:
@@ -314,7 +314,9 @@ class RegionPropertyCalculator:
                 raise e
             return np.nan
 
-    def _calc_jump_n_years(self, n_years:int=10, rm_years:ty.Optional[int]=None) -> float:
+    def _calc_jump_n_years(
+        self, n_years: int = 10, rm_years: ty.Optional[int] = None
+    ) -> float:
         a = self.weigthed_mean_cached(self.field, data_set="ds_local")
         rm_years = rm_years or self._rm_years
         a_rm = running_mean(a, rm_years)
@@ -664,8 +666,15 @@ def calculate_norm(
     return max(t0["max_in_sel"], t1["max_in_sel"])
 
 
-def jump_n_years(field: str, ds_local: xr.Dataset, n_years: int = 10, moving_average_years:ty.Optional[int] = None) -> np.float64:
-    ma = moving_average_years or int(oet.config.config["analyze"]["moving_average_years"])
+def jump_n_years(
+    field: str,
+    ds_local: xr.Dataset,
+    n_years: int = 10,
+    moving_average_years: ty.Optional[int] = None,
+) -> np.float64:
+    ma = moving_average_years or int(
+        oet.config.config["analyze"]["moving_average_years"]
+    )
     use_field = f"{field}_run_mean_{ma}"
     a = ds_local[use_field].mean("lat lon".split()).values
 
