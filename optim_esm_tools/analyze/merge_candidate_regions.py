@@ -1,22 +1,12 @@
-import collections
-import datetime
-import glob
 import os
 import typing as ty
-from collections import Counter
-from collections import defaultdict
 
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
 import numba
 import numpy as np
 import optim_esm_tools as oet
 import pandas as pd
 import xarray as xr
-from immutabledict import immutabledict
-from matplotlib.colors import LogNorm
-from matplotlib.gridspec import GridSpec
-from tqdm.notebook import tqdm
+
 
 
 def should_merge(
