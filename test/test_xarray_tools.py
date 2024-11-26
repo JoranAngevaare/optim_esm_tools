@@ -96,15 +96,15 @@ class TestYearlyAverage(unittest.TestCase):
         else:
             time = pd.date_range('2000-01-01', '2002-12-31', freq='M')
 
-        tas_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 300
-        pr_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 10
-
         if with_time_bounds:
             if use_cftime:
                 time_bnds = xr.DataArray(
                     np.array([[time[i], time[i + 1]] for i in range(len(time) - 1)]),
                     dims=['time', 'bnds'],
                 )
+                # Now, we have make the time stamps in the middle of each time bound
+                time = np.array([t[0] + (t[1]-t[0])/2 for t in time_bnds.values])
+                assert len(time_bnds) == len(time)
             else:
                 time_bnds = xr.DataArray(
                     np.array(
@@ -115,30 +115,24 @@ class TestYearlyAverage(unittest.TestCase):
                     ),
                     dims=['time', 'bnds'],
                 )
-            return xr.Dataset(
-                {
-                    'tas': (('time', 'lat', 'lon'), tas_data),
-                    'pr': (('time', 'lat', 'lon'), pr_data),
-                    'time_bnds': (('time', 'bnds'), time_bnds.values),
-                },
-                coords={
-                    'time': time,
-                    'lat': self.lat,
-                    'lon': self.lon,
-                },
-            )
-        else:
-            return xr.Dataset(
-                {
-                    'tas': (('time', 'lat', 'lon'), tas_data),
-                    'pr': (('time', 'lat', 'lon'), pr_data),
-                },
-                coords={
-                    'time': time,
-                    'lat': self.lat,
-                    'lon': self.lon,
-                },
-            )
+                
+        
+        tas_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 300
+        pr_data = np.random.rand(len(time), len(self.lat), len(self.lon)) * 10
+        ds =  xr.Dataset(
+            {
+                'tas': (('time', 'lat', 'lon'), tas_data),
+                'pr': (('time', 'lat', 'lon'), pr_data),
+            },
+            coords={
+                'time': time,
+                'lat': self.lat,
+                'lon': self.lon,
+            },
+        )
+        if with_time_bounds:
+            ds['time_bnds'] = time_bnds
+        return ds
 
     def test_yearly_average_with_time_bounds_and_cftime(self):
         ds = self.create_dataset(with_time_bounds=True, use_cftime=True)
@@ -172,7 +166,8 @@ class TestYearlyAverage(unittest.TestCase):
 
     def test_with_and_without_time_bounds_and_cftime(self):
         ds_with_bounds = self.create_dataset(with_time_bounds=True, use_cftime=True)
-        ds_without_bounds = self.create_dataset(with_time_bounds=False, use_cftime=True)
+        ds_without_bounds = ds_with_bounds.copy()
+        del ds_without_bounds['time_bnds']
 
         ds_yearly_with_bounds = yearly_average(ds_with_bounds, time_dim='time')
         ds_yearly_without_bounds = yearly_average(ds_without_bounds, time_dim='time')
@@ -180,10 +175,12 @@ class TestYearlyAverage(unittest.TestCase):
         xr.testing.assert_allclose(
             ds_yearly_with_bounds['tas'],
             ds_yearly_without_bounds['tas'],
+            rtol=1e-2,
         )
         xr.testing.assert_allclose(
             ds_yearly_with_bounds['pr'],
             ds_yearly_without_bounds['pr'],
+            rtol=1e-2,
         )
 
 

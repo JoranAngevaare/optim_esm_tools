@@ -471,7 +471,6 @@ def mapped_3d_mask(
         )
     return res
 
-
 def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
     """Compute yearly averages for all variables in the dataset along the time
     dimension, handling both datetime and cftime objects."""
@@ -488,8 +487,20 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
                     + [(time[-1] - time[-2]).days],
                 )
             else:
-                dt = np.diff(time, prepend=time[0], append=time[-1])
+                # poor man solution, let's just assume that the last time-interval is as long as the second to last interval
+                dt = np.diff(time)
+                dt = np.concatenate([dt, [dt[-1]]])
+        if len(time) != len(dt):
+            raise ValueError(f'Inconsistent time lengths {len(time)} != {len(dt)}')
+        years = [d.year for d in data[time_dim].values]
+        if isinstance(time[0], cftime.datetime):
+            keep_idx = np.array([t.year in years for t in time])
+        elif isinstance(time, xr.DataArray) and isinstance (time.values[0], cftime.datetime):
+            keep_idx = np.array([t.year in years for t in time.values])
+        else:
+            raise TypeError(type(time))
 
+        dt = dt[keep_idx]
         dt_seconds = dt * 86400  # Convert days to seconds if cftime
         weights = dt_seconds / dt_seconds.sum()
 
@@ -516,16 +527,10 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
                 print(f'Skipping {var} of dtype={dtype}')
                 continue
 
-            # Group by year and apply the weighted mean
-            if isinstance(ds[time_dim].values[0], cftime.datetime):
-                years = [t.year for t in ds[time_dim].values]
-            else:
-                years = ds[time_dim].dt.year
-
             grouped = ds[var].groupby('time.year')
             yearly_mean = grouped.map(lambda x: compute_weighted_mean(x, ds[time_dim]))
 
-            ds_yearly[var] = yearly_mean
+            ds_yearly[var] = yearly_mean.astype(ds[var].dtype)
 
     return ds_yearly
 
