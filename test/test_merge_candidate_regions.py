@@ -2,7 +2,10 @@ import unittest
 import numpy as np
 import xarray as xr
 from optim_esm_tools.analyze.merge_candidate_regions import *
-from optim_esm_tools.analyze.merge_candidate_regions import _should_merge_adjacent, _frac_overlap_nb
+from optim_esm_tools.analyze.merge_candidate_regions import (
+    _should_merge_adjacent,
+    _frac_overlap_nb,
+)
 import optim_esm_tools
 from unittest.mock import MagicMock, patch
 
@@ -10,26 +13,32 @@ from unittest.mock import MagicMock, patch
 class TestShouldMerge(unittest.TestCase):
     def setUp(self):
         # Prepare test data
-        self.grid1 = np.array([
-            [1, 1, 0, 0],
-            [1, 1, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-        
-        self.grid2 = np.array([
-            [0, 0, 1, 1],
-            [0, 0, 1, 1],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-        
-        self.overlapping_grid = np.array([
-            [1, 1, 1, 0],
-            [1, 1, 1, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
+        self.grid1 = np.array(
+            [
+                [1, 1, 0, 0],
+                [1, 1, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ]
+        )
+
+        self.grid2 = np.array(
+            [
+                [0, 0, 1, 1],
+                [0, 0, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ]
+        )
+
+        self.overlapping_grid = np.array(
+            [
+                [1, 1, 1, 0],
+                [1, 1, 1, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ]
+        )
 
         self.xr_grid1 = xr.DataArray(self.grid1)
         self.xr_grid2 = xr.DataArray(self.grid2)
@@ -37,31 +46,52 @@ class TestShouldMerge(unittest.TestCase):
 
     def test_should_merge_overlap(self):
         # Test merging based on overlapping
-        with patch('optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb', return_value=0.6):
+        with patch(
+            'optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb',
+            return_value=0.6,
+        ):
             self.assertTrue(
-                should_merge(self.xr_grid1, self.xr_overlapping_grid, min_frac_overlap=0.5)
+                should_merge(
+                    self.xr_grid1, self.xr_overlapping_grid, min_frac_overlap=0.5
+                ),
             )
 
     def test_should_merge_adjacent(self):
         # Test merging based on adjacency
-        with patch('optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb', return_value=0.3):
-            with patch('optim_esm_tools.analyze.merge_candidate_regions._should_merge_adjacent', return_value=True):
+        with patch(
+            'optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb',
+            return_value=0.3,
+        ):
+            with patch(
+                'optim_esm_tools.analyze.merge_candidate_regions._should_merge_adjacent',
+                return_value=True,
+            ):
                 self.assertTrue(
-                    should_merge(self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=100)
+                    should_merge(
+                        self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=100
+                    ),
                 )
 
     def test_should_not_merge(self):
         # Test when grids do not satisfy merge criteria
-        with patch('optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb', return_value=0.3):
-            with patch('optim_esm_tools.analyze.merge_candidate_regions._should_merge_adjacent', return_value=False):
+        with patch(
+            'optim_esm_tools.analyze.merge_candidate_regions._frac_overlap_nb',
+            return_value=0.3,
+        ):
+            with patch(
+                'optim_esm_tools.analyze.merge_candidate_regions._should_merge_adjacent',
+                return_value=False,
+            ):
                 self.assertFalse(
-                    should_merge(self.grid1, self.grid2, min_frac_overlap=0.5, min_n_adjacent=100)
+                    should_merge(
+                        self.grid1, self.grid2, min_frac_overlap=0.5, min_n_adjacent=100
+                    ),
                 )
 
     def test_invalid_input(self):
         # Test with invalid input types
         with self.assertRaises(TypeError):
-            should_merge(self.grid1, "invalid_type")
+            should_merge(self.grid1, 'invalid_type')
 
     def test_fraction_overlap(self):
         # Test the fraction overlap calculation
@@ -71,13 +101,16 @@ class TestShouldMerge(unittest.TestCase):
     def test_should_merge_adjacent_function(self):
         # Test the adjacency calculation
         self.assertTrue(
-            _should_merge_adjacent(self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=2)
+            _should_merge_adjacent(
+                self.grid1, self.grid2, min_border_frac=0.05, min_n_adjacent=2
+            ),
         )
 
         self.assertFalse(
-            _should_merge_adjacent(self.grid1, self.grid2, min_border_frac=1, min_n_adjacent=100)
+            _should_merge_adjacent(
+                self.grid1, self.grid2, min_border_frac=1, min_n_adjacent=100
+            ),
         )
-
 
 
 def create_mock_dataset(global_mask_values):
@@ -86,7 +119,10 @@ def create_mock_dataset(global_mask_values):
     """
     data = xr.Dataset(
         {
-            "global_mask": (("lat_mask", "lon_mask"), np.array(global_mask_values, dtype=bool)),
+            'global_mask': (
+                ('lat_mask', 'lon_mask'),
+                np.array(global_mask_values, dtype=bool),
+            ),
         },
     )
     return data
@@ -101,9 +137,9 @@ class TestMerger(unittest.TestCase):
         cell_area[:] = 1
         common_dummy['cell_area'] = cell_area
         return common_dummy
-    
-    @patch("optim_esm_tools.get_logger")
-    @patch("optim_esm_tools.load_glob")
+
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
     def test_merger_initialization(self, mock_load_glob, mock_get_logger):
         """
         Test if the Merger initializes correctly.
@@ -117,10 +153,10 @@ class TestMerger(unittest.TestCase):
             return True
 
         def mock_summary_calculation(**kwargs):
-            return {"stat": 1}
+            return {'stat': 1}
 
-        common_dummy=self.get_dummy_common(mock_ds)
-        
+        common_dummy = self.get_dummy_common(mock_ds)
+
         merger = Merger(
             pass_criteria=mock_pass_criteria,
             summary_calculation=mock_summary_calculation,
@@ -131,10 +167,12 @@ class TestMerger(unittest.TestCase):
         self.assertIsInstance(merger, Merger)
         self.assertEqual(len(merger.data_sets), 1)
 
-    @patch("optim_esm_tools.get_logger")
-    @patch("optim_esm_tools.load_glob")
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
     def test_merger_set_passing_largest_data_sets_first(
-        self, mock_load_glob, mock_get_logger
+        self,
+        mock_load_glob,
+        mock_get_logger,
     ):
         """
         Test if datasets are sorted correctly based on the pass criteria and size.
@@ -147,9 +185,9 @@ class TestMerger(unittest.TestCase):
             return True
 
         def mock_summary_calculation(**kwargs):
-            return {"stat": 1}
+            return {'stat': 1}
 
-        common_dummy=self.get_dummy_common(mock_ds1)
+        common_dummy = self.get_dummy_common(mock_ds1)
         merger = Merger(
             pass_criteria=mock_pass_criteria,
             summary_calculation=mock_summary_calculation,
@@ -162,8 +200,8 @@ class TestMerger(unittest.TestCase):
         merger.set_passing_largest_data_sets_first()
         self.assertEqual(merger.data_sets[0], mock_ds2)
 
-    @patch("optim_esm_tools.get_logger")
-    @patch("optim_esm_tools.load_glob")
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
     def test_merger_merge_datasets(self, mock_load_glob, mock_get_logger):
         """
         Test the merge_datasets method to ensure it merges datasets correctly.
@@ -177,10 +215,9 @@ class TestMerger(unittest.TestCase):
             return True
 
         def mock_summary_calculation(**kwargs):
-            return {"stat": 1}
+            return {'stat': 1}
 
-        
-        common_dummy=self.get_dummy_common(mock_ds1)
+        common_dummy = self.get_dummy_common(mock_ds1)
         merger = Merger(
             pass_criteria=mock_pass_criteria,
             summary_calculation=mock_summary_calculation,
@@ -191,11 +228,11 @@ class TestMerger(unittest.TestCase):
 
         result = merger.merge_datasets()
         self.assertTrue(len(result) > 0)
-        self.assertTrue("stats" in result[0])
-        self.assertIsInstance(result[0]["ds"], xr.Dataset)
+        self.assertTrue('stats' in result[0])
+        self.assertIsInstance(result[0]['ds'], xr.Dataset)
 
-    @patch("optim_esm_tools.get_logger")
-    @patch("optim_esm_tools.load_glob")
+    @patch('optim_esm_tools.get_logger')
+    @patch('optim_esm_tools.load_glob')
     def test_merger_group_to_first(self, mock_load_glob, mock_get_logger):
         """
         Test _group_to_first logic.
@@ -208,10 +245,10 @@ class TestMerger(unittest.TestCase):
             return True
 
         def mock_summary_calculation(**kwargs):
-            return {"stat": 1}
+            return {'stat': 1}
 
-        common_dummy=self.get_dummy_common(mock_ds1)
-        
+        common_dummy = self.get_dummy_common(mock_ds1)
+
         merger = Merger(
             pass_criteria=mock_pass_criteria,
             summary_calculation=mock_summary_calculation,
@@ -221,9 +258,9 @@ class TestMerger(unittest.TestCase):
         )
 
         group_result = merger._group_to_first([mock_ds1, mock_ds2])
-        self.assertTrue("stats" in group_result)
-        self.assertIsInstance(group_result["ds"], xr.Dataset)
+        self.assertTrue('stats' in group_result)
+        self.assertIsInstance(group_result['ds'], xr.Dataset)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

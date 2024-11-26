@@ -104,7 +104,7 @@ def _should_merge_adjacent(
     return (n_ad / n_border) > min_border_frac or n_ad > min_n_adjacent
 
 
-def get_lat_lon_coordinates_of_mask(ds, field="global_mask"):
+def get_lat_lon_coordinates_of_mask(ds, field='global_mask'):
     mask = ds[field].values.T
     x, y = np.meshgrid(ds.lat_mask.values, ds.lon_mask.values)
     x, y = x[mask], y[mask]
@@ -159,9 +159,9 @@ class Merger:
         common_mother: ty.Optional[xr.Dataset] = None,
         common_pi: ty.Optional[xr.Dataset] = None,
         merge_options: ty.Optional[dict] = None,
-        merge_method: str = "naive",
+        merge_method: str = 'naive',
     ):
-        assert data_sets, "datasets"
+        assert data_sets, 'datasets'
         assert isinstance(pass_criteria, ty.Callable)
         assert isinstance(summary_calculation, ty.Callable)
         self.summary_calculation = summary_calculation
@@ -183,7 +183,7 @@ class Merger:
         common_mother,
         common_pi,
     ) -> ty.Tuple[xr.Dataset, xr.Dataset]:
-        common_mother = common_mother or oet.load_glob(self.data_sets[0]["file"])
+        common_mother = common_mother or oet.load_glob(self.data_sets[0]['file'])
         common_pi = common_pi or oet.analyze.time_statistics.get_historical_ds(
             common_mother,
         )
@@ -200,23 +200,23 @@ class Merger:
                 passes=self.pass_criteria(
                     **self.summary_calculation(
                         **self.summary_kw,
-                        mask=c["global_mask"],
+                        mask=c['global_mask'],
                     ),
                 ),
-                cells=int(c["global_mask"].sum()),
+                cells=int(c['global_mask'].sum()),
                 candidate=c,
             )
             for c in self.data_sets
         ]
-        _max_number_of_cells = max(c["cells"] for c in candidates_info)
+        _max_number_of_cells = max(c['cells'] for c in candidates_info)
 
         candidates_sorted = sorted(
             candidates_info,
-            key=lambda x: -int(x["passes"] * 2) * _max_number_of_cells
-            - int(x["cells"]),
+            key=lambda x: -int(x['passes'] * 2) * _max_number_of_cells
+            - int(x['cells']),
         )
 
-        self.data_sets = [c["candidate"] for c in candidates_sorted]
+        self.data_sets = [c['candidate'] for c in candidates_sorted]
         self._sorted = True
 
     def merge_datasets(self):
@@ -224,30 +224,30 @@ class Merger:
             self.set_passing_largest_data_sets_first()
         candidates = self.data_sets
         groups = []
-        pbar = oet.utils.tqdm(total=len(candidates), desc="Looping candidates")
+        pbar = oet.utils.tqdm(total=len(candidates), desc='Looping candidates')
         while candidates:
             pbar.n = len(self.data_sets) - len(candidates)
             pbar.display()
             self.log.info(pbar)
             doc = self._group_to_first(candidates)
-            if not self.pass_criteria(**doc["stats"]):
+            if not self.pass_criteria(**doc['stats']):
                 self.log.info(
                     f'Discarding group {doc["merged"]} because {doc["stats"]} does not pass',
                 )
                 self.log.debug(f"Discarded doc {doc}")
             else:
                 self.log.info(f'Adding {doc["merged"]} because {doc["stats"]} passes')
-                doc["ds"].attrs.update(
+                doc['ds'].attrs.update(
                     dict(
                         mask_paths=[
-                            c.attrs.get("mask_path", "path=?")
+                            c.attrs.get('mask_path', 'path=?')
                             for i, c in enumerate(candidates)
-                            if i in doc["merged"]
+                            if i in doc['merged']
                         ],
                     ),
                 )
                 groups.append(doc)
-            candidates = [c for i, c in enumerate(candidates) if i not in doc["merged"]]
+            candidates = [c for i, c in enumerate(candidates) if i not in doc['merged']]
         pbar.close()
         pbar.display()
         self.log.info(pbar)
@@ -258,7 +258,7 @@ class Merger:
         return dict(
             ds_global=self.common_mother,
             ds_pi=self.common_pi,
-            field=self.common_mother.attrs["variable_id"],
+            field=self.common_mother.attrs['variable_id'],
         )
 
     def _group_to_first(
@@ -267,7 +267,7 @@ class Merger:
     ) -> ty.Dict[str, ty.Union[ty.Mapping, xr.Dataset, ty.List]]:
         something_merged = True
         global_masks = {
-            i: ds["global_mask"].load().copy() for i, ds in enumerate(candidates)
+            i: ds['global_mask'].load().copy() for i, ds in enumerate(candidates)
         }
         current_global_mask = global_masks.pop(0)
 
@@ -287,7 +287,7 @@ class Merger:
         if not merge_to_current:
             single_stat = self.summary_calculation(
                 **summary_kw,
-                mask=candidates[0]["global_mask"],
+                mask=candidates[0]['global_mask'],
             )
             return dict(stats=single_stat, ds=candidates[0], merged=[0])
 
@@ -301,14 +301,14 @@ class Merger:
             return dict(stats=stat, ds=ds_merged, merged=[0] + merge_to_current)
 
         for it, candidate_i in enumerate(
-            oet.utils.tqdm([0] + merge_to_current, desc="checking at least one passes"),
+            oet.utils.tqdm([0] + merge_to_current, desc='checking at least one passes'),
         ):
-            m = candidates[candidate_i]["global_mask"]
+            m = candidates[candidate_i]['global_mask']
             if self.pass_criteria(
                 **self.summary_calculation(**summary_kw, mask=m),
             ):
                 if it == 0:
-                    self.log.info("First dataset passes, stop check")
+                    self.log.info('First dataset passes, stop check')
                     break
                 # Set the passing candidate as first in the list to merge to item 0.
                 # Account for [0] being it 0
@@ -334,7 +334,7 @@ class Merger:
         self.log.warning(
             f"Merging would lead to failed test, going over items one by one",
         )
-        if self.merge_method == "naive":
+        if self.merge_method == 'naive':
             return self._iter_mergable_candidates_naive(
                 candidates,
                 merge_to_current,
@@ -354,7 +354,7 @@ class Merger:
         summary_kw: ty.Mapping,
     ) -> ty.Dict[str, ty.Union[ty.Mapping, xr.Dataset, ty.List]]:
         global_masks = {
-            i: ds["global_mask"].load().copy() for i, ds in enumerate(candidates)
+            i: ds['global_mask'].load().copy() for i, ds in enumerate(candidates)
         }
         current_global_mask = global_masks.pop(0)
         do_merge = []
@@ -377,7 +377,7 @@ class Merger:
         if not do_merge:
             single_stat = self.summary_calculation(
                 **summary_kw,
-                mask=candidates[0]["global_mask"],
+                mask=candidates[0]['global_mask'],
             )
             return dict(stats=single_stat, ds=candidates[0], merged=[0])
         return dict(stats=stat, ds=ds_merged, merged=[0] + do_merge)
@@ -389,14 +389,14 @@ class Merger:
         summary_kw: ty.Mapping,
     ) -> ty.Dict[str, ty.Union[ty.Mapping, xr.Dataset, ty.List]]:
         global_masks = {
-            i: ds["global_mask"].load().copy() for i, ds in enumerate(candidates)
+            i: ds['global_mask'].load().copy() for i, ds in enumerate(candidates)
         }
         current_global_mask = global_masks.pop(0)
         do_merge: ty.List[int] = []
 
         do_a_merge = True
         it = 0
-        pbar = oet.utils.tqdm(total=len(global_masks), desc="merging iteratively")
+        pbar = oet.utils.tqdm(total=len(global_masks), desc='merging iteratively')
         while do_a_merge:
             # Keep looping over the candidates until we can loop over all the remaining candidates and conclude that they cannot be merged to the current mask
             it += 1
@@ -448,7 +448,7 @@ class Merger:
         if not do_merge:
             single_stat = self.summary_calculation(
                 **summary_kw,
-                mask=candidates[0]["global_mask"],
+                mask=candidates[0]['global_mask'],
             )
             return dict(stats=single_stat, ds=candidates[0], merged=[0])
         return dict(stats=stat, ds=ds_merged, merged=[0] + do_merge)
@@ -459,24 +459,24 @@ class Merger:
         return self._log
 
 
-def merge_from_df(df, pass_func, save_to="/data/volume_2/test"):
+def merge_from_df(df, pass_func, save_to='/data/volume_2/test'):
     df_remaining = df[df.tips].copy()
     new_cols = []
-    pbar = oet.utils.tqdm(total=len(df_remaining), desc="building merges")
+    pbar = oet.utils.tqdm(total=len(df_remaining), desc='building merges')
     while len(df_remaining):
         pbar.n = np.sum(df.tips) - len(df_remaining)
         pbar.display()
         sel = df_remaining.iloc[0]
         mask = np.ones(len(df_remaining), dtype=np.bool_)
-        keep_keys = "institution_id source_id experiment_id variant_label variable_id method tips version".split()
+        keep_keys = 'institution_id source_id experiment_id variant_label variable_id method tips version'.split()
         for k in keep_keys:
             mask &= df_remaining[k] == sel[k]
         matches = df_remaining[mask]
         df_remaining = df_remaining[~mask]
 
-        paths = list(matches["path"])
+        paths = list(matches['path'])
 
-        ds_common = oet.load_glob(oet.load_glob(paths[0]).attrs["file"])
+        ds_common = oet.load_glob(oet.load_glob(paths[0]).attrs['file'])
         me = Merger(
             pass_criteria=pass_func,
             data_sets=[oet.load_glob(p) for p in paths],
@@ -489,22 +489,22 @@ def merge_from_df(df, pass_func, save_to="/data/volume_2/test"):
         me.log.setLevel(logging.WARNING)
         for i, r in enumerate(res):
             # so complex for so simple, adjust later
-            new_fmt = paths[0].split("_cluster-")
-            new_fmt[1] = new_fmt[1].split("_")[1]
+            new_fmt = paths[0].split('_cluster-')
+            new_fmt[1] = new_fmt[1].split('_')[1]
 
             new_fmt.insert(1, (f'supercluster_{i}_n{len(r["merged"])}'))
-            _, name = os.path.split("_".join(new_fmt))
+            _, name = os.path.split('_'.join(new_fmt))
             if not os.path.exists(save_to):
                 os.makedirs(save_to)
             p = os.path.join(save_to, name)
 
-            r["ds"].to_netcdf(p)
+            r['ds'].to_netcdf(p)
             doc = sel[keep_keys].to_dict()
-            if r.get("stats"):
-                doc.update(r["stats"])
+            if r.get('stats'):
+                doc.update(r['stats'])
             ordered_doc = {k: doc.get(k, np.nan) for k in df.columns}
-            ordered_doc["tips"] = True
-            ordered_doc["path"] = p
+            ordered_doc['tips'] = True
+            ordered_doc['path'] = p
             new_cols.append(ordered_doc)
     pbar.n = np.sum(df.tips)
     pbar.close()
@@ -519,7 +519,7 @@ class MergerCached(Merger):
         del self.summary_calculation
 
         self._cache = {}
-        self._summary_calculation = kw["summary_calculation"]
+        self._summary_calculation = kw['summary_calculation']
         self.summary_calculation = self.cache_summary
 
     @staticmethod
