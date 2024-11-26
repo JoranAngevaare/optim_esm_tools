@@ -174,12 +174,12 @@ class TestYearlyAverage(unittest.TestCase):
         xr.testing.assert_allclose(
             ds_yearly_with_bounds['tas'],
             ds_yearly_without_bounds['tas'],
-            rtol=1/29,  # Max one day/month off
+            rtol=1 / 29,  # Max one day/month off
         )
         xr.testing.assert_allclose(
             ds_yearly_with_bounds['pr'],
             ds_yearly_without_bounds['pr'],
-            rtol=1/29,  # Max one day/month off
+            rtol=1 / 29,  # Max one day/month off
         )
 
 

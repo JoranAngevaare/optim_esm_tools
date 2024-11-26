@@ -497,7 +497,8 @@ def yearly_average(ds: xr.Dataset, time_dim='time') -> xr.Dataset:
         if isinstance(time[0], cftime.datetime):
             keep_idx = np.array([t.year in years for t in time])
         elif isinstance(time, xr.DataArray) and isinstance(
-            time.values[0], cftime.datetime
+            time.values[0],
+            cftime.datetime,
         ):
             keep_idx = np.array([t.year in years for t in time.values])
         else:
