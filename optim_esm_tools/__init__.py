@@ -1,6 +1,7 @@
 __version__ = '2.1.1'
 __author__ = 'Joran R. Angevaare'
 
+from .plotting import plot_utils
 from . import utils
 from . import config
 from . import analyze
