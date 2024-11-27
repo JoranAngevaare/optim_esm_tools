@@ -230,6 +230,7 @@ class Merger:
                 )
                 groups.append(doc)
             candidates = [c for i, c in enumerate(candidates) if i not in doc['merged']]
+        pbar.n = pbar.total
         pbar.close()
         pbar.display()
         self.log.info(pbar)
@@ -317,7 +318,7 @@ class Merger:
             f"Merging would lead to failed test, going over items one by one",
         )
         if self.merge_method != 'independent':
-            raise NotImplementedError
+            raise NotImplementedError(f'{self.merge_method} is not implemented')
 
         return self._iter_mergable_candidates(
             candidates,
