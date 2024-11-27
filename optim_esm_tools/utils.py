@@ -441,7 +441,7 @@ def scientific_latex_notation(
         fl = value
     elif isinstance(value, int):
         fl = float(value)
-    elif not isinstance(value, str):
+    elif isinstance(value, str):
         value = str(value)
 
         try:
@@ -449,11 +449,12 @@ def scientific_latex_notation(
         except (TypeError, ValueError) as e:
             return value
     else:
-        if abs(fl) > high or abs(fl) < low or "e" in value:
-            fl_s = f"{fl:{precision}}"
-            if "e" not in fl_s:
-                return value
-            a, b = fl_s.split("e+") if "e+" in fl_s else fl_s.split("e-")
-            res = f"${a}\\times 10^{{{int(b)}}}$"
-            return res
+        raise TypeError(f'misunderstood {value} ({type(value)})')
+    if abs(fl) > high or abs(fl) < low or "e" in str(value):
+        fl_s = f"{fl:{precision}}"
+        if "e" not in fl_s:
+            return value
+        a, b = fl_s.split("e+") if "e+" in fl_s else fl_s.split("e-")
+        res = f"${a}\\times 10^{{{int(b)}}}$"
+        return res
     return value
