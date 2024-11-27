@@ -315,7 +315,9 @@ class RegionPropertyCalculator:
             return np.nan
 
     def _calc_jump_n_years(
-        self, n_years: int = 10, rm_years: ty.Optional[int] = None
+        self,
+        n_years: int = 10,
+        rm_years: ty.Optional[int] = None,
     ) -> float:
         a = self.weigthed_mean_cached(self.field, data_set="ds_local")
         rm_years = rm_years or self._rm_years
@@ -673,7 +675,7 @@ def jump_n_years(
     moving_average_years: ty.Optional[int] = None,
 ) -> np.float64:
     ma = moving_average_years or int(
-        oet.config.config["analyze"]["moving_average_years"]
+        oet.config.config["analyze"]["moving_average_years"],
     )
     use_field = f"{field}_run_mean_{ma}"
     a = ds_local[use_field].mean("lat lon".split()).values
