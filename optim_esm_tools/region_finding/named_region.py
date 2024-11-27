@@ -36,7 +36,7 @@ class _NamedRegions(RegionExtractor):
 
         for m in masks:
             # Format to lat,lon instead of lon,lat
-            coords.append(np.array(self.mask_to_lon_lat(m)[::-1]))
+            coords.append(np.array(self.mask_to_lon_lat(m)))
         return masks, coords
 
     def filter_masks_and_clusters(

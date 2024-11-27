@@ -230,6 +230,7 @@ class Merger:
                 )
                 groups.append(doc)
             candidates = [c for i, c in enumerate(candidates) if i not in doc['merged']]
+        pbar.n = pbar.total
         pbar.close()
         pbar.display()
         self.log.info(pbar)
@@ -317,7 +318,7 @@ class Merger:
             f"Merging would lead to failed test, going over items one by one",
         )
         if self.merge_method != 'independent':
-            raise NotImplementedError
+            raise NotImplementedError(f'{self.merge_method} is not implemented')
 
         return self._iter_mergable_candidates(
             candidates,
@@ -417,9 +418,25 @@ class MergerCached(Merger):
             return hash(mask.values.tobytes())
         return hash(mask.tobytes())
 
-    def cache_summary(self, mask, *a, **kw):
+    def cache_summary(self, mask, *a, **kw) -> str:
         key = self.hash_for_mask(mask)
         if key not in self._cache:
             self.log.warning(f"Loading {key} new. Tot size {len(self._cache.keys())}")
             self._cache[key] = self._summary_calculation(*a, **kw, mask=mask)
         return self._cache[key]
+
+    def set_all_caches_as_false(
+        self,
+        masks: ty.List[np.ndarray],
+        fill_doc: ty.Optional[dict] = None,
+    ) -> None:
+        """A method to set all masks to not fullfull the summay calculation"""
+        if fill_doc is None:
+            doc_0 = self._summary_calculation(**self.summary_kw, mask=masks[0])
+            fill_doc = {
+                k: np.nan if isinstance(v, (float, int, np.number)) else v
+                for k, v in doc_0.items()
+            }
+        for mask in masks:
+            key = self.hash_for_mask(mask)
+            self._cache[key] = fill_doc
