@@ -81,6 +81,18 @@ jobs:
       - name: Download data with Synda
         if: matrix.test == 'full'
         run: bash .github/scripts/download_example_data.sh
+      - name: Run the notebook
+        if: matrix.test != 'minimal'
+        env:
+          NUMBA_DISABLE_JIT: 0
+        run:
+          |
+          coverage run --append --source=optim_esm_tools \
+            -m pytest --cov --nbmake -vv ./notebooks \
+            --nbmake-timeout=1200 \
+            --log-cli-level=DEBUG \
+            --durations=10 \
+            --tb=long
       - name: Run the tests
         if: matrix.test != 'minimal'
         env:
@@ -88,14 +100,14 @@ jobs:
           _CACHE_TRUE: 1
         run:
           |
-          # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
-          # coverage run --append --source=optim_esm_tools -m pytest --cov --nbmake -v ./notebooks --nbmake-timeout=1200
-          coverage run --append --source=optim_esm_tools \
-            -m pytest --cov --nbmake -vv ./notebooks \
-            --nbmake-timeout=1200 \
-            --log-cli-level=DEBUG \
-            --durations=10 \
-            --tb=long
+          # # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          # # coverage run --append --source=optim_esm_tools -m pytest --cov --nbmake -v ./notebooks --nbmake-timeout=1200
+          # coverage run --append --source=optim_esm_tools \
+          #   -m pytest --cov --nbmake -vv ./notebooks \
+          #   --nbmake-timeout=1200 \
+          #   --log-cli-level=DEBUG \
+          #   --durations=10 \
+          #   --tb=long
           coverage run --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Upload coverage
