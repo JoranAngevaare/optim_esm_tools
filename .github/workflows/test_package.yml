@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        test: [partial, minimal]
+        test: [partial, minimal, notebook]
         python-version: ['3.8', '3.9', '3.10']
         os: [ubuntu-latest, ubuntu-20.04]
         exclude:
@@ -82,7 +82,7 @@ jobs:
         if: matrix.test == 'full'
         run: bash .github/scripts/download_example_data.sh
       - name: Run the notebook
-        if: matrix.test != 'minimal'
+        if: matrix.test == 'notebook'
         env:
           NUMBA_DISABLE_JIT: 0
         run:
@@ -93,8 +93,10 @@ jobs:
             --log-cli-level=DEBUG \
             --durations=10 \
             --tb=long
+          coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
+          coverage report
       - name: Run the tests
-        if: matrix.test != 'minimal'
+        if: matrix.test == 'partial'
         env:
           NUMBA_DISABLE_JIT: 1
           _CACHE_TRUE: 1
