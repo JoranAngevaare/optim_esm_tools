@@ -387,6 +387,7 @@ class Merger:
                     merge_to_current += [merge]
                     self.log.info(f"Merge {merge} failed, lead to {candidate_stat}")
         pbar.close()
+        pbar.display()
         self.log.info(pbar)
         self.log.info(f"Merging {do_merge} from {merge_to_current}")
         if not do_merge:

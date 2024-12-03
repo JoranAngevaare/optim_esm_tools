@@ -11,26 +11,29 @@ on:
 
 jobs:
   test:
-    name: '${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}'
+    name: "${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
-        test: [full, partial, minimal]
-        python-version: ['3.8', '3.9', '3.10']
+        test: [partial, minimal, notebook]
+        python-version: ["3.8", "3.9", "3.10"]
         os: [ubuntu-latest, ubuntu-20.04]
         exclude:
-          - test: full
-            python-version: '3.9'
-          - test: full
-            python-version: '3.10'
-          # Disabled in #183, as there is some recurring synda - issue
-          - test: full
-            python-version: '3.8'
-          - test: full
+          - test: notebook
             os: ubuntu-20.04
+
           - test: minimal
+            os: ubuntu-20.04
+
+          - test: partial
             os: ubuntu-latest
+
+          - test: partial
+            python-version: "3.8"
+          - test: partial
+            python-version: "3.9"
+
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
@@ -45,8 +48,7 @@ jobs:
         uses: actions/checkout@v4
       - name: minimal install
         if: matrix.test == 'minimal'
-        run:
-          |
+        run: |
           pip install -r requirements.txt
           pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
@@ -59,38 +61,28 @@ jobs:
           use-only-tar-bz2: true
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          activate-environment: 'synda'
+          activate-environment: "synda"
       # PARTIAL (speed up testing)
       - name: run partial install
-        if: matrix.test == 'partial'
+        if: matrix.test != 'minimal'
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh "--no_synda"
-      # ALL
-      - name: run full install
-        if: matrix.test == 'full'
-        run: |
-          conda activate synda
-          bash .github/scripts/install_env.sh
-          bash .github/scripts/install_tex.sh
-      - name: set Synda config
-        if: matrix.test == 'full'
+      - name: Run the notebook
+        if: matrix.test == 'notebook'
         env:
-          OPEN_ID: ${{ secrets.OPEN_ID }}
-          OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
-        run: bash .github/scripts/write_synda_cridentials.sh
-      - name: Download data with Synda
-        if: matrix.test == 'full'
-        run: bash .github/scripts/download_example_data.sh
+          NUMBA_DISABLE_JIT: 0
+        run: |
+          pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
+          coverage report
       - name: Run the tests
-        if: matrix.test != 'minimal'
+        if: matrix.test == 'partial'
         env:
           NUMBA_DISABLE_JIT: 1
           _CACHE_TRUE: 1
-        run:
-          |
-          coverage run --source=optim_esm_tools -m pytest -v --durations 0
-          # coverage run --append --source=optim_esm_tools -m pytest --nbmake -n=auto ./notebooks
+        run: |
+          coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Upload coverage
         if: matrix.test != 'minimal'
