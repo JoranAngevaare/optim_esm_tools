@@ -108,7 +108,7 @@ jobs:
           #   --log-cli-level=DEBUG \
           #   --durations=10 \
           #   --tb=long
-          coverage run --source=optim_esm_tools -m pytest -v --durations 0
+          coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Upload coverage
         if: matrix.test != 'minimal'
