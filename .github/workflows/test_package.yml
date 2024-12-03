@@ -71,12 +71,8 @@ jobs:
           NUMBA_DISABLE_JIT: 0
         run:
           |
-          coverage run --append --source=optim_esm_tools \
-            -m pytest --cov --nbmake -vv ./notebooks \
-            --nbmake-timeout=1200 \
-            --log-cli-level=DEBUG \
-            --durations=10 \
-            --tb=long
+          # coverage run --source=optim_esm_tools -m pytest --cov --nbmake -vv ./notebooks
+          pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Run the tests
