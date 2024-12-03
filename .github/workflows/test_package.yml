@@ -89,6 +89,7 @@ jobs:
         run:
           |
           # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          pip install nbconvert nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook
           coverage run --append --source=optim_esm_tools -m pytest --cov --nbmake -v ./notebooks --nbmake-timeout=1200
           coverage run --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
