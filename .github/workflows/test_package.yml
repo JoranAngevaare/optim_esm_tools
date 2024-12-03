@@ -11,25 +11,29 @@ on:
 
 jobs:
   test:
-    name: '${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}'
+    name: "${{ matrix.test }} on ${{ matrix.os }}, py${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
         test: [partial, minimal, notebook]
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ["3.8", "3.9", "3.10"]
         os: [ubuntu-latest, ubuntu-20.04]
         exclude:
           - test: notebook
             os: ubuntu-20.04
+
           - test: minimal
             os: ubuntu-latest
+
           - test: partial
-            python-version: 3.9
-            os: ubuntu-20.04
+            os: ubuntu-latest
+
           - test: partial
-            python-version: "3.10"
-            os: ubuntu-20.04
+            python-version: "3.8"
+          - test: partial
+            python-version: "3.9"
+
     defaults:
       run:
         # This is needed otherwise we can't activate the conda installation
@@ -44,8 +48,7 @@ jobs:
         uses: actions/checkout@v4
       - name: minimal install
         if: matrix.test == 'minimal'
-        run:
-          |
+        run: |
           pip install -r requirements.txt
           pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
@@ -58,7 +61,7 @@ jobs:
           use-only-tar-bz2: true
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          activate-environment: 'synda'
+          activate-environment: "synda"
       # PARTIAL (speed up testing)
       - name: run partial install
         if: matrix.test != 'minimal'
@@ -69,9 +72,7 @@ jobs:
         if: matrix.test == 'notebook'
         env:
           NUMBA_DISABLE_JIT: 0
-        run:
-          |
-          # coverage run --source=optim_esm_tools -m pytest --cov --nbmake -vv ./notebooks
+        run: |
           pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
@@ -80,8 +81,7 @@ jobs:
         env:
           NUMBA_DISABLE_JIT: 1
           _CACHE_TRUE: 1
-        run:
-          |
+        run: |
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Upload coverage
