@@ -89,8 +89,9 @@ jobs:
           _CACHE_TRUE: 1
         run:
           |
-          pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
+          coverage run --append --source=optim_esm_tools -m pytest --nbmake ./notebooks
           coverage report
       - name: Upload coverage
         if: matrix.test != 'minimal'
