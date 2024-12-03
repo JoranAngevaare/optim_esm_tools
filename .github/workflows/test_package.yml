@@ -91,7 +91,7 @@ jobs:
           |
           # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
-          coverage run --append --source=optim_esm_tools -m pytest --nbmake ./notebooks
+          coverage run --append --source=optim_esm_tools -m pytest --cov --nbmake -v ./notebooks
           coverage report
       - name: Upload coverage
         if: matrix.test != 'minimal'
