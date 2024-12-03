@@ -53,13 +53,13 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: matrix.test != 'minimal'
         with:
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          use-mamba: true
+          installer-url: https://github.com/conda-forge/miniforge/releases/download/24.9.2-0/Miniforge3-24.9.2-0-Linux-x86_64.sh
+          allow-softlinks: true
+          show-channel-urls: true
+          use-only-tar-bz2: true
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           activate-environment: 'synda'
-          mamba-version: '*'
       # PARTIAL (speed up testing)
       - name: run partial install
         if: matrix.test == 'partial'
