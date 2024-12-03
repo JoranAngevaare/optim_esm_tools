@@ -20,7 +20,7 @@ jobs:
         python-version: ['3.8', '3.9', '3.10']
         os: [ubuntu-latest, ubuntu-20.04]
         exclude:
-          - test: full
+          - test: notebook
             os: ubuntu-20.04
           - test: minimal
             os: ubuntu-latest
@@ -61,26 +61,10 @@ jobs:
           activate-environment: 'synda'
       # PARTIAL (speed up testing)
       - name: run partial install
-        if: matrix.test == 'partial'
+        if: matrix.test != 'minimal'
         run: |
           conda activate synda
           bash .github/scripts/install_env.sh "--no_synda"
-      # ALL
-      - name: run full install
-        if: matrix.test == 'full'
-        run: |
-          conda activate synda
-          bash .github/scripts/install_env.sh
-          bash .github/scripts/install_tex.sh
-      - name: set Synda config
-        if: matrix.test == 'full'
-        env:
-          OPEN_ID: ${{ secrets.OPEN_ID }}
-          OPEN_ID_KEY: ${{ secrets.OPEN_ID_KEY }}
-        run: bash .github/scripts/write_synda_cridentials.sh
-      - name: Download data with Synda
-        if: matrix.test == 'full'
-        run: bash .github/scripts/download_example_data.sh
       - name: Run the notebook
         if: matrix.test == 'notebook'
         env:
@@ -102,14 +86,6 @@ jobs:
           _CACHE_TRUE: 1
         run:
           |
-          # # pytest --cov optim_esm_tools -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
-          # # coverage run --append --source=optim_esm_tools -m pytest --cov --nbmake -v ./notebooks --nbmake-timeout=1200
-          # coverage run --append --source=optim_esm_tools \
-          #   -m pytest --cov --nbmake -vv ./notebooks \
-          #   --nbmake-timeout=1200 \
-          #   --log-cli-level=DEBUG \
-          #   --durations=10 \
-          #   --tb=long
           coverage run --append --source=optim_esm_tools -m pytest -v --durations 0
           coverage report
       - name: Upload coverage
