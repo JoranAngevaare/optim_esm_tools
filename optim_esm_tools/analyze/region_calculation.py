@@ -490,11 +490,10 @@ class RegionPropertyCalculator:
         doc["_me_trop_rm50"] = self.calculate_mse_trop_rmx("max", rm=50)
 
         doc["se_vs_se_trop"] = np.divide(self._calc_start_end(), doc["_se_trop"])
-        doc["me_vs_me_trop_rm50"] = np.divide(
-            doc["me_rm50_signed"],
-            doc["_me_trop_rm50"],
-        )
-        doc["me_max_rm50"] = np.divide(doc["me_rm50_signed"], self.max_rmx(50))
+        doc["me_vs_me_trop_rm50"] = np.divide(doc["me_rm50"], doc["_me_trop_rm50"])
+        doc["me_max_rm50"] = np.divide(doc["me_rm50"], self.max_rmx(50))
+        doc['me_pi_std_rm50'] = np.divide(doc['me_rm50'], doc['_pi_std_rm50'])
+        doc['se_pi_std'] = np.divide(doc['se'], doc['_pi_std'])
         return {k: (v if v is not None else np.nan) for k, v in doc.items()}
 
 

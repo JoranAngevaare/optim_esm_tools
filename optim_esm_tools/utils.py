@@ -338,6 +338,11 @@ def scientific_latex_notation(
         if "e" not in fl_s:
             return value
         a, b = fl_s.split("e+") if "e+" in fl_s else fl_s.split("e-")
-        res = f"${a}\\times 10^{{{int(b)}}}$"
+        if '-' in fl_s:
+            exp = f'-{int(b)}'
+        else:
+            exp = f'{int(b)}'
+        res = f"${a}\\times 10^{{{exp}}}$"
+
         return res
     return value
