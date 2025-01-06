@@ -113,16 +113,46 @@ class VariableMerger:
             for sub_variable in list(_ds.data_vars):
                 if var not in sub_variable:
                     continue
-
-                new_ds['data_vars'][sub_variable] = (
-                    _ds[sub_variable]
-                    .where(self.get_common_mask(var))
-                    .mean(oet.config.config['analyze']['lon_lat_dim'].split(','))
-                )
-                new_ds['data_vars'][sub_variable].attrs = _ds[sub_variable].attrs
+                data = _ds[sub_variable].values
+                mask = self.get_common_mask(var).values.astype(bool)
+                weights = _ds['cell_area'].values
+                if len(data.shape) == 3 and all(
+                    k in _ds[sub_variable].coords
+                    for k in oet.config.config['analyze']['lon_lat_dim'].split(',')
+                ):
+                    data[:, ~mask] = np.nan
+                    mean_values = oet.analyze.tools._weighted_mean_array_numba(
+                        data=data,
+                        weights=weights,
+                        has_time_dim=True,
+                    )
+                    new_ds['data_vars'][sub_variable] = xr.DataArray(
+                        mean_values,
+                        dims=['time'],
+                        attrs=_ds[sub_variable].attrs,
+                    )
+                elif len(data.shape) == 2 and all(
+                    k in _ds[sub_variable].coords
+                    for k in oet.config.config['analyze']['lon_lat_dim'].split(',')
+                ):
+                    data[~mask] = np.nan
+                    mean_values = oet.analyze.tools._weighted_mean_array_numba(
+                        data=data,
+                        weights=weights,
+                        has_time_dim=False,
+                    )
+                    new_ds['data_vars'][sub_variable] = xr.DataArray(
+                        mean_values,
+                        attrs=_ds[sub_variable].attrs,
+                    )
+                else:
+                    raise ValueError(
+                        f'sub_variable: {data.shape} {_ds[sub_variable].coords}',
+                    )
 
         # Make one copy - just use the last dataset
         new_ds['data_vars']['cell_area'] = _ds['cell_area']
+        new_ds['data_vars']['time'] = _ds['time']
         keys = sorted(list(self.source_files.keys()))
         new_ds['attrs'] = dict(  # type: ignore
             variables=keys,
