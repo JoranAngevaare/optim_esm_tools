@@ -43,6 +43,11 @@ class TestCombineVariables(TestCase):
                     assert n in merged.data_vars
             oet.analyze.combine_variables.change_plt_table_height()
             merger.make_fig(merged, **plot_kw, add_history=False)
+
+            assert np.array_equal(
+                [t.year for t in merger.data_set['time'].values],
+                [t.year for t in post_ds['time'].values],
+            )
             return merger
 
     def test_merge_three(self):
@@ -172,6 +177,10 @@ class TestVariableMerger(TestCase):
         assert merger.data_set.equals(dummy_dataset)
         assert merger.mask_paths is None
         assert merger.merge_method == 'logical_or'
+        assert np.array_equal(
+            [t.year for t in merger.data_set['time'].values],
+            [t.year for t in dummy_dataset['time'].values],
+        )
 
     @settings(max_examples=3, deadline=None)
     @given(

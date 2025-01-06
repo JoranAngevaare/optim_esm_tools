@@ -152,6 +152,7 @@ class VariableMerger:
 
         # Make one copy - just use the last dataset
         new_ds['data_vars']['cell_area'] = _ds['cell_area']
+        new_ds['data_vars']['time'] = _ds['time']
         keys = sorted(list(self.source_files.keys()))
         new_ds['attrs'] = dict(  # type: ignore
             variables=keys,
