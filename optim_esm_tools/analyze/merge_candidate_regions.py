@@ -252,11 +252,23 @@ class Merger:
         global_masks = {
             i: ds['global_mask'].load().copy() for i, ds in enumerate(candidates)
         }
-        current_global_mask = global_masks.pop(0)
+        current_global_mask: xr.DataArray = global_masks.pop(0)
 
-        merge_to_current = []
+        merge_to_current: ty.List[int] = []
 
         summary_kw = self.summary_kw
+        first_doc = self.summary_calculation(
+            **self.summary_kw,
+            mask=candidates[0]['global_mask'],
+        )
+        if not self.pass_criteria(**first_doc):
+            # The first candidate is not passing anything, so we should stop here.
+            # Because _set_passing_largest_data_sets_first set the passing sets first, there
+            # Should be no reason to continue here.
+            self.log.info(
+                f"Exhausted passing regions, so next candidates are ignored ({len(candidates)-1} remaining)",
+            )
+            return dict(stats=first_doc, ds=candidates[0], merged=[0])
         while something_merged:
             something_merged = False
             for i, ds_alt in global_masks.items():
@@ -268,11 +280,7 @@ class Merger:
                     something_merged = True
         self.log.info(f"Merging items {merge_to_current} to [0]")
         if not merge_to_current:
-            single_stat = self.summary_calculation(
-                **summary_kw,
-                mask=candidates[0]['global_mask'],
-            )
-            return dict(stats=single_stat, ds=candidates[0], merged=[0])
+            return dict(stats=first_doc, ds=candidates[0], merged=[0])
 
         ds_merged = oet.analyze.xarray_tools.mask_to_reduced_dataset(
             self.common_mother.load().copy(),
