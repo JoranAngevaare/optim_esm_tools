@@ -1,10 +1,10 @@
 3.0.1 / 2025-01-14
 ------------------
-# Bugfixes
+## Bugfixes
 * Exit early from candidates without passing properties by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/212
 * Weighted average in combine variables by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/206
 
-# Documentation
+## Documentation
 * Example notebook by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/204
 
 ## Patch
@@ -17,7 +17,7 @@
 
 3.0.0 / 2024-11-27
 ------------------
-# Major
+## Major
 * Region calculation by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/201
 
 ## Patch
