@@ -13,7 +13,7 @@
 * Bump nbconvert from 7.2.3 to 7.16.4 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/211
 * [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/205
 
-**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v2.1.1...v3.0.0
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v3.0.0...v3.0.1
 
 3.0.0 / 2024-11-27
 ------------------
