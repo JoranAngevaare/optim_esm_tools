@@ -10,7 +10,7 @@ intake-esm
 
 # noteboo testing
 nbconvert==7.16.4
-nbmake==1.1
+nbmake==1.5.5
 numba
 pytest
 pytest==6.2.5
