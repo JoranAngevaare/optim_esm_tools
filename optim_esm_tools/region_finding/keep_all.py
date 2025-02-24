@@ -39,7 +39,7 @@ class MaskAll(RegionExtractor):
                 coords.append(np.array(this_coords))
                 masks.append(this_mask)
         if force_continuity:
-            masks = oet.analyze.clustering._split_to_continous(masks=masks)
+            masks = oet.analyze.clustering._split_to_continuous(masks=masks)
             lat, lon = np.meshgrid(lats, lons)
             coords = [
                 oet.analyze.clustering._find_lat_lon_values(m, lats=lat.T, lons=lon.T)

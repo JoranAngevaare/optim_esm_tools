@@ -302,7 +302,7 @@ def _build_cluster_with_kw(
         masks.append(np.array(full_2d_mask))
 
     if force_continuity:
-        masks = _split_to_continous(masks=masks)
+        masks = _split_to_continuous(masks=masks)
 
         clusters = [_find_lat_lon_values(m, lats=lat, lons=lon) for m in masks]
 
