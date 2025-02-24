@@ -212,6 +212,7 @@ class Merger:
             pbar.display()
             self.log.info(pbar)
             doc = self._group_to_first(candidates)
+
             if not self.pass_criteria(**doc['stats']):
                 self.log.info(
                     f'Discarding group {doc["merged"]} because {doc["stats"]} does not pass',
@@ -230,6 +231,10 @@ class Merger:
                 )
                 groups.append(doc)
             candidates = [c for i, c in enumerate(candidates) if i not in doc['merged']]
+
+            if doc.get('force_break', False):
+                self.log.warning('Breaking forcefully')
+                candidates = []
         pbar.n = pbar.total
         pbar.close()
         pbar.display()
@@ -268,7 +273,8 @@ class Merger:
             self.log.info(
                 f"Exhausted passing regions, so next candidates are ignored ({len(candidates)-1} remaining)",
             )
-            return dict(stats=first_doc, ds=candidates[0], merged=[0])
+            # We are going to pass one additional argument that allows us to break the overencompasing loop
+            return dict(stats=first_doc, ds=candidates[0], merged=[0], force_break=True)
         while something_merged:
             something_merged = False
             for i, ds_alt in global_masks.items():
