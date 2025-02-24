@@ -12,7 +12,7 @@ import xarray as xr
 
 from optim_esm_tools.config import config
 from optim_esm_tools.config import get_logger
-from optim_esm_tools.utils import timed
+from optim_esm_tools.utils import timed, deprecated
 from optim_esm_tools.utils import tqdm
 
 
@@ -232,7 +232,12 @@ def _check_input(
     return lat, lon
 
 
-def _split_to_continous(
+@deprecated
+def _split_to_continous(*a, **kw):
+    return _split_to_continuous(*a, **kw)
+
+
+def _split_to_continuous(
     masks: ty.List,
     **kw,
 ) -> ty.List[np.ndarray]:
