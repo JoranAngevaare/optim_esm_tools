@@ -1,3 +1,32 @@
+3.0.1 / 2025-01-14
+------------------
+## Bugfixes
+* Exit early from candidates without passing properties by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/212
+* Weighted average in combine variables by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/206
+
+## Documentation
+* Example notebook by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/204
+
+## Patch
+* Miniforge installer by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/203
+* Update rasterio requirement from <=1.3.10 to <=1.4.3 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/207
+* Bump nbconvert from 7.2.3 to 7.16.4 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/211
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/205
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v3.0.0...v3.0.1
+
+3.0.0 / 2024-11-27
+------------------
+## Major
+* Region calculation by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/201
+
+## Patch
+* Merge adjacent candidates by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/199
+* Add numpy, xarray and other utility functions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/200
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v2.1.1...v3.0.0
+
+
 2.1.0 / 2024-09-30
 ------------------
 ## Minor

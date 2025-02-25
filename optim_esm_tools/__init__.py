@@ -1,4 +1,4 @@
-__version__ = '3.0.0'
+__version__ = '3.0.1'
 __author__ = 'Joran R. Angevaare'
 
 from .plotting import plot_utils

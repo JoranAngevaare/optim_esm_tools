@@ -9,7 +9,7 @@ hypothesis-numpy
 intake-esm
 
 # noteboo testing
-nbconvert==7.2.3
+nbconvert==7.16.4
 nbmake==1.1
 numba
 pytest

@@ -12,7 +12,7 @@ import xarray as xr
 
 from optim_esm_tools.config import config
 from optim_esm_tools.config import get_logger
-from optim_esm_tools.utils import timed
+from optim_esm_tools.utils import timed, deprecated
 from optim_esm_tools.utils import tqdm
 
 
@@ -232,11 +232,17 @@ def _check_input(
     return lat, lon
 
 
-def _split_to_continous(
+@deprecated
+def _split_to_continous(*a, **kw):
+    return _split_to_continuous(*a, **kw)
+
+
+def _split_to_continuous(
     masks: ty.List,
+    **kw,
 ) -> ty.List[np.ndarray]:
     no_group = -1
-    mask_groups = masks_array_to_coninuous_sets(masks, no_group_value=no_group)
+    mask_groups = masks_array_to_coninuous_sets(masks, no_group_value=no_group, **kw)
     continous_masks = []
     for grouped_members in mask_groups:
         for group_id in np.unique(grouped_members):
@@ -296,7 +302,7 @@ def _build_cluster_with_kw(
         masks.append(np.array(full_2d_mask))
 
     if force_continuity:
-        masks = _split_to_continous(masks=masks)
+        masks = _split_to_continuous(masks=masks)
 
         clusters = [_find_lat_lon_values(m, lats=lat, lons=lon) for m in masks]
 
@@ -493,18 +499,21 @@ def masks_array_to_coninuous_sets(
 
     result_groups = np.ones_like(masks[0], dtype=np.int64) * no_group_value
     check_buffer = np.zeros_like(masks[0], dtype=np.bool_)
-
+    kw_cont_sets = dict(
+        len_x=len_x,
+        len_y=len_y,
+        add_diagonal=add_diagonal,
+    )
+    kw_cont_sets.update(kw)
     # Warning, do notice that the result_buffer and check_buffer are modified in place! However, _group_mask_in_continous_sets does reset the buffer each time
     # Therefore, we have to copy the result each time! Otherwise that result will be overwritten in the next iteration
     return [
         _group_mask_in_continous_sets(
             mask=mask,
             no_group_value=no_group_value,
-            add_diagonal=add_diagonal,
-            len_x=len_x,
-            len_y=len_y,
             result_buffer=result_groups,
             check_buffer=check_buffer,
+            **kw_cont_sets,
         ).copy()
         for mask in masks
     ]

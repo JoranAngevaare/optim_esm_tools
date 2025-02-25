@@ -13,7 +13,7 @@ This software is used in the scope of the [OptimESM](https://cordis.europa.eu/pr
 The scientific aim is to isolate regions of three dimensional earth science data from CMIP6 and identify regions of dramatic changes as function of time.
 
 ## Setup
-This software requires `cdo` and `cartopy`, and preferably also `latex` and `synda`. As the last of this list is only supported in python 3.8 a separate repository [`optim_esm_base`](https://github.com/JoranAngevaare/optim_esm_base]) has a set of software versions that are compatible with these requirements.
+This software requires `cdo` and `cartopy`, and preferably also `latex` and `synda`. As the last of this list is only supported in python 3.8 a separate repository [`optim_esm_base`](https://github.com/JoranAngevaare/optim_esm_base) has a set of software versions that are compatible with these requirements.
 
 After these base requirements are fulfilled, one can install this software via pip
 ```

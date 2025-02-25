@@ -606,16 +606,20 @@ def find_max_in_equal_area(
                 continue
 
             da_sel = data.where(da_m)
-            max_in_sel = float(
-                da_sel.where(da_m).mean("lat lon".split()).max(),
+
+            max_in_sel = oet.analyze.tools._weighted_mean_2d_numba(
+                da_sel.where(da_m).values,
+                weights=area.values,
             )
             if prev_mask is None or target_area > area_m2:
                 return dict(
                     area_m2=area_m2,
                     max_in_sel=max_in_sel,
                 )
-            prev_in_sel = float(
-                da_sel.where(prev_mask).mean("lat lon".split()).max(),
+
+            prev_in_sel = oet.analyze.tools._weighted_mean_2d_numba(
+                da_sel.where(prev_mask).values,
+                weights=area.values,
             )
             prev_area = float(area.where(prev_mask).sum())
 
