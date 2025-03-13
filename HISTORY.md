@@ -1,3 +1,17 @@
+3.1.0 / 2025-02-13
+------------------
+## Minor
+* Gridpatcher for holes in interpolated grids by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/223
+## Dcoumentation
+* DiscontinuousGridPatcher demo by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/224
+
+## Patch
+* Weighted average for `find_max_in_equal_area` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/219
+* Allow kw in clustering by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/218
+* Break merging early for `merge_datasets` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/220
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v3.0.1...v3.1.0
+
 3.0.1 / 2025-01-14
 ------------------
 ## Bugfixes
