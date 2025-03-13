@@ -46,7 +46,9 @@ class TestDiscontinuousGridPatcher(unittest.TestCase):
     def test_patch_all_issues_with_iter_time(self):
         """Test patching when iter_time is enabled."""
         patcher = DiscontinuousGridPatcher(
-            self.ds, self.should_have_data_mask, iter_time=True
+            self.ds,
+            self.should_have_data_mask,
+            iter_time=True,
         )
         patched_ds = patcher.patch_all_issues()
         self.assertFalse(
@@ -69,7 +71,8 @@ class TestDiscontinuousGridPatcher(unittest.TestCase):
         )
         alt_ds['variable'].data[:, :, :, 2:5] = np.nan
         patcher = DiscontinuousGridPatcher(
-            alt_ds, xr.ones_like(alt_ds['variable'].isel(a=0))
+            alt_ds,
+            xr.ones_like(alt_ds['variable'].isel(a=0)),
         )
 
         with self.assertRaises(NotImplementedError):
