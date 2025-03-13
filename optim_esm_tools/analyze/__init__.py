@@ -11,3 +11,4 @@ from . import time_statistics
 from . import tools
 from . import xarray_tools
 from . import region_calculation
+from . import discontinuous_grid_patcher
