@@ -1,3 +1,5 @@
+"""This unittest was written with the help of ChatGPT"""
+
 import unittest
 import numpy as np
 import xarray as xr
