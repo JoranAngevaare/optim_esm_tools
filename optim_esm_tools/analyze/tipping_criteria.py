@@ -19,7 +19,6 @@ class _Condition(abc.ABC):
     short_description: str
     defaults: immutabledict = immutabledict(
         rename_to='long_name',
-        unit='absolute',
         apply_abs=True,
     )
 
@@ -236,7 +235,6 @@ def running_mean_diff(
     naming: str = '{variable}_run_mean_{running_mean}',
     running_mean: int = 10,
     rename_to: str = 'long_name',
-    unit: str = 'absolute',
     apply_abs: bool = True,
 ) -> xr.DataArray:  # type: ignore
     """Return difference in running mean of data set.
@@ -248,7 +246,6 @@ def running_mean_diff(
         naming (str, optional): . Defaults to '{variable}_run_mean_{running_mean}'.
         running_mean (int, optional): . Defaults to 10.
         rename_to (str, optional): . Defaults to 'long_name'.
-        unit (str, optional): . Defaults to 'absolute'.
         apply_abs (bool, optional): . Defaults to True.
     Raises:
         ValueError: when no timestamps are not none?
@@ -285,7 +282,6 @@ def running_mean_std(
     running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
-    unit: str = 'absolute',
 ) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
@@ -308,7 +304,6 @@ def max_change_xyr(
     running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
-    unit: str = 'absolute',
 ) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
