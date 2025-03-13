@@ -214,6 +214,8 @@ class DiscontinuousGridPatcher:
             for issue_mask in issues:
                 buffer.data = buffer.data | issue_mask
             self.ds['patched_data'] = buffer
-            self.ds['patched_data'].attrs.update(description=f'{self.__class__.__name__} added data for {len(issues)} in these lat/lon places.')
+            self.ds['patched_data'].attrs.update(
+                description=f'{self.__class__.__name__} added data for {len(issues)} in these lat/lon places.'
+            )
         self.ds.attrs.update({"Grid filler": f"Fixed {len(issues)}"})
         return self.ds
