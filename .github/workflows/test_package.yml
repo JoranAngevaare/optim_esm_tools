@@ -88,6 +88,6 @@ jobs:
         if: matrix.test != 'minimal'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: coveralls --service=github
+        run: coveralls --verbose --service=github
       - name: goodbye
         run: echo goodbye
