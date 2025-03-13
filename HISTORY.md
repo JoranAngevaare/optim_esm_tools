@@ -2,7 +2,8 @@
 ------------------
 ## Minor
 * Gridpatcher for holes in interpolated grids by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/223
-## Dcoumentation
+
+## Documentation
 * DiscontinuousGridPatcher demo by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/224
 
 ## Patch
