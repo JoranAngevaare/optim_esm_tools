@@ -41,6 +41,23 @@ def rank2d(a):
     return result
 
 
+def smoother_lowess_year(a, n_year=40, **kw):
+    frac = n_year / len(a)
+    if 'frac' in kw:
+        raise ValueError
+    return partial(
+        smooth_lowess,
+        **{
+            'it': 0,
+            'delta': 0.0,
+            'xvals': None,
+            'is_sorted': False,
+            'missing': 'drop',
+            'return_sorted': True,
+        },
+    )(a, frac=frac, **kw)
+
+
 def smooth_lowess(
     *a: ty.Union[
         ty.Tuple[np.ndarray, np.ndarray],

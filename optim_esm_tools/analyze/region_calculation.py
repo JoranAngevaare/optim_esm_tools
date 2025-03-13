@@ -134,21 +134,6 @@ class RegionPropertyCalculator:
             self._cache[k] = weighted_mean_array(_ds, field=field)
         return self._cache[k]
 
-    def _calc_max_end(self) -> float:
-        """Calculte the difference between the end and the maximum calue in the default moving average filtered time series"""
-        _m = self.weigthed_mean_cached(self.field_rm, "ds_local")
-        _rm_years = int(self._rm_years)
-        end = _m[-_rm_years // 2]
-        return max(np.abs(np.nanmax(_m) - end), np.abs(np.nanmin(_m) - end))
-
-    def _calc_std_trop(self, **kw) -> float:
-        """Calculte the average standard deviation in the scenario dataset"""
-        return self._calc_std_trop_inner(**kw, values_from="scenario")
-
-    def _calc_pi_std_trop(self, **kw) -> float:
-        """Calculte the average standard deviation in the pi-control dataset"""
-        return self._calc_std_trop_inner(**kw, values_from="pi")
-
     @oet.utils.check_accepts(accepts=dict(values_from=["scenario", "pi"]))
     def _calc_std_zone(
         self,
@@ -292,10 +277,6 @@ class RegionPropertyCalculator:
             ),
         )
 
-    def _calc_psymmetry(self) -> np.float64:
-        values = self.weigthed_mean_cached(self.field, "ds_local")
-        return oet.analyze.time_statistics.calculate_symmetry_test(values=values)
-
     def _calc_psymmetry_cached(self) -> np.float64:
         values = self.weigthed_mean_cached(self.field, "ds_local")
         values_as_tuple = tuple(values)
@@ -377,9 +358,8 @@ class RegionPropertyCalculator:
         zone_kw = dict(
             tropics=dict(zone_bounds=np.array([-90, self._tropic_lat]), reflect=True),
         )
-        if zone_name == "tropics_land_or_water":
-            oet.get_logger().warning(f"Replaced {zone_name} with tropics")
-            zone_name = "tropics"
+        if zone_name not in zone_kw:
+            raise KeyError(f"Replaced {zone_name} with tropics")
         return self._mask_by_zone_inner(lats, **zone_kw[zone_name])  # type: ignore
 
     def _mask_by_zone_inner(
