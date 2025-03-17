@@ -19,7 +19,6 @@ class _Condition(abc.ABC):
     short_description: str
     defaults: immutabledict = immutabledict(
         rename_to='long_name',
-        unit='absolute',
         apply_abs=True,
     )
 
@@ -229,7 +228,6 @@ class SNR(MaxJumpAndStd):
 
 @timed
 @apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_diff(
     data_set: xr.Dataset,
     variable: str,
@@ -237,7 +235,6 @@ def running_mean_diff(
     naming: str = '{variable}_run_mean_{running_mean}',
     running_mean: int = 10,
     rename_to: str = 'long_name',
-    unit: str = 'absolute',
     apply_abs: bool = True,
 ) -> xr.DataArray:  # type: ignore
     """Return difference in running mean of data set.
@@ -249,7 +246,6 @@ def running_mean_diff(
         naming (str, optional): . Defaults to '{variable}_run_mean_{running_mean}'.
         running_mean (int, optional): . Defaults to 10.
         rename_to (str, optional): . Defaults to 'long_name'.
-        unit (str, optional): . Defaults to 'absolute'.
         apply_abs (bool, optional): . Defaults to True.
     Raises:
         ValueError: when no timestamps are not none?
@@ -272,26 +268,12 @@ def running_mean_diff(
     var_unit = data_var.attrs.get('units', '{units}').replace('%', r'\%')
     name = data_var.attrs.get(rename_to, variable)
 
-    if unit == 'absolute':
-        result.name = f't[-1] - t[0] for {name} [{var_unit}]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_t_0
-        result.name = fr't[-1] - t[0] / t[0] for {name} $\%$'
-        return result
-
-    # Redundant if just for clarity
-    if unit == 'std':
-        result = result / result.std()
-        result.name = fr't[-1] - t[0] for {name} [$\sigma$]'
-        return result
-    raise ValueError(f'{unit} is invalid')
+    result.name = f't[-1] - t[0] for {name} [{var_unit}]'
+    return result
 
 
 @timed
 @apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def running_mean_std(
     data_set: xr.Dataset,
     variable: str,
@@ -300,7 +282,6 @@ def running_mean_std(
     running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
-    unit: str = 'absolute',
 ) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     result = data_set[data_var].std(dim=time_var)
@@ -308,24 +289,12 @@ def running_mean_std(
     var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', r'\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
-    if unit == 'absolute':
-        result.name = f'Std. {name} [{var_unit}]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_set[data_var].mean(dim=time_var)
-        result.name = fr'Relative Std. {name} [$\%$]'
-        return result
-
-    if unit == 'std':
-        result = result / data_set[data_var].std()
-        result.name = fr'Std. {name} [$\sigma$]'
-        return result
+    result.name = f'Std. {name} [{var_unit}]'
+    return result
 
 
 @timed
 @apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_change_xyr(
     data_set: xr.Dataset,
     variable: str,
@@ -335,7 +304,6 @@ def max_change_xyr(
     running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
-    unit: str = 'absolute',
 ) -> xr.DataArray:  # type: ignore
     data_var = naming.format(variable=variable, running_mean=running_mean)
     plus_x_yr = data_set.isel({time_var: slice(x_yr, None)})[data_var]
@@ -348,24 +316,12 @@ def max_change_xyr(
     var_unit = data_set[data_var].attrs.get('units', '{units}').replace('%', r'\%')
     name = data_set[data_var].attrs.get(rename_to, variable)
 
-    if unit == 'absolute':
-        result.name = f'{x_yr} yr diff. {name} [{var_unit}]'  # type: ignore
-        return result  # type: ignore
-
-    if unit == 'relative':
-        result = 100 * result / to_min_x_yr.mean(dim=time_var)
-        result.name = fr'{x_yr} yr diff. {name} [$\%$]'  # type: ignore
-        return result  # type: ignore
-
-    if unit == 'std':
-        result = result / result.std()
-        result.name = fr'{x_yr} yr diff. {name} [$\sigma$]'  # type: ignore
-        return result  # type: ignore
+    result.name = f'{x_yr} yr diff. {name} [{var_unit}]'  # type: ignore
+    return result  # type: ignore
 
 
 @timed
 @apply_abs()
-@check_accepts(accepts=dict(unit=('absolute', 'relative', 'std')))
 def max_derivative(
     data_set: xr.Dataset,
     variable: str,
@@ -374,7 +330,6 @@ def max_derivative(
     running_mean: int = 10,
     rename_to: str = 'long_name',
     apply_abs: bool = True,
-    unit: str = 'absolute',
 ) -> xr.Dataset:  # type: ignore
     var_name = naming.format(variable=variable, running_mean=running_mean)
 
@@ -386,20 +341,5 @@ def max_derivative(
     var_unit = data_array.attrs.get('units', '{units}').replace('%', r'\%')
     name = data_array.attrs.get(rename_to, variable)
 
-    if unit == 'absolute':
-        result.name = fr'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
-        return result
-
-    if unit == 'relative':
-        result = 100 * result / data_array.mean(dim=time_var)
-        result.name = fr'Max $\partial/\partial t$ {name} [$\%$/yr]'
-        return result
-
-    if unit == 'std':
-        # A local unit of sigma might be better X.std(dim=time_var)
-        result = result / data_array.std()
-        result.name = fr'Max $\partial/\partial t$ {name} [$\sigma$/yr]'
-        return result
-
-
-rank2d = deprecated(rank2d, 'Call rank2d from optim_esm_tools.analyze.tools')
+    result.name = fr'Max $\partial/\partial t$ {name} [{var_unit}/yr]'
+    return result
