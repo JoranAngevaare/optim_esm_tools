@@ -5,6 +5,7 @@ import typing as ty
 import xarray as xr
 import numba
 import json
+from functools import partial
 
 
 def _dinfo(a):
