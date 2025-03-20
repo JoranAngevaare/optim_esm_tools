@@ -4,16 +4,22 @@ import numpy as np
 import typing as ty
 import xarray as xr
 import optim_esm_tools as oet
+from optim_esm_tools.analyze import tipping_criteria
 
 
 class MaskAll(RegionExtractor):
+    labels: tuple = tuple('ii'.split())
+    criteria: ty.Tuple = (tipping_criteria.StdDetrended,)
+
     @apply_options
     def get_masks(
         self,
         step_size: int = 5,
         force_continuity: bool = True,
     ) -> _mask_cluster_type:  # pragma: no cover
-        mask_2d: xr.DataArray = ~self.data_set[self.variable].isnull().all(dim='time')
+        mask_2d: xr.DataArray = ~self.data_set[
+            self.criteria[0].short_description
+        ].isnull()
         mask_values: np.ndarray = mask_2d.values
         lats: np.ndarray = self.data_set['lat'].values
         lons: np.ndarray = self.data_set['lon'].values

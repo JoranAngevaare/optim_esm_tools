@@ -7,12 +7,16 @@ import regionmask
 from ._base import _mask_cluster_type
 from ._base import RegionExtractor
 from ._base import apply_options
+from optim_esm_tools.analyze import tipping_criteria
 
 
 class _NamedRegions(RegionExtractor):
     region_database = regionmask.defined_regions.ar6.all
 
     _default_regions: ty.Tuple[str, ...]
+
+    labels: tuple = tuple('ii'.split())
+    criteria: ty.Tuple = (tipping_criteria.StdDetrended,)
 
     @apply_options
     def get_masks(
@@ -21,7 +25,8 @@ class _NamedRegions(RegionExtractor):
     ) -> _mask_cluster_type:
         if select_regions is None:
             select_regions = self._default_regions
-        mask_2d = ~self.data_set[self.variable].isnull().all(dim='time')
+
+        mask_2d = ~self.data_set[self.criteria[0].short_description].isnull()
         region_map = self.region_database.mask(self.data_set.lon, self.data_set.lat)
         mask_values = mask_2d.values
 
