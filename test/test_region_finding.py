@@ -71,6 +71,7 @@ class Work(unittest.TestCase):
                 _file_name=tail,
                 _cache=os.environ.get('_CACHE_TRUE', 0),
                 add_history=False,
+                drop_variable_fields=True,
             )
             cls_kw = dict(
                 data_set=data_set,
