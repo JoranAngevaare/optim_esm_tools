@@ -150,7 +150,7 @@ def is_excluded(path: str, exclude_too_short: bool = True) -> bool:
 
     for exl in exlusion_list:
         if exl:
-            directories = path.split(os.sep)[-len(exlusion_list[0].split()) :]
+            directories = path.split(os.sep)[-len(exl.split()) :]
             path_ends_with = os.path.join(*directories)
             break
     else:
@@ -160,6 +160,7 @@ def is_excluded(path: str, exclude_too_short: bool = True) -> bool:
     for excluded in exlusion_list:
         if not excluded:
             continue
+
         if any(d not in excluded for d in directories_to_match):
             continue
         folders = excluded.split()
