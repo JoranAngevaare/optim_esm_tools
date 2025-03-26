@@ -141,17 +141,29 @@ def _get_head(path: str) -> str:
 
 def is_excluded(path: str, exclude_too_short: bool = True) -> bool:
     from fnmatch import fnmatch
+    from optim_esm_tools.analyze.find_matches import _get_head, config
 
     path = _get_head(path)
     exlusion_list = config['CMIP_files']['excluded'].split('\n')
     if exclude_too_short:
         exlusion_list += config['CMIP_files']['too_short'].split('\n')
+
+    for exl in exlusion_list:
+        if exl:
+            directories = path.split(os.sep)[-len(exlusion_list[0].split()) :]
+            path_ends_with = os.path.join(*directories)
+            break
+    else:
+        oet.get_logger().warning('No excluded files?')
+        return False
+    directories_to_match = {k for k in directories if '*' not in k}
     for excluded in exlusion_list:
         if not excluded:
             continue
+        if any(d not in excluded for d in directories_to_match):
+            continue
         folders = excluded.split()
 
-        path_ends_with = os.path.join(*path.split(os.sep)[-len(folders) :])
         match_to = os.path.join(*folders)
         if fnmatch(path_ends_with, match_to):
             return True  # pragma: no cover
