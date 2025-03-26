@@ -7,6 +7,7 @@ import numba
 import json
 from functools import partial
 
+
 def _dinfo(a):
     try:
         return np.iinfo(a.dtype)
