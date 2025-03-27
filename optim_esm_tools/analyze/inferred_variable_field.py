@@ -139,35 +139,34 @@ def inferred_fields_to_dataset(
             # We keep this one as an array since we need it below.
             field_rm_np = running_mean_array(v, _rm)
         if do_detrend:
-            field_det = xr.DataArray(detrend_array(t_year, v), **xr_kw)
+            ds[f'{field}_detrend'] = xr.DataArray(detrend_array(t_year, v), **xr_kw)
         if do_running_mean and do_detrend:
-            field_det_rm = xr.DataArray(detrend_array(t_year, field_rm_np), **xr_kw)
-        field_rm = xr.DataArray(field_rm_np, **xr_kw)
-    else:
-        v_da = ds[field]
-        v = _dask_get_values(v_da)
-        if do_running_mean:
-            field_rm = _dask_to_da(
-                func=running_mean_array,
-                args=(v, _rm),
-                da_original=v_da,
+            ds[f'{field}_detrend_run_mean_{_rm}'] = xr.DataArray(
+                detrend_array(t_year, field_rm_np),
+                **xr_kw,
             )
-        if do_detrend:
-            field_det = _dask_to_da(
-                func=detrend_array,
-                args=(t_year, v),
-                da_original=v_da,
-            )
-        if do_running_mean and do_detrend:
-            field_det_rm = _dask_to_da(
-                func=detrend_array,
-                args=(t_year, _dask_get_values(field_rm)),
-                da_original=v_da,
-            )
+        ds[f'{field}_run_mean_{_rm}'] = xr.DataArray(field_rm_np, **xr_kw)
+        return ds
+
+    v_da = ds[field]
+    v = _dask_get_values(v_da)
     if do_running_mean:
-        ds[f'{field}_run_mean_{_rm}'] = field_rm
+        ds[f'{field}_run_mean_{_rm}'] = _dask_to_da(
+            func=running_mean_array,
+            args=(v, _rm),
+            da_original=v_da,
+        )
     if do_detrend:
-        ds[f'{field}_detrend'] = field_det
+        ds[f'{field}_detrend'] = _dask_to_da(
+            func=detrend_array,
+            args=(t_year, v),
+            da_original=v_da,
+        )
     if do_running_mean and do_detrend:
-        ds[f'{field}_detrend_run_mean_{_rm}'] = field_det_rm
+        ds[f'{field}_detrend_run_mean_{_rm}'] = _dask_to_da(
+            func=detrend_array,
+            args=(t_year, _dask_get_values(field_rm)),
+            da_original=v_da,
+        )
+
     return ds
