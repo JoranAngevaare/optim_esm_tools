@@ -50,6 +50,18 @@ class TestPreprocessing(TestCase):
         self.setup_dummy_dataset(raw)
         ds = oet.read_ds(self.temp_path, add_history=False, _skip_folder_info=True)
 
+    def test_read_ds_wo_dask(self):
+        raw = 'merged.nc'
+        self.setup_dummy_dataset(raw)
+        ds = oet.read_ds(self.temp_path, add_history=False, _skip_folder_info=True)
+        ds2 = oet.read_ds(
+            self.temp_path,
+            add_history=False,
+            _skip_folder_info=True,
+            _inferred_fields_kw=dict(use_dask=False),
+        )
+        assert ds.equals(ds2)
+
     def test_read_ds_with_history(self):
         raw = 'merged.nc'
         self.setup_dummy_dataset(raw, len_time=20, start_year=2000)

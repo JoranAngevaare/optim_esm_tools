@@ -100,8 +100,6 @@ def _dask_get_values(a: xr.DataArray):
 
 
 def _dask_to_da(func: ty.Callable, args: tuple, da_original: xr.DataArray):
-    from distributed import Client
-
     return xr.DataArray(
         dask_array.from_delayed(
             dask.delayed(
