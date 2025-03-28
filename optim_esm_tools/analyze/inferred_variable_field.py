@@ -165,7 +165,7 @@ def inferred_fields_to_dataset(
     if do_running_mean and do_detrend:
         ds[f'{field}_detrend_run_mean_{_rm}'] = _dask_to_da(
             func=detrend_array,
-            args=(t_year, _dask_get_values(field_rm)),
+            args=(t_year, _dask_get_values(ds[f'{field}_run_mean_{_rm}'])),
             da_original=v_da,
         )
 
