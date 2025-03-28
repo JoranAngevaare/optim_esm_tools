@@ -232,34 +232,7 @@ def pre_process(
     else:
         input_files = [f_regrid]
         os.rename(next_source, f_regrid)
-    next_source = f_regrid
 
-    if do_detrend:
-        var_det = f'{var}_detrend'
-        cdo_int.detrend(input=next_source, output=f_tmp)  # type: ignore
-        cdo_int.chname(f'{var},{var_det}', input=f_tmp, output=f_det)  # type: ignore
-        os.remove(f_tmp)
-        input_files += [f_det]
-
-    if do_running_mean:
-        var_rm = f'{var}_run_mean_{_ma_window}'
-        cdo_int.runmean(_ma_window, input=f_regrid, output=f_tmp)  # type: ignore
-        _run_mean_patch(
-            f_start=f_regrid,
-            f_rm=f_tmp,
-            f_out=f_rm,
-            ma_window=_ma_window,
-            var_name=var,
-            var_rm_name=var_rm,
-        )
-        os.remove(f_tmp)
-        input_files += [f_rm]
-
-    if do_running_mean and do_detrend:
-        var_det_rm = f'{var_det}_run_mean_{_ma_window}'
-        cdo_int.detrend(input=f_rm, output=f_tmp)  # type: ignore
-        cdo_int.chname(f'{var_rm},{var_det_rm}', input=f_tmp, output=f_det_rm)  # type: ignore
-        input_files += [f_det_rm]
     get_logger().info(f'Join {input_files} to {save_as}')
     cdo_int.merge(input=' '.join(input_files), output=save_as)  # type: ignore
 

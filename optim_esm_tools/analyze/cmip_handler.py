@@ -8,6 +8,7 @@ import optim_esm_tools as oet
 from .globals import _DEFAULT_MAX_TIME
 from .globals import _FOLDER_FMT
 from optim_esm_tools.analyze import tipping_criteria
+from optim_esm_tools.analyze.inferred_variable_field import inferred_fields_to_dataset
 
 
 def add_conditions_to_ds(
@@ -64,6 +65,7 @@ def add_conditions_to_ds(
             oet.get_logger().debug(
                 f'{condition} from {cls} set ma= {condition.running_mean} ma={_ma_window}',
             )
+            ds = ds.load()
             condition_array = condition.calculate(ds)
             condition_array = condition_array.assign_attrs(
                 dict(
@@ -88,13 +90,13 @@ def read_ds(
     strict: bool = True,
     load: ty.Optional[bool] = None,
     add_history: bool = False,
-    drop_variable_fields: bool = False,
     _ma_window: ty.Optional[ty.Union[int, str]] = None,
     _cache: bool = True,
     _file_name: ty.Optional[str] = None,
     _skip_folder_info: bool = False,
     _historical_path: ty.Optional[str] = None,
-    pre_proc_kw=None,
+    _inferred_fields_kw: ty.Optional[dict] = None,
+    pre_proc_kw: ty.Optional[dict] = None,
     **kwargs,
 ) -> ty.Optional[xr.Dataset]:
     """Read a dataset from a folder called "base".
@@ -114,8 +116,6 @@ def read_ds(
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         add_history (bool, optional): start by merging historical dataset to the dataset.
-        drop_variable_fields (bool, optional): if True, remove all fields in the dataset that contain
-            the to the <variable_of_interest>
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to allow faster
             (re)loading. Defaults to True.
@@ -123,6 +123,10 @@ def read_ds(
         _skip_folder_info (bool, optional): if set to True, do not infer the properties from the
             (synda) path of the file
         _historical_path (str, optional): If add_history is True, load from this (full) path
+        _inferred_fields_kw (dict, optional): add these kw to
+            optim_esm_tools.analyze.inferred_variable_field.inferred_fields_to_dataset
+        pre_proc_kw (dict, optional): add these kw to
+            optim_esm_tools.analyze.analyze.pre_process.get_preprocessed_ds
 
     kwargs:
         any kwargs are passed onto transform_ds.
@@ -133,6 +137,8 @@ def read_ds(
     log = oet.config.get_logger()
     _file_name = _file_name or oet.config.config['CMIP_files']['base_name']
     _ma_window = _ma_window or int(oet.config.config['analyze']['moving_average_years'])
+
+    _inferred_fields_kw = _inferred_fields_kw or dict(_rm=_ma_window)
     data_path = os.path.join(base, _file_name)
     variable_of_interest = (
         variable_of_interest or oet.analyze.pre_process._read_variable_id(data_path)
@@ -156,11 +162,14 @@ def read_ds(
         max_time,
         _ma_window,
         is_historical=_historical_path is not None,
-        drop_variable_fields=drop_variable_fields,
     )
 
     if os.path.exists(res_file) and _cache:
-        return oet.analyze.io.load_glob(res_file)
+        return oet.analyze.io.load_glob(
+            res_file,
+            field_kw=_inferred_fields_kw,
+            add_inferred_fields=True,
+        )
 
     if not os.path.exists(data_path):  # pragma: no cover
         message = f'No dataset at {data_path}'
@@ -185,8 +194,14 @@ def read_ds(
         if strict:
             raise ValueError(message)
         log.warning(message)
-        data_set = oet.analyze.io.load_glob(data_path, load=load)
-
+        data_set = oet.analyze.io.load_glob(
+            data_path,
+            load=load,
+            add_inferred_fields=False,
+        )
+    fields_start = set(list(data_set))
+    data_set = inferred_fields_to_dataset(data_set, **_inferred_fields_kw)
+    extra_fields = list(set(list(data_set)) - fields_start)
     if apply_transform:
         kwargs.update(
             dict(
@@ -195,11 +210,7 @@ def read_ds(
             ),
         )
         data_set = add_conditions_to_ds(data_set, **kwargs)
-    if drop_variable_fields:
-        for field in list(data_set.data_vars):
-            if variable_of_interest in field:
-                log.info(f'drop {field}')
-                data_set = data_set.drop(field)
+
     # start with -1 (for i==0)
     metadata = (
         {} if _skip_folder_info else oet.analyze.find_matches.folder_to_dict(base)
@@ -212,11 +223,13 @@ def read_ds(
 
     if _cache:
         log.info(f'Write {res_file}')
+        store_ds = data_set.copy()
+        store_ds = store_ds.drop(extra_fields)
         if oet.config.config['CMIP_files']['compress'] == 'True':
-            oet.analyze.pre_process.save_nc(data_set, res_file)
+            oet.analyze.pre_process.save_nc(store_ds, res_file)
         else:
-            data_set.to_netcdf(res_file)
-
+            store_ds.to_netcdf(res_file)
+        del store_ds
     return data_set
 
 
@@ -256,7 +269,6 @@ def _name_cache_file(
     _ma_window: int,
     is_historical: bool,
     version: ty.Optional[str] = None,
-    drop_variable_fields=False,
 ) -> str:
     """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
@@ -267,7 +279,6 @@ def _name_cache_file(
         f'_s{tuple(min_time) if min_time else ""}'
         f'_e{tuple(max_time) if max_time else ""}'
         f'_ma{_ma_window}'
-        + (f'_no_var' if drop_variable_fields else '')
         + ('_hist' if is_historical else '')
         + f'_optimesm_v{version}.nc',
     )
