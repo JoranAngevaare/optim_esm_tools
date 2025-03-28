@@ -224,7 +224,7 @@ def read_ds(
     if _cache:
         log.info(f'Write {res_file}')
         store_ds = data_set.copy()
-        store_ds.drop(extra_fields)
+        store_ds = store_ds.drop(extra_fields)
         if oet.config.config['CMIP_files']['compress'] == 'True':
             oet.analyze.pre_process.save_nc(store_ds, res_file)
         else:
