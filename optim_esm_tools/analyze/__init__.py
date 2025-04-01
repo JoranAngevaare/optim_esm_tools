@@ -1,3 +1,4 @@
+from . import inferred_variable_field
 from . import clustering
 from . import cmip_handler
 from . import combine_variables
