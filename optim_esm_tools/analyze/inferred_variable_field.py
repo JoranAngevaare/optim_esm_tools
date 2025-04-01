@@ -22,9 +22,12 @@ def detrend_array(x, y, is_known_nan: ty.Optional[np.ndarray] = None):
     if np.any(is_known_nan):
         res_full = np.empty_like(y)
         res_full[is_known_nan] = np.nan
-
-        res_full[~is_known_nan] = detrend_array_nb(x[~is_known_nan], y[~is_known_nan])
-
+        # let's check that the data is not empty
+        if np.any(~is_known_nan):
+            res_full[~is_known_nan] = detrend_array_nb(
+                x[~is_known_nan],
+                y[~is_known_nan],
+            )
         return res_full
     return detrend_array_nb(x, y)
 
@@ -106,6 +109,7 @@ def _dask_to_da(func: ty.Callable, args: tuple, da_original: xr.DataArray):
                 func,
             )(*args),
             shape=da_original.shape,
+            dtype=da_original.dtype,
             meta='f8',
         ),
         coords=da_original.coords,
