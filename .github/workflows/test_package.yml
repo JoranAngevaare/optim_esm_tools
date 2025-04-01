@@ -52,7 +52,7 @@ jobs:
           pip install -r requirements.txt
           pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         if: matrix.test != 'minimal'
         with:
           installer-url: https://github.com/conda-forge/miniforge/releases/download/24.9.2-0/Miniforge3-24.9.2-0-Linux-x86_64.sh
