@@ -30,6 +30,7 @@ class TestCombineVariables(TestCase):
                 ds.to_netcdf(path)
                 head, tail = os.path.split(path)
                 post_ds = oet.read_ds(head, _file_name=tail, _skip_folder_info=True)
+                assert os.path.exists(post_ds.attrs['file'])
                 post_path.append(post_ds.attrs['file'])
 
             merger = oet.analyze.combine_variables.VariableMerger(
@@ -37,6 +38,7 @@ class TestCombineVariables(TestCase):
                 other_paths=[p for p, m in zip(post_path, is_match) if not m],
                 merge_method='logical_or',
             )
+
             merged = merger.squash_sources()
             for n, m in zip(names, is_match):
                 if m:

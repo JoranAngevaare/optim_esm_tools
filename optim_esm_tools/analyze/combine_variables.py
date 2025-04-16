@@ -76,6 +76,9 @@ class VariableMerger:
         self.source_files = source_files
         self.common_mask = common_mask
 
+        for d in self.source_files.values():
+            assert 'cell_area' in list(ds := oet.load_glob(d)), (d, list(ds))
+
     def squash_sources(self) -> xr.Dataset:
         if self.data_set:
             return self.data_set  # pragma: no cover
