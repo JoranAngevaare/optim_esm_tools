@@ -60,7 +60,7 @@ where = [".", "optim_esm_tools"]
 
 [project.urls]
 homepage = 'https://github.com/JoranAngevaare/optim_esm_tools'
-documentation = 'https://github.com/JoranAngevaare/optim_esm_tools/blob/master/examples/Example.ipynb'
+documentation = 'https://github.com/JoranAngevaare/optim_esm_tools/blob/master/notebooks/example.ipynb'
 repository = 'https://github.com/JoranAngevaare/optim_esm_tools'
 
 
