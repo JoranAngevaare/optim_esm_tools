@@ -12,6 +12,7 @@ from optim_esm_tools.config import config
 from optim_esm_tools.config import get_logger
 from optim_esm_tools.utils import timed, check_accepts, to_str_tuple
 from pandas.util._decorators import deprecate_kwarg
+import xarray as xr
 
 
 @deprecate_kwarg('source', 'sources')
@@ -37,8 +38,8 @@ def get_preprocessed_ds(
     if return_type == 'path':
         assert 'save_as' in kw
         store_final = kw.pop('save_as')
-    if temp_dir_location is None and os.path.exists('/data/volume_2/temp'):
-        temp_dir_location = '/data/volume_2/temp'
+    if temp_dir_location is None and os.path.exists(config['host']['temp_dir']):
+        temp_dir_location = config['host']['temp_dir']
     with tempfile.TemporaryDirectory(dir=temp_dir_location) as temp_dir:
         if year_mean:
             old_sources = to_str_tuple(sources)
@@ -75,6 +76,7 @@ def get_preprocessed_ds(
             # After with close this "with", we lose the file, so load it just to be sure we have all we need
             ds = ds.load()  # type: ignore
             ret = ds
+            store_final = intermediate_file
         elif skip_compression:
             shutil.move(intermediate_file, store_final)
             ret = store_final
@@ -83,7 +85,19 @@ def get_preprocessed_ds(
             ret = store_final
 
     if _check_duplicate_years:
-        sanity_check(ds)
+        try:
+            sanity_check(ds)
+        except ValueError as e:
+            raise e
+            get_logger().warning(f'Duplicate times for {store_final}!')
+
+            with tempfile.TemporaryDirectory(dir=temp_dir_location) as temp_dir:
+                if not os.path.exists(store_final):
+                    ds.to_netcdf(store_final := os.path.join(temp_dir, 'temp.nc'))
+                _remove_duplicate_time_stamps(store_final, force=True)
+                ds = load_glob(store_final)
+                sanity_check(ds)
+                ret = ds.load() if return_type == 'data_set' else store_final
     return ret
 
 
@@ -119,6 +133,54 @@ def sanity_check(ds):
             m = f'Got at least one overlapping year on index {i} {t_cur} {t_prev}'
             raise ValueError(m)
         t_prev = t_cur
+
+
+def remap(
+    data_set: ty.Optional[xr.Dataset] = None,
+    path: ty.Optional[str] = None,
+    target_grid: ty.Union[None, str] = None,
+    temp_dir_location: ty.Optional[str] = None,
+    out_file: ty.Optional[str] = None,
+) -> ty.Union[str, xr.Dataset]:
+    """Use CDO to remap the current dataset to a different grid.
+
+    This function is meant to be convenient (not per se performant) as some of the I/O
+    operations can be duplicated. For instance, providing a data_set is not efficient
+    as we will store this to disk before being able to regrid it.
+
+    Args:
+        data_set (ty.Optional[xr.Dataset], optional): Dataset. Defaults to None.
+        path (ty.Optional[str], optional): Path of the dataset. Defaults to None.
+        target_grid (ty.Union[None, str], optional): The grid to regrid to. Defaults to None.
+        temp_dir_location (ty.Optional[str], optional): A path to use as a temporary location
+            for intermediate files. Defaults to None.
+        out_file (ty.Optional[str], optional): where tot store the file. Defaults to None.
+
+    Returns:
+        ty.Union[str, xr.Dataset]: Returns outfile if specified, otherwise loads a loaded dataset.
+    """
+    assert (
+        data_set is not None or path is not None
+    ), 'Either path or data_set needs to be specified'
+    target_grid = target_grid or config['analyze']['regrid_to']
+
+    if temp_dir_location is None and os.path.exists(config['host']['temp_dir']):
+        temp_dir_location = config['host']['temp_dir']
+
+    import cdo
+
+    cdo_int = cdo.Cdo()
+
+    with tempfile.TemporaryDirectory(dir=temp_dir_location) as temp_dir:
+        if path is None:
+            path = os.path.join(temp_dir, 'temp.nc')
+            data_set.to_netcdf(path)
+        write_to = out_file or os.path.join(temp_dir, f'temp_{target_grid}.nc')
+        cdo_int.remapbil(target_grid, input=path, output=write_to)
+
+        if out_file is None:
+            return load_glob(write_to).load()
+    return out_file
 
 
 def pre_process(
@@ -244,10 +306,15 @@ def pre_process(
 
 
 def _quick_drop_duplicates(ds, t_span, t_len, path):
+    log = get_logger()
     ds = ds.drop_duplicates('time')
+
     if (t_new_len := len(ds['time'])) > t_span + 1:
-        raise ValueError(f'{t_new_len} too long! Started with {t_len} and {t_span}')
-    get_logger().warning('Timestamp issue solved')
+        # try one more time, carefully
+        log.warning(f'{t_new_len} too long! Started with {t_len} and {t_span}')
+        _drop_duplicates_carefully(ds, t_span, t_new_len, path)
+        return
+    log.warning('Timestamp issue solved')
     with tempfile.TemporaryDirectory() as temp_dir:
         save_as = os.path.join(temp_dir, 'temp.nc')
         ds.to_netcdf(save_as)
@@ -262,11 +329,33 @@ def _drop_duplicates_carefully(ds, t_span, t_len, path):
     # As we only do this for huge datasets, it might be that /tmp doesn't allow storing sufficient data.
     work_dir = os.path.split(path)[0]
     with tempfile.TemporaryDirectory(dir=work_dir) as temp_dir:
-        keep_years = np.argwhere(np.diff([t.year for t in ds['time'].values]) == 1)[
+        keep_year = []
+        if 'time_bnds' in ds or 'time_bounds' in ds:
+            field = 'time_bnds' if 'time_bnds' in ds else 'time_bounds'
+            keep_year = np.isclose(
+                [
+                    dt.total_seconds()
+                    for dt in ds[field].diff(field.split('_')[1]).values[:, 0]
+                ],
+                365 * 24 * 3600,
+                rtol=0.1,
+            )
+        if np.sum(keep_year) != t_span + 1:
+            # Either the time-bounds are not available, or they are incorrectly formatted, not yielding 1 year intervals
+            # We have to resort to something simpler
+
+            keep_year = np.diff([t.year for t in ds['time'].values]) == 1
+
+            # always keep the first year
+            keep_year = [True] + list(keep_year)
+
+        assert (
+            np.sum(keep_year) == t_span + 1
+        ), f'Should have {t_span+1} years, instead have {np.sum(keep_year)+1}'
+        keep_years = np.argwhere(keep_year)[
             :,
             0,
         ]
-        keep_years = [0] + [int(i) + 1 for i in keep_years]
         saves = []
         for i in tqdm(keep_years):
             save_as = os.path.join(temp_dir, f'temp_{i}.nc')
@@ -274,8 +363,13 @@ def _drop_duplicates_carefully(ds, t_span, t_len, path):
             ds.isel(time=slice(i, i + 1)).load().to_netcdf(save_as)
         # move the old file
         _tempf = os.path.join(temp_dir, 'temp_merge.nc')
-        get_logger().warning(f'Merging {saves} -> {_tempf}')
-        _merge_sources(saves, _tempf)
+        get_logger().info(f'Merging {saves} -> {_tempf}')
+        try:
+            _merge_sources(saves, _tempf)
+        except Exception as e:
+            for f in saves:
+                get_logger().critical(f, list(load_glob(f)))
+            raise
         ds = load_glob(_tempf)
         if (t_new_len := len(ds['time'])) > t_span + 1:
             raise ValueError(
@@ -408,33 +502,6 @@ def _check_time_range(path, max_time, min_time, ma_window):
     if time_mask.sum() < float(ma_window):
         message = f'Data from {path} has {time_mask.sum()} time stamps in [{min_time}, {max_time}]'
         raise NoDataInTimeRangeError(message)
-
-
-def _run_mean_patch(f_start, f_rm, f_out, ma_window, var_name, var_rm_name):
-    """Patch running mean file, since cdo decreases the length of the file by
-    the ma_window, merging two files of different durations results in bad
-    data.
-
-    As a solution, we take the original file (f_start) and use it's
-    shape (like the number of timestamps) and fill those timestamps
-    where the value of the running mean is defined. Everything else is
-    set to zero.
-    """
-    ds_base = load_glob(f_start)
-    ds_rm = load_glob(f_rm)
-    ds_out = ds_base.copy()
-
-    # Replace timestamps with the CDO computed running mean
-    data = np.zeros(ds_base[var_name].shape, ds_base[var_name].dtype)
-    data[:] = np.nan
-    ma_window = int(ma_window)
-    data[ma_window // 2 : 1 - ma_window // 2] = ds_rm[var_name].values
-    ds_out[var_name].data = data
-
-    # Patch variables and save
-    ds_out = ds_out.rename({var_name: var_rm_name})
-    ds_out.attrs = ds_rm.attrs
-    ds_out.to_netcdf(f_out)
 
 
 class NoDataInTimeRangeError(Exception):

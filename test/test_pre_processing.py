@@ -120,6 +120,29 @@ class TestPreprocessing(TestCase):
 
         assert oet.load_glob(path).equals(oet.load_glob(path2))
 
+    def test_remap(self):
+        raw = 'merged.nc'
+        self.setup_dummy_dataset(raw)
+        file = os.path.join(self.temp_path, raw)
+        regrid_ds = oet.analyze.pre_process.remap(path=file, target_grid='n30')
+        assert isinstance(regrid_ds, xr.Dataset)
+
+        regrid_ds2 = oet.analyze.pre_process.remap(
+            data_set=oet.load_glob(file),
+            target_grid='n30',
+        )
+        assert isinstance(regrid_ds2, xr.Dataset)
+        assert regrid_ds2.equals(regrid_ds)
+
+        out_file = os.path.join(self.temp_path, 'merged_n30.nc')
+        regrid_ds3_path = oet.analyze.pre_process.remap(
+            path=file,
+            target_grid='n30',
+            out_file=out_file,
+        )
+        assert isinstance(regrid_ds3_path, str)
+        assert oet.load_glob(regrid_ds3_path).equals(regrid_ds)
+
 
 if __name__ == '__main__':
     main()

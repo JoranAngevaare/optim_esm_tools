@@ -154,7 +154,7 @@ def is_excluded(path: str, exclude_too_short: bool = True) -> bool:
             path_ends_with = os.path.join(*directories)
             break
     else:
-        oet.get_logger().warning('No excluded files?')
+        get_logger().warning('No excluded files?')
         return False
     directories_to_match = {k for k in directories if '*' not in k}
     for excluded in exlusion_list:
@@ -252,7 +252,8 @@ def _check_search_kw(
         # I'm quite sure there has been some mixup here.
         log.error(f'Hacking GISS-E2-1-G -> GISS-E2-2-G ?!!?!')
         search['source_id'] = 'GISS-E2-2-G'
-
+    if search['source_id'] == '*':
+        search['source_id'] = data_set.attrs['source_id']
     if search['source_id'] != data_set.attrs['source_id']:
         log.critical(
             f"Misalignment in source-ids for {path} got {search['source_id']} and {data_set.attrs['source_id']}",

@@ -481,7 +481,7 @@ def summarize_stats(
     ds_global: xr.Dataset,
     ds_pi: xr.Dataset,
     mask: ty.Union[np.ndarray, xr.DataArray],
-    field: str,
+    field: str = None,
 ) -> ty.Dict[str, ty.Union[str, int, float, bool]]:
     return RegionPropertyCalculator(
         ds_global=ds_global,
