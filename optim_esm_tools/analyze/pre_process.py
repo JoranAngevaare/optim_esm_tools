@@ -85,19 +85,7 @@ def get_preprocessed_ds(
             ret = store_final
 
     if _check_duplicate_years:
-        try:
-            sanity_check(ds)
-        except ValueError as e:
-            raise e
-            get_logger().warning(f'Duplicate times for {store_final}!')
-
-            with tempfile.TemporaryDirectory(dir=temp_dir_location) as temp_dir:
-                if not os.path.exists(store_final):
-                    ds.to_netcdf(store_final := os.path.join(temp_dir, 'temp.nc'))
-                _remove_duplicate_time_stamps(store_final, force=True)
-                ds = load_glob(store_final)
-                sanity_check(ds)
-                ret = ds.load() if return_type == 'data_set' else store_final
+        sanity_check(ds)
     return ret
 
 
