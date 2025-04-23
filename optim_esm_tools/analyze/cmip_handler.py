@@ -88,6 +88,7 @@ def read_ds(
     strict: bool = True,
     load: ty.Optional[bool] = None,
     add_history: bool = False,
+    drop_variable_fields: bool = False,
     _ma_window: ty.Optional[ty.Union[int, str]] = None,
     _cache: bool = True,
     _file_name: ty.Optional[str] = None,
@@ -113,6 +114,8 @@ def read_ds(
         strict (bool, optional): raise errors on loading, if any. Defaults to True.
         load (bool, optional): apply dataset.load to dataset directly. Defaults to False.
         add_history (bool, optional): start by merging historical dataset to the dataset.
+        drop_variable_fields (bool, optional): if True, remove all fields in the dataset that contain
+            the to the <variable_of_interest>
         _ma_window (int, optional): Moving average window (assumed to be years). Defaults to 10.
         _cache (bool, optional): cache the dataset with it's extra fields to allow faster
             (re)loading. Defaults to True.
@@ -153,6 +156,7 @@ def read_ds(
         max_time,
         _ma_window,
         is_historical=_historical_path is not None,
+        drop_variable_fields=drop_variable_fields,
     )
 
     if os.path.exists(res_file) and _cache:
@@ -191,7 +195,11 @@ def read_ds(
             ),
         )
         data_set = add_conditions_to_ds(data_set, **kwargs)
-
+    if drop_variable_fields:
+        for field in list(data_set.data_vars):
+            if variable_of_interest in field:
+                log.info(f'drop {field}')
+                data_set = data_set.drop(field)
     # start with -1 (for i==0)
     metadata = (
         {} if _skip_folder_info else oet.analyze.find_matches.folder_to_dict(base)
@@ -248,6 +256,7 @@ def _name_cache_file(
     _ma_window: int,
     is_historical: bool,
     version: ty.Optional[str] = None,
+    drop_variable_fields=False,
 ) -> str:
     """Get a file name that identifies the settings."""
     version = version or oet.config.config['versions']['cmip_handler']
@@ -258,6 +267,7 @@ def _name_cache_file(
         f'_s{tuple(min_time) if min_time else ""}'
         f'_e{tuple(max_time) if max_time else ""}'
         f'_ma{_ma_window}'
+        + (f'_no_var' if drop_variable_fields else '')
         + ('_hist' if is_historical else '')
         + f'_optimesm_v{version}.nc',
     )

@@ -18,17 +18,8 @@ jobs:
       matrix:
         test: [partial, minimal, notebook]
         python-version: ["3.8", "3.9", "3.10"]
-        os: [ubuntu-latest, ubuntu-20.04]
+        os: [ubuntu-latest]
         exclude:
-          - test: notebook
-            os: ubuntu-20.04
-
-          - test: minimal
-            os: ubuntu-20.04
-
-          - test: partial
-            os: ubuntu-latest
-
           - test: partial
             python-version: "3.8"
           - test: partial
@@ -41,7 +32,7 @@ jobs:
     steps:
       - name: Setup python
         if: matrix.test == 'minimal'
-        uses: actions/setup-python@v5.2.0
+        uses: actions/setup-python@v5.5.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Checkout repo
@@ -52,7 +43,7 @@ jobs:
           pip install -r requirements.txt
           pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         if: matrix.test != 'minimal'
         with:
           installer-url: https://github.com/conda-forge/miniforge/releases/download/24.9.2-0/Miniforge3-24.9.2-0-Linux-x86_64.sh
