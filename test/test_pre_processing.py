@@ -110,11 +110,11 @@ class TestPreprocessing(TestCase):
         ds.to_netcdf(path2 := os.path.join(self.temp_path, 'overlapping2.nc'))
         ds2 = oet.load_glob(path2)
 
-        oet.analyze.pre_process._quick_drop_duplicates(ds, 40, 50, path)
+        oet.analyze.pre_process._quick_drop_duplicates(ds, 39, 50, path)
         assert os.path.exists(f := os.path.join(self.temp_path, 'faulty_merged.nc'))
         os.remove(f)
 
-        oet.analyze.pre_process._drop_duplicates_carefully(ds2, 40, 50, path2)
+        oet.analyze.pre_process._drop_duplicates_carefully(ds2, 39, 50, path2)
         assert os.path.exists(f := os.path.join(self.temp_path, 'faulty_merged.nc'))
         os.remove(f)
 

@@ -339,7 +339,8 @@ def _drop_duplicates_carefully(ds, t_span, t_len, path):
 
         assert (
             np.sum(keep_year) == t_span + 1
-        ), f'Should have {t_span+1} years, instead have {np.sum(keep_year)+1}'
+        ), f'Should have {t_span+1} years, instead have {np.sum(keep_year)}'
+
         keep_years = np.argwhere(keep_year)[
             :,
             0,
