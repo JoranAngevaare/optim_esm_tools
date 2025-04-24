@@ -6,6 +6,10 @@ import xarray as xr
 import numba
 import json
 from functools import partial
+from optim_esm_tools.analyze.inferred_variable_field import (
+    running_mean,
+    running_mean_array,
+)
 
 
 def _dinfo(a):
@@ -120,32 +124,6 @@ def _smooth_lowess(x: np.ndarray, y: np.ndarray, ret_slice: slice, **kw) -> np.n
 
     smoothed = sm.nonparametric.lowess(exog=x, endog=y, **kw)
     return smoothed.T[ret_slice].squeeze()
-
-
-@numba.njit
-def running_mean(a: np.ndarray, window: int) -> np.ndarray:
-    res = np.zeros_like(a)
-    res[:] = np.nan
-    half_win = window // 2
-    mean = 0
-    for i, v in enumerate(a):
-        mean += v
-        if i >= window:
-            mean -= a[i - window]
-        if i >= (window - 1):
-            res[i - half_win + 1] = mean / window
-    return res
-
-
-@numba.njit
-def running_mean_array(a: np.ndarray, window: int) -> np.ndarray:
-    _, len_x, len_y = a.shape
-    res = np.zeros_like(a)
-    res[:] = np.nan
-    for i in range(len_x):
-        for j in range(len_y):
-            res[:, i, j] = running_mean(a[:, i, j], window)
-    return res
 
 
 def _weighted_mean_array_xarray(

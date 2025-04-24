@@ -50,22 +50,17 @@ class TestPreprocessing(TestCase):
         self.setup_dummy_dataset(raw)
         ds = oet.read_ds(self.temp_path, add_history=False, _skip_folder_info=True)
 
-    def test_read_ds_without_fields(self):
+    def test_read_ds_wo_dask(self):
         raw = 'merged.nc'
         self.setup_dummy_dataset(raw)
         ds = oet.read_ds(self.temp_path, add_history=False, _skip_folder_info=True)
-        ds_nofield = oet.read_ds(
+        ds2 = oet.read_ds(
             self.temp_path,
             add_history=False,
             _skip_folder_info=True,
-            drop_variable_fields=True,
+            _inferred_fields_kw=dict(use_dask=False),
         )
-        assert 'no_var' in ds_nofield.file
-        assert 'no_var' not in ds.file
-        assert ds_nofield.attrs['variable_id'] not in list(ds_nofield.data_vars), list(
-            ds_nofield.data_vars,
-        )
-        assert ds.attrs['variable_id'] in list(ds.data_vars), list(ds.data_vars)
+        assert ds.equals(ds2)
 
     def test_read_ds_with_history(self):
         raw = 'merged.nc'
@@ -115,15 +110,38 @@ class TestPreprocessing(TestCase):
         ds.to_netcdf(path2 := os.path.join(self.temp_path, 'overlapping2.nc'))
         ds2 = oet.load_glob(path2)
 
-        oet.analyze.pre_process._quick_drop_duplicates(ds, 40, 50, path)
+        oet.analyze.pre_process._quick_drop_duplicates(ds, 39, 50, path)
         assert os.path.exists(f := os.path.join(self.temp_path, 'faulty_merged.nc'))
         os.remove(f)
 
-        oet.analyze.pre_process._drop_duplicates_carefully(ds2, 40, 50, path2)
+        oet.analyze.pre_process._drop_duplicates_carefully(ds2, 39, 50, path2)
         assert os.path.exists(f := os.path.join(self.temp_path, 'faulty_merged.nc'))
         os.remove(f)
 
         assert oet.load_glob(path).equals(oet.load_glob(path2))
+
+    def test_remap(self):
+        raw = 'merged.nc'
+        self.setup_dummy_dataset(raw)
+        file = os.path.join(self.temp_path, raw)
+        regrid_ds = oet.analyze.pre_process.remap(path=file, target_grid='n30')
+        assert isinstance(regrid_ds, xr.Dataset)
+
+        regrid_ds2 = oet.analyze.pre_process.remap(
+            data_set=oet.load_glob(file),
+            target_grid='n30',
+        )
+        assert isinstance(regrid_ds2, xr.Dataset)
+        assert regrid_ds2.equals(regrid_ds)
+
+        out_file = os.path.join(self.temp_path, 'merged_n30.nc')
+        regrid_ds3_path = oet.analyze.pre_process.remap(
+            path=file,
+            target_grid='n30',
+            out_file=out_file,
+        )
+        assert isinstance(regrid_ds3_path, str)
+        assert oet.load_glob(regrid_ds3_path).equals(regrid_ds)
 
 
 if __name__ == '__main__':
