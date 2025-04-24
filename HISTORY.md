@@ -1,3 +1,20 @@
+4.0.0 / 2025-04-24
+------------------
+## Major
+* Add running mean and detrending on the fly to save disk by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/230
+
+## Minor
+* Optimized version of `is_excluded` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/229
+
+## Patch
+* Remove old functions by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/226
+* `setup-miniconda@v3` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/233
+* Bump actions/setup-python from 5.2.0 to 5.5.0 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/232
+* Update example path in `pyproject.toml` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/234
+* Only test ubuntu latest by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/235
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v3.1.0...v4.0.0
+
 3.1.0 / 2025-02-13
 ------------------
 ## Minor
