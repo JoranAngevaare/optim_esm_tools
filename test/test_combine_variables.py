@@ -54,7 +54,7 @@ class TestCombineVariables(TestCase):
             return merger
 
     @unittest.skipIf(
-        os.environ.get('NUMBA_DISABLE_JIT'),
+        str(os.environ.get('NUMBA_DISABLE_JIT')) == '1',
         'Running without numba takes too long',
     )
     def test_merge_three(self):
