@@ -2,6 +2,7 @@ import os
 import tempfile
 from unittest import main
 from unittest import TestCase
+import unittest
 
 import cftime
 import numpy as np
@@ -52,6 +53,10 @@ class TestCombineVariables(TestCase):
             )
             return merger
 
+    @unittest.skipIf(
+        str(os.environ.get('NUMBA_DISABLE_JIT')) == '1',
+        'Running without numba takes too long',
+    )
     def test_merge_three(self):
         merger = self.test_merge_two(is_match=(True, True, False))
         assert merger.other_paths

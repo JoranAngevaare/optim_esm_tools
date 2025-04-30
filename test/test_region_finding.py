@@ -115,6 +115,10 @@ class Work(unittest.TestCase):
     def test_percentiles_product(self):
         self.test_max_region('ProductPercentiles', skip_save=False)
 
+    @unittest.skipIf(
+        str(os.environ.get('NUMBA_DISABLE_JIT')) == '1',
+        'Running without numba takes too long',
+    )
     def test_local_history(self):
         self.test_max_region('LocalHistory')
 
@@ -139,6 +143,10 @@ class Work(unittest.TestCase):
     def test_iter_product_percentiles(self):
         self.test_max_region('IterProductPercentiles')
 
+    @unittest.skipIf(
+        str(os.environ.get('NUMBA_DISABLE_JIT')) == '1',
+        'Running without numba takes too long',
+    )
     def test_iter_local_history(self):
         self.test_max_region('IterLocalHistory')
 
