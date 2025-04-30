@@ -9,6 +9,7 @@ from optim_esm_tools.config import get_logger
 
 
 def setup_map(
+    *a,
     projection: ty.Optional[str] = None,
     coastlines: bool = True,
     add_features: bool = False,
@@ -18,7 +19,7 @@ def setup_map(
     no_top_labels: bool = True,
     **projection_kwargs,
 ):
-    plt.gcf().add_subplot(
+    plt.gcf().add_subplot(*a,
         projection=get_cartopy_projection(projection, **projection_kwargs),
     )
     ax = plt.gca()
