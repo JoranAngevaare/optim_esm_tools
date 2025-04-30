@@ -19,7 +19,8 @@ def setup_map(
     no_top_labels: bool = True,
     **projection_kwargs,
 ):
-    plt.gcf().add_subplot(*a,
+    plt.gcf().add_subplot(
+        *a,
         projection=get_cartopy_projection(projection, **projection_kwargs),
     )
     ax = plt.gca()
