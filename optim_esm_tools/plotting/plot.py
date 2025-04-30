@@ -18,7 +18,7 @@ def setup_map(
     gridline_kw: ty.Optional[dict] = None,
     no_top_labels: bool = True,
     **projection_kwargs,
-):
+) -> ty.Tuple[ty.Any, ty.Any]:
     plt.gcf().add_subplot(
         *a,
         projection=get_cartopy_projection(projection, **projection_kwargs),
@@ -39,6 +39,7 @@ def setup_map(
         gl = ax.gridlines(**gridline_kw)
         if no_top_labels:
             gl.top_labels = False
+    return ax, gl
 
 
 def _show(show):
