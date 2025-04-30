@@ -34,8 +34,8 @@ def _rank2d(a):
 
 @given(
     arrays(np.float16, shape=(50)).filter(
-        lambda x: (np.isfinite(x).sum() > 40) and len(np.unique(x)) > 1
-    )
+        lambda x: (np.isfinite(x).sum() > 40) and len(np.unique(x)) > 1,
+    ),
 )
 def test_smooth_lowes_year(a):
     b = oet.analyze.tools.smoother_lowess_year(a)
