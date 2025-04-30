@@ -194,8 +194,15 @@ class Merger:
 
         candidates_sorted = sorted(
             candidates_info,
-            key=lambda x: -int(x['passes'] * 2) * _max_number_of_cells
-            - int(x['cells']),
+            key=lambda x:
+            # Sort first by passing
+            -int(x['passes'] * 2) * _max_number_of_cells
+            # Then by cell size
+            - int(x['cells'])
+            # than by median latitude
+            - np.median(x['candidate'].lat) / 3600
+            # than by median longitude
+            - np.median(x['candidate'].lon) / 360000,
         )
 
         self.data_sets = [c['candidate'] for c in candidates_sorted]
