@@ -199,10 +199,8 @@ class Merger:
             -int(x['passes'] * 2) * _max_number_of_cells
             # Then by cell size
             - int(x['cells'])
-            # than by median latitude
-            - np.median(x['candidate'].lat) / 3600
-            # than by median longitude
-            - np.median(x['candidate'].lon) / 360000,
+            # than by median latitude, than by median longitude
+            - _med_lat_lon_scaled(x['candidate']['global_mask'], (360, 36000)),
         )
 
         self.data_sets = [c['candidate'] for c in candidates_sorted]
@@ -462,3 +460,15 @@ class MergerCached(Merger):
         for mask in masks:
             key = self.hash_for_mask(mask)
             self._cache[key] = fill_doc
+
+
+def _med_lat_lon(mask: xr.DataArray) -> ty.Tuple[float, float]:
+    dim = mask.dims
+    lat, lon = np.meshgrid(mask.coords[dim[0]], mask.coords[dim[1]])
+    mask_vals = mask.values.T
+    return np.median(lat[mask_vals]), np.median(lon[mask_vals])
+
+
+def _med_lat_lon_scaled(mask: xr.DataArray, scales=(360, 36000)) -> float:
+    """Scale lat lon by a number and return a single sum, e.g. for sorting based on median lat lon of mask"""
+    return sum(x / s for x, s in zip(_med_lat_lon(mask), scales))
