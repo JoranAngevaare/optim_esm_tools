@@ -601,12 +601,22 @@ def find_max_in_equal_area(
                 da_sel.where(prev_mask).values,
                 weights=area.values,
             )
+            if np.isnan(prev_in_sel):
+                return dict(
+                    area_m2=area_m2,
+                    max_in_sel=max_in_sel,
+                )
+
             prev_area = float(area.where(prev_mask).sum())
 
             itp_max = scipy.interpolate.interp1d(
                 [prev_area, area_m2],
                 [prev_in_sel, max_in_sel],
             )(target_area)
+            if np.isnan(itp_max):
+                raise ValueError(
+                    f'Interpolation error from {[prev_area, area_m2],[prev_in_sel, max_in_sel],}',
+                )
             return dict(
                 area_m2=target_area,
                 max_in_sel=itp_max,
