@@ -1,4 +1,5 @@
 # OptimESM Tools
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15275184.svg)](https://doi.org/10.5281/zenodo.15275184)
 [![Coverage Status](https://coveralls.io/repos/github/JoranAngevaare/optim_esm_tools/badge.svg)](https://coveralls.io/github/JoranAngevaare/optim_esm_tools)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/optim-esm-tools.svg)](https://pypi.python.org/pypi/optim-esm-tools/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/optim-esm-tools.svg)](https://pypi.python.org/pypi/optim-esm-tools)
