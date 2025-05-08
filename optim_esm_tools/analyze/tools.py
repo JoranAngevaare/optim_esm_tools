@@ -47,7 +47,7 @@ def rank2d(a):
 
 
 def smoother_lowess_year(a, n_year=40, **kw):
-    
+
     frac = n_year / np.sum(~np.isnan(a))
     if 'frac' in kw:
         raise ValueError
