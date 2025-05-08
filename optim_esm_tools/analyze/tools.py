@@ -47,8 +47,10 @@ def rank2d(a):
 
 
 def smoother_lowess_year(a, n_year=40, **kw):
-
     frac = n_year / np.sum(~np.isnan(a))
+    if np.sum(np.isnan(a)):
+        from optim_esm_tools import get_logger
+        get_logger().warning(f'One or more nans detected which might lead to unwanted effects')
     if 'frac' in kw:
         raise ValueError
     return partial(
