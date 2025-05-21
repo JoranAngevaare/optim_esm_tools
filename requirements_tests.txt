@@ -1,5 +1,6 @@
 aiohttp
 coverage
+coveralls
 diptest
 gcsfs
 geopy
