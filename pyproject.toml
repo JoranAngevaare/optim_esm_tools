@@ -17,6 +17,7 @@ dependencies = [
     "rasterio<=1.4.3",
     "regionmask",
     "cartopy",
+    "nc-time-axis",
     "cdo"
 ]
 readme = "README.md"
