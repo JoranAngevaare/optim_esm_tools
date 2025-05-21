@@ -15,6 +15,7 @@ dependencies = [
     "fiona<=1.9.6",
     "geopandas<=0.13.2",
     "rasterio<=1.4.3",
+    "regionmask"
 ]
 readme = "README.md"
 requires-python = ">=3.8"
