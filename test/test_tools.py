@@ -30,7 +30,6 @@ def _rank2d(a):
     assert np.all(np.isclose(pcts, rnk, equal_nan=True))
 
 
-
 def test_smooth_lowes_year():
     a = np.random.random_sample(50)
     if np.isfinite(a).sum() < 40 and len(np.unique(a)) > 1:
