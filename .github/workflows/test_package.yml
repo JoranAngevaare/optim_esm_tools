@@ -17,13 +17,19 @@ jobs:
       fail-fast: False
       matrix:
         test: [partial, import only, notebook, minimal]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         os: [ubuntu-latest]
         exclude:
           - test: partial
             python-version: "3.8"
           - test: partial
             python-version: "3.9"
+          - test: partial
+            python-version: "3.11"
+
+          - test: notebook
+            python-version: "3.11"
+
           - test: minimal
             python-version: "3.8"
           - test: minimal
@@ -44,7 +50,6 @@ jobs:
       - name: import only install
         if: matrix.test == 'import only'
         run: |
-          pip install -r requirements.txt
           pip install ../optim_esm_tools
           python -c "import optim_esm_tools; optim_esm_tools.utils.print_versions()"
       - uses: conda-incubator/setup-miniconda@v3
