@@ -66,6 +66,7 @@ jobs:
       - name: run minimal install
         if: matrix.test == 'minimal'
         run:
+          |
           conda activate synda
           conda install cdo
           pip install -e ../optim_esm_tools
