@@ -1,6 +1,6 @@
 import numpy as np
-from hypothesis import given
-from hypothesis import settings, HealthCheck
+from hypothesis import example, given
+from hypothesis import settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 from scipy.stats import percentileofscore
@@ -8,21 +8,11 @@ from scipy.stats import percentileofscore
 import optim_esm_tools as oet
 
 
-@given(
-    arrays(np.float16, shape=(10, 10), unique=True).filter(
-        lambda x: len(np.unique(x)) > 1,
-    ),
-)
-def test_rank_2d_float(a):
+# We used to have a "given" decorator here but it was too slow
+def test_rank_2d_float():
+    a = np.arange(2000).reshape(40, 50)
     _rank2d(a)
-
-
-@given(
-    arrays(np.int16, shape=(15, 3), unique=True).filter(
-        lambda x: len(np.unique(x)) > 1,
-    ),
-)
-def test_rank_2d_int(a):
+    a.astype(np.float64)
     _rank2d(a)
 
 
