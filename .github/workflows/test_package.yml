@@ -70,6 +70,7 @@ jobs:
           conda activate synda
           conda install cdo
           pip install -e ../optim_esm_tools
+          pip install -r requirements_test.txt
       - name: Run the notebook
         if: matrix.test == 'notebook'|| matrix.test == 'minimal'
         env:
