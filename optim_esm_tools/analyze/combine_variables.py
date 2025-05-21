@@ -616,7 +616,6 @@ def result_table(
 
     formats = formats or dict(
         n_breaks='.0f',
-        p_symmetry='.2%',
         p_dip='.1%',
         max_jump='.1f',
         n_std_global='.1f',
@@ -638,10 +637,6 @@ def summarize_stats(
 ) -> ty.Dict[str, ty.Union[int, float]]:
     return {
         'n_breaks': oet.analyze.time_statistics.calculate_n_breaks(ds, field=field),
-        'p_symmetry': oet.analyze.time_statistics.calculate_symmetry_test(
-            ds,
-            field=field,
-        ),
         'p_dip': oet.analyze.time_statistics.calculate_dip_test(ds, field=field),
     }
 

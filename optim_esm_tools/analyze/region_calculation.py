@@ -277,11 +277,6 @@ class RegionPropertyCalculator:
             ),
         )
 
-    def _calc_psymmetry_cached(self) -> np.float64:
-        values = self.weigthed_mean_cached(self.field, "ds_local")
-        values_as_tuple = tuple(values)
-        return cache_psym_test(values=values_as_tuple)
-
     def _calc_pdip(self) -> float:
         values = self.weigthed_mean_cached(self.field, "ds_local")
         return oet.analyze.time_statistics.calculate_dip_test(values=values)
@@ -423,7 +418,6 @@ class RegionPropertyCalculator:
 
     def calculate(self) -> ty.Dict[str, ty.Union[str, int, float, bool]]:  # type: ignore
         doc = dict(
-            p_sym_mi=self._calc_psymmetry_cached(),
             p_dip=self._calc_pdip(),
             se=abs(self._calc_start_end()),
             J2_rm=self._calc_j2(),
@@ -626,13 +620,6 @@ def find_max_in_equal_area(
         area_m2=1e-10,
         max_in_sel=1e-10,
     )
-
-
-@functools.lru_cache(maxsize=int(1e9))
-def cache_psym_test(values: np.ndarray, **kw) -> np.float64:
-    if not isinstance(values, np.ndarray):
-        values = np.array(values)
-    return oet.analyze.time_statistics.calculate_symmetry_test(values=values, **kw)
 
 
 def calculate_norm(

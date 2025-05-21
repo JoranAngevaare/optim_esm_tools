@@ -12,5 +12,3 @@ scipy
 tqdm
 treelib
 xarray
-# Some submodules require additional optional packages
-# rpy_symmetry
