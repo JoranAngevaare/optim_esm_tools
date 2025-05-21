@@ -30,12 +30,11 @@ def _rank2d(a):
     assert np.all(np.isclose(pcts, rnk, equal_nan=True))
 
 
-@given(
-    arrays(np.float16, shape=(50)).filter(
-        lambda x: (np.isfinite(x).sum() > 40) and len(np.unique(x)) > 1,
-    ),
-)
-def test_smooth_lowes_year(a):
+
+def test_smooth_lowes_year():
+    a = np.random.random_sample(50)
+    if np.isfinite(a).sum() < 40 and len(np.unique(a)) > 1:
+        return
     b = oet.analyze.tools.smoother_lowess_year(a)
     assert np.isfinite(a).sum() == len(b)
     assert np.isclose(np.nanmean(a[np.isfinite(a)]), np.nanmean(b), rtol=0.5, atol=0.5)
