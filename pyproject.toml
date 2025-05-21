@@ -10,7 +10,7 @@ dependencies = [
     "pandas",
     "tqdm",
     "scipy",
-    "xarray",
+    "xarray<=2023.8.0",
     "statsmodels",
     "fiona<=1.9.6",
     "geopandas<=0.13.2",
