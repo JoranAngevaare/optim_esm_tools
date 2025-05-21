@@ -27,7 +27,7 @@ maintainers = [{ name = "Joran R. Angevaare" }]
 description = "Tools for OptimESM"
 classifiers = [
     'Intended Audience :: Science/Research',
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 4 - Beta',
     'Natural Language :: English',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
