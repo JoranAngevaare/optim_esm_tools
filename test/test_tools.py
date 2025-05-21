@@ -7,13 +7,21 @@ from scipy.stats import percentileofscore
 
 import optim_esm_tools as oet
 
-@settings(suppress_health_check=[HealthCheck.too_slow])
-@given(arrays(np.float16, shape=(10, 10)).filter(lambda x: len(np.unique(x)) > 1))
+
+@given(
+    arrays(np.float16, shape=(10, 10), unique=True).filter(
+        lambda x: len(np.unique(x)) > 1,
+    ),
+)
 def test_rank_2d_float(a):
     _rank2d(a)
 
-@settings(suppress_health_check=[HealthCheck.too_slow])
-@given(arrays(np.int16, shape=(15, 3)).filter(lambda x: len(np.unique(x)) > 1))
+
+@given(
+    arrays(np.int16, shape=(15, 3), unique=True).filter(
+        lambda x: len(np.unique(x)) > 1,
+    ),
+)
 def test_rank_2d_int(a):
     _rank2d(a)
 
