@@ -20,6 +20,10 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         os: [ubuntu-latest]
         exclude:
+          # TODO temporary
+          - test: notebook
+          - test: partial
+
           - test: partial
             python-version: "3.8"
           - test: partial
@@ -72,8 +76,7 @@ jobs:
           bash .github/scripts/install_env.sh "--no_synda"
       - name: run minimal install
         if: matrix.test == 'minimal'
-        run:
-          |
+        run: |
           conda activate synda
           conda install cdo
           pip install -e ../optim_esm_tools

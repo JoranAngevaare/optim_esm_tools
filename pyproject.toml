@@ -13,6 +13,7 @@ dependencies = [
     "xarray<=2023.8.0",
     "statsmodels",
     "fiona<=1.9.6",
+    "shapely<2",
     "geopandas<=0.13.2",
     "rasterio<=1.4.3",
     "regionmask",
