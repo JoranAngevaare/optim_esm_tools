@@ -16,7 +16,8 @@ dependencies = [
     "geopandas<=0.13.2",
     "rasterio<=1.4.3",
     "regionmask",
-    "cartopy"
+    "cartopy",
+    "cdo"
 ]
 readme = "README.md"
 requires-python = ">=3.8"
