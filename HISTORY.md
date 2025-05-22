@@ -1,4 +1,4 @@
-4.0.0 / 2025-04-24
+5.0.0 / 2025-05-22
 ------------------
 ## Major (breaking change)
 * Remove symmetry test and R-requirement, test minimal install by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/245
