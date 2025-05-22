@@ -1,5 +1,24 @@
 4.0.0 / 2025-04-24
 ------------------
+## Major (breaking change)
+* Remove symmetry test and R-requirement, test minimal install by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/245
+
+## Minor
+* Further sort candidate regions on lat lon in `Merger` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/238
+* Advanced example notebook by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/239
+
+## Patch
+* Test for `analyze.region_calculation.calculate_norm` by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/240
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci in https://github.com/JoranAngevaare/optim_esm_tools/pull/243
+* Bump actions/setup-python from 5.5.0 to 5.6.0 by @dependabot in https://github.com/JoranAngevaare/optim_esm_tools/pull/242
+* Calculate frac for lowess based on non-nan values by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/244
+* Notes on installation added to README by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/246
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/optim_esm_tools/compare/v4.0.0...v5.0.0
+
+4.0.0 / 2025-04-24
+------------------
 ## Major
 * Add running mean and detrending on the fly to save disk by @JoranAngevaare in https://github.com/JoranAngevaare/optim_esm_tools/pull/230
 
