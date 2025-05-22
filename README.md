@@ -13,6 +13,12 @@ J.R. Angevaare (KNMI)
 This software is used in the scope of the [OptimESM](https://cordis.europa.eu/project/id/101081193) project.
 The scientific aim is to isolate regions of three dimensional earth science data (time, latitude and longitude) from CMIP6 and identify regions in latitude-longitude that show dramatic changes as function of time.
 
+This work is currently under review in Earth System Dynamics (ESD):
+https://egusphere.copernicus.org/preprints/2025/egusphere-2025-2039/
+
+In this github repository we include several examples on how to use this software. The first is the [example notebook](https://github.com/JoranAngevaare/optim_esm_tools/blob/master/notebooks/example.ipynb), to get started and get an overview of the workflow.
+
+
 ## Setup and installation
 This software requires [`cdo`](https://code.mpimet.mpg.de/projects/cdo) and [`cartopy`](https://github.com/SciTools/cartopy), and preferably also `latex`.
 
