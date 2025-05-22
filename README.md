@@ -35,7 +35,7 @@ pip install optim_esm_tools
 You should be ready to go!
 
 ### Testing installation (optional)
-After installation, you could test that everything is properly installed and all the dependencies are working. 
+After installation, you could test that everything is properly installed and all the dependencies are working.
 ```
 # Clone https://github.com/JoranAngevaare/optim_esm_tools
 git clone https://github.com/JoranAngevaare/optim_esm_tools.git
