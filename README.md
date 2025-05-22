@@ -13,7 +13,7 @@ J.R. Angevaare (KNMI)
 This software is used in the scope of the [OptimESM](https://cordis.europa.eu/project/id/101081193) project.
 The scientific aim is to isolate regions of three dimensional earth science data (time, latitude and longitude) from CMIP6 and identify regions in latitude-longitude that show dramatic changes as function of time.
 
-## Setup
+## Setup and installation
 This software requires [`cdo`](https://code.mpimet.mpg.de/projects/cdo) and [`cartopy`](https://github.com/SciTools/cartopy), and preferably also `latex`.
 
 To install `cdo` and `py-cdo`, we use `miniforge`, but alternative methods exits. To use `miniforge` (on linux):
@@ -33,6 +33,23 @@ pip install optim_esm_tools
 ```
 
 You should be ready to go!
+
+### Testing installation (optional)
+After installation, you could test that everything is properly installed and all the dependencies are working.
+```
+# Clone https://github.com/JoranAngevaare/optim_esm_tools
+git clone https://github.com/JoranAngevaare/optim_esm_tools.git
+cd optim_esm_tools
+pytest -v --durations 0
+```
+You could even test that all the notebooks work out of the box with the jupyter setup in your environment:
+```
+# Clone https://github.com/JoranAngevaare/optim_esm_tools
+git clone https://github.com/JoranAngevaare/optim_esm_tools.git
+cd optim_esm_tools
+pip install -r requirements_tests.txt
+pytest optim_esm_tools -v --nbmake -n3 notebooks/*.ipynb --durations 0
+```
 
 ## Extended setup (optional)
 For downloading CMIP6 data, [`synda`](https://espri-mod.github.io/synda/index.html#) is a useful tool, and few routines work best with the associated the [`ESGF`](https://pcmdi.llnl.gov/)-file structure.
