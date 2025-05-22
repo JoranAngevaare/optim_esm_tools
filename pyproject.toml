@@ -6,15 +6,20 @@ dependencies = [
     "intake-esm",
     "matplotlib",
     "numba",
-    "numpy",
+    "numpy<2",
     "pandas",
     "tqdm",
-    "treelib",
-    "xarray",
+    "scipy",
+    "xarray<=2023.8.0",
     "statsmodels",
     "fiona<=1.9.6",
+    "shapely<2",
     "geopandas<=0.13.2",
     "rasterio<=1.4.3",
+    "regionmask",
+    "cartopy",
+    "nc-time-axis",
+    "cdo"
 ]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -24,7 +29,7 @@ maintainers = [{ name = "Joran R. Angevaare" }]
 description = "Tools for OptimESM"
 classifiers = [
     'Intended Audience :: Science/Research',
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 4 - Beta',
     'Natural Language :: English',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',

@@ -14,14 +14,30 @@ This software is used in the scope of the [OptimESM](https://cordis.europa.eu/pr
 The scientific aim is to isolate regions of three dimensional earth science data (time, latitude and longitude) from CMIP6 and identify regions in latitude-longitude that show dramatic changes as function of time.
 
 ## Setup
-This software requires [`cdo`](https://code.mpimet.mpg.de/projects/cdo) and [`cartopy`](https://github.com/SciTools/cartopy), and preferably also `latex` and `R`.
+This software requires [`cdo`](https://code.mpimet.mpg.de/projects/cdo) and [`cartopy`](https://github.com/SciTools/cartopy), and preferably also `latex`.
+
+To install `cdo` and `py-cdo`, we use `miniforge`, but alternative methods exits. To use `miniforge` (on linux):
+```
+wget https://github.com/conda-forge/miniforge/releases/download/25.3.0-3/Miniforge3-Linux-x86_64.sh
+bash Miniforge3-Linux-x86_64.sh
+```
+Create an environment, e.g.:
+```
+conda create -n py310 python=3.10.13 cdo
+# and activate
+conda ativate py310
+```
+```
+# install the software
+pip install optim_esm_tools
+```
+
+You should be ready to go!
+
+## Extended setup (optional)
 For downloading CMIP6 data, [`synda`](https://espri-mod.github.io/synda/index.html#) is a useful tool, and few routines work best with the associated the [`ESGF`](https://pcmdi.llnl.gov/)-file structure.
 Since `synda` list is only supported in python 3.8, we created a separate repository [`optim_esm_base`](https://github.com/JoranAngevaare/optim_esm_base) that has a working set of  software versions that are compatible with these requirements.
 
-After these base requirements are fulfilled, one can install this software via pip
-```
-pip install optim_esm_tools
-```
 
 Alternatively, setting up a miniforge/conda environment is documented in [`optim_esm_base`](https://github.com/JoranAngevaare/optim_esm_base).
 

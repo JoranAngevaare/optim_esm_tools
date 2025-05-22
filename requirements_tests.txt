@@ -1,5 +1,6 @@
 aiohttp
 coverage
+coveralls
 diptest
 gcsfs
 geopy
@@ -19,7 +20,6 @@ pytest-forked==1.6.0
 pytest-runner==6.0.1
 pytest-xdist==3.0.2
 pytest_notebook==0.10.0
-rpy_symmetry
 ruptures
 scikit-learn
 scipy
