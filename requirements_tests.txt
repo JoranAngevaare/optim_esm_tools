@@ -14,7 +14,7 @@ nbconvert==7.16.4
 nbmake==1.1
 numba
 pytest
-pytest==6.2.5
+pytest==8.4.2
 pytest-cov==5.0.0
 pytest-forked==1.6.0
 pytest-runner==6.0.1
