@@ -23,7 +23,6 @@ except ImportError:  # pragma: no cover
 
 import sys
 
-
 # From https://github.com/AxFoundation/strax/blob/136a16975b18ee87500051fd81a90c894d9b58dc/strax/utils.py#L33
 if any('jupyter' in arg for arg in sys.argv):
     # In some cases we are not using any notebooks,
