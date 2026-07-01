@@ -6,7 +6,7 @@ dependencies = [
     "intake-esm",
     "matplotlib",
     "numba",
-    "numpy<2",
+    "numpy<3",
     "pandas",
     "tqdm",
     "scipy",
